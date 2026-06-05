@@ -2,7 +2,7 @@ import os
 import sys
 import time
 from config.settings import Settings
-from core.extractor import NativePdfExtractor, OcrPdfExtractor
+from core.extractor import NativePdfExtractor
 from core.ocr_parser import DefaultOcrParser
 from core.csv_writer import DefaultCsvWriter
 from core.terminal_ui import TerminalManager, ConsoleObserver, print_summary_dashboard
@@ -57,10 +57,8 @@ class ShellManager:
                 pass
 
         # 5. Instantiate parser engines
+        extractor = NativePdfExtractor()
         csv_writer = DefaultCsvWriter(path_output=settings.OUTPUT_CSV)
-        extractor = (
-            NativePdfExtractor() if settings.MODE == "native" else OcrPdfExtractor(tessdata_dir=settings.TRAINED_DATA_DIR)
-        )
         ocr_parser = DefaultOcrParser(extractor=extractor, csv_writer=csv_writer)
 
         start_time = time.perf_counter()
