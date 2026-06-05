@@ -7,5 +7,7 @@
   "reportUnusedCallResult": false,
   "reportImplicitOverride": false,
   "reportUnannotatedClassAttribute": false,
-  "reportOptionalMemberAccess": false
+  "reportOptionalMemberAccess": false,
+  "venvPath": ".",
+  "venv": ".venv"
 }
