@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generator
+from typing import Generator, Callable
 from pdf2image import pdfinfo_from_path, convert_from_path
 from pypdf import PdfReader
 from core.cnn_ai_model import CnnAiModel, Pytesseract
@@ -14,7 +14,11 @@ class BasePdfExtractor(ABC):
         pass
 
     @abstractmethod
-    def extract_pages(self, pdf_path: str) -> Generator[tuple[str, str], None, None]:
+    def extract_pages(
+        self,
+        pdf_path: str,
+        validator: Callable[[str], bool] | None = None
+    ) -> Generator[tuple[str, str], None, None]:
         """
         Yields the text content of each page and the method used (text, method) sequentially.
         """
@@ -41,7 +45,11 @@ class OcrPdfExtractor(BasePdfExtractor):
         # OCR process on the single image
         return self._cnn_ai_model.process_image(image)
 
-    def extract_pages(self, pdf_path: str) -> Generator[tuple[str, str], None, None]:
+    def extract_pages(
+        self,
+        pdf_path: str,
+        validator: Callable[[str], bool] | None = None
+    ) -> Generator[tuple[str, str], None, None]:
         total_pages = self.get_page_count(pdf_path)
         for page_num in range(1, total_pages + 1):
             yield self._extract_single_page(pdf_path, page_num), "ocr"
@@ -61,7 +69,11 @@ class NativePdfExtractor(BasePdfExtractor):
         page = reader.pages[page_num - 1]
         return page.extract_text() or ""
 
-    def extract_pages(self, pdf_path: str) -> Generator[tuple[str, str], None, None]:
+    def extract_pages(
+        self,
+        pdf_path: str,
+        validator: Callable[[str], bool] | None = None
+    ) -> Generator[tuple[str, str], None, None]:
         reader = PdfReader(pdf_path)
         for page_num in range(1, len(reader.pages) + 1):
             yield self._extract_single_page(reader, page_num), "native"
@@ -83,7 +95,11 @@ class FallbackPdfExtractor(BasePdfExtractor):
     def get_page_count(self, pdf_path: str) -> int:
         return self._native_extractor.get_page_count(pdf_path)
 
-    def extract_pages(self, pdf_path: str) -> Generator[tuple[str, str], None, None]:
+    def extract_pages(
+        self,
+        pdf_path: str,
+        validator: Callable[[str], bool] | None = None
+    ) -> Generator[tuple[str, str], None, None]:
         reader = PdfReader(pdf_path)
         total_pages = len(reader.pages)
         for page_num in range(1, total_pages + 1):
@@ -91,8 +107,12 @@ class FallbackPdfExtractor(BasePdfExtractor):
             text = self._native_extractor._extract_single_page(reader, page_num)
             method = "native"
             
-            # 2. Se falhar ou for menor que o limite, usar OCR
-            if len(text.strip()) < self.min_char_threshold:
+            # 2. Se falhar no limite de caracteres ou no validador, usar OCR
+            should_ocr = len(text.strip()) < self.min_char_threshold
+            if not should_ocr and validator is not None:
+                should_ocr = not validator(text)
+                
+            if should_ocr:
                 text = self._ocr_extractor._extract_single_page(pdf_path, page_num)
                 method = "ocr"
                 
