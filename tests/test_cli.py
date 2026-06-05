@@ -11,11 +11,11 @@ from main import main
 
 class TestCli(unittest.TestCase):
     @patch("main.argparse.ArgumentParser.parse_args")
-    @patch("main.os.path.exists")
-    @patch("main.os.path.isdir")
-    @patch("main.DefaultOcrParser")
-    @patch("main.Console")
-    @patch("main.Progress")
+    @patch("core.shell_manager.os.path.exists")
+    @patch("core.shell_manager.os.path.isdir")
+    @patch("core.shell_manager.DefaultOcrParser")
+    @patch("core.shell_manager.Console")
+    @patch("core.shell_manager.Progress")
     def test_cli_execution_flow(self, mock_progress, mock_console, mock_parser_class, mock_isdir, mock_exists, mock_parse_args):
         # Setup mocks
         mock_exists.return_value = True
@@ -37,7 +37,7 @@ class TestCli(unittest.TestCase):
         mock_parser_instance._ocr_pages = 3
         
         # Mock os.listdir for file count
-        with patch("main.os.listdir", return_value=["file1.pdf", "file2.pdf"]):
+        with patch("core.shell_manager.os.listdir", return_value=["file1.pdf", "file2.pdf"]):
             # Execute main
             main()
             
