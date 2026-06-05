@@ -5,7 +5,7 @@ import unicodedata
 from os import path, listdir
 from abc import ABC, abstractmethod
 
-from core.extractor import BasePdfExtractor, FallbackPdfExtractor
+from core.extractor import BasePdfExtractor, NativePdfExtractor
 from core.csv_writer import CsvWriter, DefaultCsvWriter
 from core.observer import ExtractionObserver
 
@@ -64,16 +64,11 @@ class DefaultOcrParser(OcrParser):
         extractor: BasePdfExtractor | None = None,
         csv_writer: CsvWriter | None = None,
     ):
-        self._extractor = extractor or FallbackPdfExtractor()
+        self._extractor = extractor or NativePdfExtractor()
         self._csv_writer = csv_writer or DefaultCsvWriter()
 
         self._estimative_acc = 1200
         self._estimative_cnt = 1
-        self._total_pages = 0
-        self._successful_pages = 0
-        self._failed_pages = 0
-        self._native_pages = 0
-        self._ocr_pages = 0
 
     def process(self, dir_path: str, observer: ExtractionObserver | None = None):
         self._verify_path(dir_path)
@@ -139,14 +134,7 @@ class DefaultOcrParser(OcrParser):
         total_pages = self._extractor.get_page_count(file_path)
         self._total_pages += total_pages
 
-        def validator(text: str) -> bool:
-            try:
-                self._parse_page(text)
-                return True
-            except ValueError:
-                return False
-
-        page_generator = self._extractor.extract_pages(file_path, validator=validator)
+        page_generator = self._extractor.extract_pages(file_path)
         for page_index, (page_text, method) in enumerate(page_generator, start=1):
             if observer and getattr(observer, "is_cancelled", False):
                 break
@@ -186,20 +174,41 @@ class DefaultOcrParser(OcrParser):
             self._log_failed_page(page_text, page_number, str(e), extracted_data)
             return False
 
-    def _log_failed_page(self, page_text: str, page_number: int, error_msg: str, extracted_data: dict[str, str] | None = None):
+    def _log_failed_page(
+        self,
+        page_text: str,
+        page_number: int,
+        error_msg: str,
+        extracted_data: dict[str, str] | None = None,
+    ):
         log_path = os.path.join(os.getcwd(), "gaia_errors.log")
         try:
             with open(log_path, "a", encoding="utf-8") as f:
-                f.write(f"\n{'='*80}\n")
+                f.write(f"\n{'=' * 80}\n")
                 f.write(f"FALHA NA EXTRAÇÃO - Página {page_number}\n")
                 f.write(f"Erro: {error_msg}\n")
                 if extracted_data:
                     f.write(f"Campos extraídos: {extracted_data}\n")
-                f.write(f"{'-'*80}\n")
+                f.write(f"{'-' * 80}\n")
                 f.write(page_text)
-                f.write(f"\n{'='*80}\n")
+                f.write(f"\n{'=' * 80}\n")
         except Exception:
             pass
+
+    _KEY_MAP = {
+        "data_emissao": "DAT_EMISS",
+        "data_vencimento": "DAT_VENC",
+        "n_infracao": "AI",
+        "concessionaria": "CONCESSIONARIA",
+        "linha": "LINHA",
+        "veiculo": "VEICULO",
+        "placa": "PLACA",
+        "data_ocorrencia": "DAT_OCORRENCIA",
+        "hora_ocorrencia": "HORA_OCORRENCIA",
+        "local": "LOCAL",
+        "descricao": "DESCRICAO",
+        "valor": "VALOR",
+    }
 
     def _parse_page(self, page_text: str) -> dict[str, str]:
         # Aplica o seu pré-processamento normal
@@ -219,13 +228,18 @@ class DefaultOcrParser(OcrParser):
                 # Retorna string vazia (ou None) se o OCR falhar em um campo específico
                 resultados[chave] = ""
 
+        # Map internal keys to final CSV keys
+        mapped_resultados = {
+            self._KEY_MAP.get(k, k): v for k, v in resultados.items()
+        }
+
         # Validação: se não encontrou o campo principal, a página é inválida/lixo
         if not resultados.get("n_infracao"):
             err = ValueError("Invalid page structure: missing n_infracao")
-            err.extracted_data = resultados
+            err.extracted_data = mapped_resultados
             raise err
 
-        return resultados
+        return mapped_resultados
 
     def _verify_path(self, dir_path: str):
         if not path.exists(dir_path):
