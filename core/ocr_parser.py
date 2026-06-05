@@ -71,6 +71,7 @@ class DefaultOcrParser(OcrParser):
         self._estimative_cnt = 1
         self._total_pages = 0
         self._successful_pages = 0
+        self._failed_pages = 0
         self._native_pages = 0
         self._ocr_pages = 0
 
@@ -78,6 +79,7 @@ class DefaultOcrParser(OcrParser):
         self._verify_path(dir_path)
         self._total_pages = 0
         self._successful_pages = 0
+        self._failed_pages = 0
         self._native_pages = 0
         self._ocr_pages = 0
 
@@ -137,7 +139,14 @@ class DefaultOcrParser(OcrParser):
         total_pages = self._extractor.get_page_count(file_path)
         self._total_pages += total_pages
 
-        page_generator = self._extractor.extract_pages(file_path)
+        def validator(text: str) -> bool:
+            try:
+                self._parse_page(text)
+                return True
+            except ValueError:
+                return False
+
+        page_generator = self._extractor.extract_pages(file_path, validator=validator)
         for page_index, (page_text, method) in enumerate(page_generator, start=1):
             if observer and getattr(observer, "is_cancelled", False):
                 break
@@ -152,13 +161,14 @@ class DefaultOcrParser(OcrParser):
                     self._native_pages += 1
                 else:
                     self._ocr_pages += 1
+            else:
+                self._failed_pages += 1
 
             if observer:
-                error_pages = self._total_pages - self._successful_pages
                 observer.on_page_processed(
                     success,
                     self._successful_pages,
-                    error_pages,
+                    self._failed_pages,
                     page_index,
                     total_pages,
                     self._native_pages,
