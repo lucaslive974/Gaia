@@ -7,7 +7,7 @@ from core.extractor import FallbackPdfExtractor
 from core.csv_writer import DefaultCsvWriter
 from core.terminal_ui import TerminalManager, ConsoleObserver, print_summary_dashboard
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
 from rich.live import Live
 
 
@@ -60,6 +60,7 @@ class ShellManager:
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
             TaskProgressColumn(),
+            TimeRemainingColumn(),
             console=self.console
         )
         observer = ConsoleObserver(self.console, progress)
