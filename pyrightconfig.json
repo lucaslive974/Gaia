@@ -1,0 +1,11 @@
+{
+  "reportUnknownVariableType": false,
+  "reportUnknownMemberType": false,
+  "reportUnknownParameterType": false,
+  "reportUnknownArgumentType": false,
+  "reportMissingParameterType": false,
+  "reportUnusedCallResult": false,
+  "reportImplicitOverride": false,
+  "reportUnannotatedClassAttribute": false,
+  "reportOptionalMemberAccess": false
+}
