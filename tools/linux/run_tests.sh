@@ -1,9 +1,10 @@
 #!/bin/bash
 # run_tests.sh
-# Script para execução simplificada da suíte de testes unitários no Gaia.
+# Script para execução da suíte de testes unitários no Gaia.
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$DIR"
+PROJECT_ROOT="$( cd "$DIR/../.." && pwd )"
+cd "$PROJECT_ROOT"
 
 if [ -f "./.venv/bin/python" ]; then
     PYTHON_BIN="./.venv/bin/python"
