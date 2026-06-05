@@ -26,8 +26,8 @@ class OcrPdfExtractor(BasePdfExtractor):
     Page-by-page PDF text extractor using Tesseract OCR.
     """
 
-    def __init__(self, cnn_ai_model: CnnAiModel | None = None):
-        self._cnn_ai_model = cnn_ai_model or Pytesseract()
+    def __init__(self, cnn_ai_model: CnnAiModel | None = None, tessdata_dir: str | None = None):
+        self._cnn_ai_model = cnn_ai_model or Pytesseract(tessdata_dir=tessdata_dir)
 
     def get_page_count(self, pdf_path: str) -> int:
         info = pdfinfo_from_path(pdf_path)

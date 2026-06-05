@@ -48,6 +48,71 @@ class TestCli(unittest.TestCase):
         mock_parser_class.assert_called_once()
         mock_parser_instance.process.assert_called_once()
 
+    @patch("core.shell_manager.os.path.exists")
+    @patch("core.shell_manager.os.path.isdir")
+    @patch("core.shell_manager.DefaultOcrParser")
+    @patch("core.shell_manager.Console")
+    @patch("core.shell_manager.Progress")
+    @patch("core.shell_manager.DefaultCsvWriter")
+    @patch("core.shell_manager.OcrPdfExtractor")
+    @patch("core.shell_manager.NativePdfExtractor")
+    def test_shell_manager_passes_settings_to_components(
+        self,
+        mock_native_extractor_class,
+        mock_ocr_extractor_class,
+        mock_csv_writer_class,
+        mock_progress,
+        mock_console,
+        mock_parser_class,
+        mock_isdir,
+        mock_exists,
+    ):
+        from core.shell_manager import ShellManager
+        from config.settings import Settings
+
+        mock_exists.return_value = True
+        mock_isdir.return_value = True
+
+        mock_parser_instance = MagicMock()
+        mock_parser_class.return_value = mock_parser_instance
+        mock_parser_instance._total_pages = 0
+        mock_parser_instance._successful_pages = 0
+        mock_parser_instance._native_pages = 0
+        mock_parser_instance._ocr_pages = 0
+
+        # Test scenario 1: OCR Mode
+        ocr_settings = Settings()
+        ocr_settings.BASE_PATH = "/dummy/input"
+        ocr_settings.OUTPUT_CSV = "/dummy/output_ocr.csv"
+        ocr_settings.TRAINED_DATA_DIR = "/dummy/traineddata_ocr"
+        ocr_settings.MODE = "ocr"
+
+        shell = ShellManager(console=mock_console)
+        # Mock listdir to avoid file counting issues
+        with patch("core.shell_manager.os.listdir", return_value=[]):
+            shell.run(ocr_settings)
+
+        # Assert DefaultCsvWriter was initialized with the custom output path
+        mock_csv_writer_class.assert_any_call(path_output="/dummy/output_ocr.csv")
+        # Assert OcrPdfExtractor was initialized with the custom traineddata
+        mock_ocr_extractor_class.assert_any_call(tessdata_dir="/dummy/traineddata_ocr")
+
+        # Test scenario 2: Native Mode
+        mock_csv_writer_class.reset_mock()
+        native_settings = Settings()
+        native_settings.BASE_PATH = "/dummy/input"
+        native_settings.OUTPUT_CSV = "/dummy/output_native.csv"
+        native_settings.MODE = "native"
+
+        with patch("core.shell_manager.os.listdir", return_value=[]):
+            shell.run(native_settings)
+
+        # Assert DefaultCsvWriter was initialized with the native output path
+        mock_csv_writer_class.assert_any_call(path_output="/dummy/output_native.csv")
+        # Assert NativePdfExtractor was initialized (takes no args)
+        mock_native_extractor_class.assert_any_call()
+
 
 if __name__ == "__main__":
     unittest.main()
+

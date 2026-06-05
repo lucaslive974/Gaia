@@ -1,10 +1,9 @@
 import argparse
-from config.settings import Settings
+from config import settings
 from core.shell_manager import ShellManager
 
 
 def main():
-    settings = Settings()
     parser = argparse.ArgumentParser(
         description="Gaia/Atlas PDF Extractor - Ferramenta CLI de extração inteligente de dados de PDFs."
     )
