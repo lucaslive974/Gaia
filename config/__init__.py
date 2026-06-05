@@ -1,1 +1,3 @@
-from config.settings import settings
+from config.settings import Settings
+
+settings = Settings()
