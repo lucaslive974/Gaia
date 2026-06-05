@@ -4,7 +4,7 @@ import os
 input_attr = [
     ["input_dir", "BASE_PATH"],
     ["output", "OUTPUT_CSV"],
-    ["trainned_data", "TRAINED_DATA_DIR"],
+    ["traineddata", "TRAINED_DATA_DIR"],
     ["mode", "MODE"],
 ]
 
