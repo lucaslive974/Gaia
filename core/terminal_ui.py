@@ -24,6 +24,7 @@ class TerminalManager:
     and non-echo mode during execution, while preserving signals (Ctrl+C).
     Restores the original terminal attributes automatically upon exiting.
     """
+
     def __init__(self):
         self._old_settings = None
 
@@ -59,6 +60,7 @@ class ConsoleObserver(ExtractionObserver):
     TUI Observer that updates rich.progress and rich.live in real-time,
     handling terminal display rendering and ESC key cancellation.
     """
+
     def __init__(self, console: Console, progress: Progress):
         self.console = console
         self.progress = progress
@@ -76,8 +78,12 @@ class ConsoleObserver(ExtractionObserver):
         self.method = ""
         self.is_cancelled = False
 
-        self.total_files_task = self.progress.add_task("[cyan]Progresso dos Arquivos", total=0)
-        self.current_file_task = self.progress.add_task("[magenta]Progresso das Páginas", total=0)
+        self.total_files_task = self.progress.add_task(
+            "[cyan]Progresso dos Arquivos", total=0
+        )
+        self.current_file_task = self.progress.add_task(
+            "[magenta]Progresso das Páginas", total=0
+        )
 
     def set_live(self, live: Live):
         self.live = live
@@ -96,7 +102,7 @@ class ConsoleObserver(ExtractionObserver):
             rlist, _, _ = select.select([sys.stdin], [], [], 0)
             if rlist:
                 ch = sys.stdin.read(1)
-                if ch == '\x1b':  # ESC key code
+                if ch == "\x1b":  # ESC key code
                     return True
         except Exception:
             pass
@@ -114,7 +120,13 @@ class ConsoleObserver(ExtractionObserver):
             self.is_cancelled = True
         self.file_index = file_index
         self.current_file_name = os.path.basename(file_path)
-        self.progress.update(self.current_file_task, total=0, completed=0, description=f"[magenta]Páginas de {self.current_file_name}")
+        self.estimated_hours = estimated_hours
+        self.progress.update(
+            self.current_file_task,
+            total=0,
+            completed=0,
+            description=f"[magenta]Páginas de {self.current_file_name}",
+        )
         self._update_live()
 
     @override
@@ -136,7 +148,7 @@ class ConsoleObserver(ExtractionObserver):
         total_pages: int,
         native_pages: int,
         ocr_pages: int,
-        method: str
+        method: str,
     ):
         self.successful_pages = extracted_pages
         self.error_pages = error_pages
@@ -154,6 +166,8 @@ class ConsoleObserver(ExtractionObserver):
 
     @override
     def on_complete(self, successful_pages: int, total_pages: int):
+        if self.current_file_task is not None:
+            self.progress.remove_task(self.current_file_task)
         self._update_live()
 
     @override
@@ -164,6 +178,14 @@ class ConsoleObserver(ExtractionObserver):
             self.console.print(f"[bold red]🚨 ERRO: {error_message}[/bold red]")
 
     def get_renderable(self) -> Group:
+        if hasattr(self, "estimated_hours") and self.estimated_hours > 0:
+            if self.estimated_hours >= 1.0:
+                eta_str = f"{self.estimated_hours:.2f}h"
+            else:
+                eta_str = f"{round(self.estimated_hours * 60)} min"
+        else:
+            eta_str = "--:--"
+
         # Construct a clean status block with emojis and colors (non-tabular layout)
         status_text = (
             f"[bold green]📊 Painel de Extração (Gaia)[/bold green]\n"
@@ -172,24 +194,22 @@ class ConsoleObserver(ExtractionObserver):
             f"📄 [bold blue]Páginas Nativas (Leve):[/bold blue] {self.native_pages}\n"
             f"🤖 [bold yellow]Páginas OCR (Tesseract):[/bold yellow] {self.ocr_pages}\n"
             f"🚨 [bold red]Falhas de Leitura:[/bold red] {self.error_pages}\n"
+            f"⏳ [bold white]Tempo Restante Estimado:[/bold white] {eta_str}\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             f"🔍 [bold magenta]Arquivo Atual:[/bold magenta] [white]{self.current_file_name}[/white]"
         )
-        
+
         if self.method:
-            method_str = "[cyan]Nativo[/cyan]" if self.method == "native" else "[yellow]OCR[/yellow]"
+            method_str = (
+                "[cyan]Nativo[/cyan]"
+                if self.method == "native"
+                else "[yellow]OCR[/yellow]"
+            )
             status_text += f" [dim]({method_str})[/dim]"
-            
-        status_panel = Panel(
-            status_text,
-            border_style="green",
-            expand=True
-        )
-        
-        return Group(
-            status_panel,
-            self.progress
-        )
+
+        status_panel = Panel(status_text, border_style="green", expand=True)
+
+        return Group(status_panel, self.progress)
 
 
 def print_summary_dashboard(
@@ -199,9 +219,13 @@ def print_summary_dashboard(
     successful_pages: int,
     native_pages: int,
     ocr_pages: int,
-    elapsed_time: float
+    elapsed_time: float,
 ):
-    table = Table(title="[bold green]📊 Resumo da Extração[/bold green]", show_header=True, header_style="bold magenta")
+    table = Table(
+        title="[bold green]📊 Resumo da Extração[/bold green]",
+        show_header=True,
+        header_style="bold magenta",
+    )
     table.add_column("Métrica", style="cyan")
     table.add_column("Valor", style="green", justify="right")
 
@@ -210,7 +234,7 @@ def print_summary_dashboard(
     table.add_row("Páginas Nativas (Leve/Rápido)", f"[blue]{native_pages}[/blue]")
     table.add_row("Páginas OCR Tesseract (Pesado)", f"[yellow]{ocr_pages}[/yellow]")
     table.add_row("Falhas de Extração", f"[red]{total_pages - successful_pages}[/red]")
-    table.add_row("Tempo Total Decorrido", f"{elapsed_time:.2f} segundos")
-    
+    table.add_row("Tempo Total Decorrido", f"{(elapsed_time / (60 * 60)):.0f} segundos")
+
     console.print("\n")
     console.print(table)
