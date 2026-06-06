@@ -5,7 +5,7 @@ from core.observer import ExtractionObserver, DefaultExtractionObserver
 class ExtractionSession:
     def __init__(self, observer: ExtractionObserver | None = None):
         self.observer = observer or DefaultExtractionObserver()
-        self.is_cancelled: bool = False
+        self._is_cancelled: bool = False
         self.total_files: int = 0
         self.file_index: int = 0
         self.current_file_path: str = ""
@@ -63,3 +63,11 @@ class ExtractionSession:
 
     def error(self, error_message: str):
         self.observer.on_error(error_message)
+
+    @property
+    def is_cancelled(self) -> bool:
+        return self._is_cancelled or getattr(self.observer, "is_cancelled", False)
+
+    @is_cancelled.setter
+    def is_cancelled(self, value: bool):
+        self._is_cancelled = value

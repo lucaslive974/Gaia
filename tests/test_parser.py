@@ -48,11 +48,6 @@ class TestParser(unittest.TestCase):
         self.assertEqual(written_dict["valor"], "150,00")
 
     def test_parser_orchestration_multi_page_units(self):
-        from config import settings
-
-        # Enable 2 pages per unit
-        settings.PAGES_PER_UNIT = 2
-
         mock_extractor = MagicMock()
         mock_extractor.get_page_count.return_value = 2
 
@@ -76,10 +71,7 @@ class TestParser(unittest.TestCase):
         session = ExtractionSession(mock_observer)
 
         # Execute generator and consume it
-        pages = list(parser.process_file("/dummy/file.pdf", session=session))
-
-        # Reset settings after test to not affect others
-        settings.PAGES_PER_UNIT = 1
+        pages = list(parser.process_file("/dummy/file.pdf", session=session, pages_per_unit=2))
 
         # Verify that pages were combined and parse was called with the combined text
         mock_regex.parse.assert_called_once_with(f"{page1_text}\n{page2_text}")
@@ -91,6 +83,37 @@ class TestParser(unittest.TestCase):
         self.assertEqual(len(pages), 1)
         self.assertEqual(pages[0]["data_emissao"], "10/10/2026")
         self.assertEqual(pages[0]["n_infracao"], "ABC1234")
+
+    def test_parser_cancellation_mid_file(self):
+        mock_extractor = MagicMock()
+        mock_extractor.get_page_count.return_value = 3
+        mock_extractor.extract_pages.return_value = iter(["page 1", "page 2", "page 3"])
+
+        mock_regex = MagicMock()
+        mock_regex.parse.return_value = {"field": "value"}
+
+        parser = DefaultOcrParser(
+            extractor=mock_extractor, regex_engine=mock_regex
+        )
+
+        mock_observer = MagicMock()
+        mock_observer.is_cancelled = False
+
+        # Simulate cancellation during on_page_start
+        def on_page_start_side_effect(page_index, total_pages):
+            if page_index == 1:
+                mock_observer.is_cancelled = True
+
+        mock_observer.on_page_start.side_effect = on_page_start_side_effect
+
+        session = ExtractionSession(mock_observer)
+
+        pages = list(parser.process_file("/dummy/file.pdf", session=session))
+
+        # Only the first page should have been processed before cancellation took effect
+        self.assertEqual(len(pages), 1)
+        self.assertTrue(session.is_cancelled)
+        mock_regex.parse.assert_called_once_with("page 1")
 
 
 if __name__ == "__main__":

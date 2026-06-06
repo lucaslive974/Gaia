@@ -1,43 +1,55 @@
+import sys
 import argparse
 from config import settings
 from core.terminal_ui import run_with_ui
+from core.i18n import _, set_lang
 
 
 def main():
+    # Pre-parse lang flag from sys.argv
+    lang = "en"
+    for idx, arg in enumerate(sys.argv):
+        if arg in ("--lang", "-l"):
+            if idx + 1 < len(sys.argv):
+                lang = sys.argv[idx + 1]
+            break
+    if lang in ("en", "pt"):
+        set_lang(lang)
+
     parser = argparse.ArgumentParser(
-        description="Gaia/Atlas PDF Extractor - Ferramenta CLI de extração inteligente de dados de PDFs."
+        description=_("cli_desc")
     )
     parser.add_argument(
         "input_dir",
         type=str,
         nargs="?",
         default=None,
-        help="Caminho do diretório contendo os arquivos PDF a serem processados.",
+        help=_("cli_input_dir_help"),
     )
     parser.add_argument(
         "-o",
         "--output",
         type=str,
         default=settings["OUTPUT_CSV"],
-        help=f"Caminho do arquivo CSV de saída (Padrão: {settings['OUTPUT_CSV']}).",
+        help=_("cli_output_help", default_csv=settings["OUTPUT_CSV"]),
     )
     parser.add_argument(
         "--resume",
         action="store_true",
-        help="Retoma o processamento a partir do último arquivo concluído com sucesso.",
+        help=_("cli_resume_help"),
     )
     parser.add_argument(
         "-r",
         "--recursive",
         action="store_true",
-        help="Busca arquivos PDF recursivamente nos subdiretórios.",
+        help=_("cli_recursive_help"),
     )
     parser.add_argument(
         "-g",
         "--regex",
         type=str,
         default=None,
-        help="Caminho do arquivo JSON contendo as regras regex customizadas.",
+        help=_("cli_regex_help"),
     )
     parser.add_argument(
         "-t",
@@ -45,14 +57,22 @@ def main():
         type=str,
         default=None,
         metavar="FILE_PATH",
-        help="Testa as regras de regex na primeira página do arquivo PDF fornecido.",
+        help=_("cli_test_help"),
     )
     parser.add_argument(
         "-p",
         "--pages-per-unit",
         type=int,
         default=1,
-        help="Número de páginas que compõem uma unidade de texto para o casamento de padrões (Padrão: 1).",
+        help=_("cli_pages_per_unit_help"),
+    )
+    parser.add_argument(
+        "-l",
+        "--lang",
+        type=str,
+        choices=["en", "pt"],
+        default="en",
+        help=_("cli_lang_help"),
     )
 
     args = parser.parse_args()

@@ -7,6 +7,7 @@ from rich.progress import Progress
 from rich.table import Table
 from rich.panel import Panel
 from rich.live import Live
+from core.i18n import _, get_lang
 
 try:
     import termios
@@ -76,10 +77,10 @@ class ConsoleObserver(ExtractionObserver):
         self.is_cancelled = False
 
         self.total_files_task = self.progress.add_task(
-            "[cyan]Progresso dos Arquivos", total=0
+            "[cyan]" + _("ui_files_progress"), total=0
         )
         self.current_file_task = self.progress.add_task(
-            "[magenta]Progresso das Páginas", total=0
+            "[magenta]" + _("ui_pages_progress"), total=0
         )
 
     def set_live(self, live: Live):
@@ -122,7 +123,7 @@ class ConsoleObserver(ExtractionObserver):
             self.current_file_task,
             total=0,
             completed=0,
-            description=f"[magenta]Páginas de {self.current_file_name}",
+            description="[magenta]" + _("ui_pages_of", filename=self.current_file_name),
         )
         self._update_live()
 
@@ -163,10 +164,13 @@ class ConsoleObserver(ExtractionObserver):
 
     @override
     def on_error(self, error_message: str):
+        err_lbl = _("ui_error")
+        if err_lbl == "ui_error":
+            err_lbl = "🚨 ERROR"
         if self.live is not None:
-            self.live.console.print(f"[bold red]🚨 ERRO: {error_message}[/bold red]")
+            self.live.console.print(f"[bold red]{err_lbl}: {error_message}[/bold red]")
         else:
-            self.console.print(f"[bold red]🚨 ERRO: {error_message}[/bold red]")
+            self.console.print(f"[bold red]{err_lbl}: {error_message}[/bold red]")
 
     def get_renderable(self) -> Group:
         if hasattr(self, "estimated_hours") and self.estimated_hours > 0:
@@ -178,15 +182,18 @@ class ConsoleObserver(ExtractionObserver):
             eta_str = "--:--"
 
         # Construct a clean status block with emojis and colors (non-tabular layout)
+        of_str = _("ui_of")
+        if of_str == "ui_of":
+            of_str = "of"
         status_text = (
-            f"[bold green]📊 Painel de Extração (Gaia)[/bold green]\n"
+            f"[bold green]{_('ui_dashboard_title')}[/bold green]\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"📂 [bold cyan]Arquivos Processados:[/bold cyan] {self.file_index} de {self.total_files}\n"
-            f"📄 [bold blue]Páginas com Sucesso:[/bold blue] {self.successful_pages}\n"
-            f"🚨 [bold red]Falhas de Leitura:[/bold red] {self.error_pages}\n"
-            f"⏳ [bold white]Tempo Restante Estimado:[/bold white] {eta_str}\n"
+            f"[bold cyan]{_('ui_processed_files')}[/bold cyan] {self.file_index} {of_str} {self.total_files}\n"
+            f"[bold blue]{_('ui_successful_pages')}[/bold blue] {self.successful_pages}\n"
+            f"[bold red]{_('ui_extraction_failures')}[/bold red] {self.error_pages}\n"
+            f"[bold white]{_('ui_estimated_time')}[/bold white] {eta_str}\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"🔍 [bold magenta]Arquivo Atual:[/bold magenta] [white]{self.current_file_name}[/white]"
+            f"[bold magenta]{_('ui_current_file')}[/bold magenta] [white]{self.current_file_name}[/white]"
         )
 
         status_panel = Panel(status_text, border_style="green", expand=True)
@@ -202,18 +209,20 @@ def print_summary_dashboard(
     elapsed_time: float,
 ):
     table = Table(
-        title="[bold green]📊 Resumo da Extração[/bold green]",
+        title=f"[bold green]{_('ui_summary_title')}[/bold green]",
         show_header=True,
         header_style="bold magenta",
     )
-    table.add_column("Métrica", style="cyan")
-    table.add_column("Valor", style="green", justify="right")
+    table.add_column(_("ui_metric"), style="cyan")
+    table.add_column(_("ui_value"), style="green", justify="right")
 
-    table.add_row("Arquivos Processados", str(total_files))
-    table.add_row("Total de Páginas", str(total_pages))
-    table.add_row("Páginas Processadas com Sucesso", f"[blue]{successful_pages}[/blue]")
-    table.add_row("Falhas de Extração", f"[red]{total_pages - successful_pages}[/red]")
-    table.add_row("Tempo Total Decorrido", f"{elapsed_time:.2f} segundos")
+    table.add_row(_("ui_summary_processed_files"), str(total_files))
+    table.add_row(_("ui_summary_total_pages"), str(total_pages))
+    table.add_row(_("ui_summary_successful_pages"), f"[blue]{successful_pages}[/blue]")
+    table.add_row(_("ui_summary_failures"), f"[red]{total_pages - successful_pages}[/red]")
+    
+    seconds_str = _("ui_seconds")
+    table.add_row(_("ui_summary_elapsed_time"), f"{elapsed_time:.2f} {seconds_str}")
 
     console.print("\n")
     console.print(table)
@@ -257,7 +266,7 @@ def run_with_ui(settings):
 
     if observer.is_cancelled:
         console.print(
-            "\n[bold yellow]⚠️ Processamento cancelado pelo usuário (Ctrl+C ou ESC).[/bold yellow]\n"
+            f"\n[bold yellow]{_('ui_cancelled_msg')}[/bold yellow]\n"
         )
         sys.exit(0)
 
@@ -278,14 +287,14 @@ def run_with_ui(settings):
     log_path = os.path.join(os.getcwd(), "gaia_errors.log")
     if observer.successful_pages < total_pages:
         console.print(
-            f"\n[bold red]⚠️ Atenção: {total_pages - observer.successful_pages} página(s) falharam na extração.[/bold red]"
+            f"\n[bold red]{_('ui_warning_failed_pages', count=total_pages - observer.successful_pages)}[/bold red]"
         )
         console.print(
-            f"[yellow]O texto extraído das páginas com falha foi salvo em: [bold]{log_path}[/bold][/yellow]\n"
+            f"[yellow]{_('ui_failed_log_saved', path=f'[bold]{log_path}[/bold]')}[/yellow]\n"
         )
     else:
         console.print(
-            "\n[bold green]🎉 Processamento concluído com 100% de sucesso![/bold green]\n"
+            f"\n[bold green]{_('ui_completed_success')}[/bold green]\n"
         )
 
 
@@ -300,21 +309,21 @@ def run_test_mode(settings):
 
     console = Console()
     console.print(
-        Panel("[bold green]🧪 Gaia - Modo de Teste de Regex[/bold green]", expand=False)
+        Panel(f"[bold green]{_('test_title')}[/bold green]", expand=False)
     )
 
     pdf_path = settings.TEST_FILE
     regex_path = settings.REGEX_FILE
 
-    console.print(f"[bold cyan]Arquivo PDF:[/bold cyan] {pdf_path}")
-    console.print(f"[bold cyan]Arquivo Regex:[/bold cyan] {regex_path}")
+    console.print(f"[bold cyan]{_('test_pdf_file')}[/bold cyan] {pdf_path}")
+    console.print(f"[bold cyan]{_('test_regex_file')}[/bold cyan] {regex_path}")
 
     # 1. Load Regex Engine
     try:
         engine = NativeRegexEngine(regex_path)
     except Exception as e:
         console.print(
-            f"\n[bold red]❌ Erro ao carregar as regras de regex:[/bold red] {e}"
+            f"\n[bold red]{_('test_err_load_regex')} {e}[/bold red]"
         )
         sys.exit(1)
 
@@ -322,30 +331,30 @@ def run_test_mode(settings):
     try:
         extractor = NativePdfExtractor()
         if not os.path.exists(pdf_path):
-            raise FileNotFoundError(f"Arquivo PDF não encontrado: {pdf_path}")
+            raise FileNotFoundError(f"Arquivo PDF não encontrado: {pdf_path}" if get_lang() == "pt" else f"PDF file not found: {pdf_path}")
 
         pages = list(extractor.extract_pages(pdf_path))
         if not pages:
-            raise ValueError("O arquivo PDF não contém páginas.")
+            raise ValueError("O arquivo PDF não contém páginas." if get_lang() == "pt" else "The PDF file has no pages.")
 
         raw_text = pages[0]
         normalized_text = _pos_processing_text(raw_text)
     except Exception as e:
         console.print(
-            f"\n[bold red]❌ Erro ao ler a primeira página do PDF:[/bold red] {e}"
+            f"\n[bold red]{_('test_err_read_pdf')} {e}[/bold red]"
         )
         sys.exit(1)
 
     # Print a snippet of normalized text to help debug
     console.print(
-        "\n[bold yellow]--- Início do Texto Normalizado da Primeira Página ---[/bold yellow]"
+        f"\n[bold yellow]{_('test_start_normalized_text')}[/bold yellow]"
     )
     snippet = normalized_text[:500]
     console.print(snippet)
     if len(normalized_text) > 500:
         console.print("...")
     console.print(
-        "[bold yellow]--- Fim do Texto Normalizado da Primeira Página ---[/bold yellow]\n"
+        f"[bold yellow]{_('test_end_normalized_text')}[/bold yellow]\n"
     )
 
     # 3. Match patterns
@@ -353,15 +362,15 @@ def run_test_mode(settings):
 
     # 4. Render Table of Results
     table = Table(
-        title="[bold green]📋 Resultados do Casamento de Padrões[/bold green]",
+        title=f"[bold green]{_('test_results_title')}[/bold green]",
         show_header=True,
         header_style="bold magenta",
     )
-    table.add_column("Campo", style="cyan")
-    table.add_column("Status", justify="center")
-    table.add_column("Valor Extraído", style="green")
-    table.add_column("Obrigatoriedade", justify="center")
-    table.add_column("Expressão Regular", style="dim")
+    table.add_column(_("test_col_field"), style="cyan")
+    table.add_column(_("test_col_status"), justify="center")
+    table.add_column(_("test_col_value"), style="green")
+    table.add_column(_("test_col_required"), justify="center")
+    table.add_column(_("test_col_regex"), style="dim")
 
     has_missing_required = False
     missing_required_fields = []
@@ -373,14 +382,14 @@ def run_test_mode(settings):
         regex_str = entry["regex_str"]
 
         status_str = (
-            "[green]CORRESPONDIDO[/green]" if matched else "[red]NÃO ENCONTRADO[/red]"
+            f"[green]{_('test_status_matched')}[/green]" if matched else f"[red]{_('test_status_not_found')}[/red]"
         )
-        req_str = "[bold red]Sim[/bold red]" if required else "Não"
+        req_str = f"[bold red]{_('test_yes')}[/bold red]" if required else _('test_no')
 
         if required and not val:
             has_missing_required = True
             missing_required_fields.append(key)
-            status_str = "[bold red]AUSENTE[/bold red]"
+            status_str = f"[bold red]{_('test_status_missing')}[/bold red]"
 
         val_display = val if val else f"[dim](default: '{entry['default']}')[/dim]"
 
@@ -390,12 +399,12 @@ def run_test_mode(settings):
 
     if has_missing_required:
         console.print(
-            f"\n[bold red]❌ Falha: Os seguintes campos obrigatórios não foram extraídos: {', '.join(missing_required_fields)}[/bold red]"
+            f"\n[bold red]{_('test_missing_required', fields=', '.join(missing_required_fields))}[/bold red]"
         )
         sys.exit(1)
     else:
         console.print(
-            "\n[bold green]🎉 Sucesso: Todos os campos obrigatórios foram extraídos com sucesso![/bold green]"
+            f"\n[bold green]{_('test_all_matched')}[/bold green]"
         )
         sys.exit(0)
 

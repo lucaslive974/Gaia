@@ -75,10 +75,11 @@ class TestCli(unittest.TestCase):
 
     @patch("core.app_controller.os.path.exists")
     @patch("core.app_controller.os.path.isdir")
+    @patch("core.app_controller.NativeRegexEngine")
     @patch("core.app_controller.DefaultOcrParser")
     @patch("core.app_controller.DefaultCsvWriter")
     def test_app_controller_validations_and_run(
-        self, mock_csv_writer, mock_parser_class, mock_isdir, mock_exists
+        self, mock_csv_writer, mock_parser_class, mock_regex_engine, mock_isdir, mock_exists
     ):
         mock_exists.return_value = True
         mock_isdir.return_value = True
@@ -106,9 +107,10 @@ class TestCli(unittest.TestCase):
     @patch("core.app_controller.os.path.exists")
     @patch("core.app_controller.os.path.isdir")
     @patch("core.app_controller.os.remove")
+    @patch("core.app_controller.NativeRegexEngine")
     @patch("core.app_controller.DefaultOcrParser")
     def test_app_controller_log_deletion(
-        self, mock_parser_class, mock_remove, mock_isdir, mock_exists
+        self, mock_parser_class, mock_regex_engine, mock_remove, mock_isdir, mock_exists
     ):
         # Scenario 1: Resume is False -> Should remove gaia_errors.log if it exists
         mock_exists.side_effect = (

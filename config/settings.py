@@ -1,6 +1,7 @@
 from argparse import Namespace
 import os
 import json
+from core.i18n import _, set_lang
 
 input_attr = [
     ["input_dir", "BASE_PATH"],
@@ -10,6 +11,7 @@ input_attr = [
     ["test", "TEST_FILE"],
     ["recursive", "RECURSIVE"],
     ["pages_per_unit", "PAGES_PER_UNIT"],
+    ["lang", "LANG"],
 ]
 
 
@@ -21,6 +23,7 @@ class Settings:
     TEST_FILE: str | None = None
     RECURSIVE: bool = False
     PAGES_PER_UNIT: int = 1
+    LANG: str = "en"
 
     def __getitem__(self, attr):
         try:
@@ -95,6 +98,13 @@ class Settings:
                     pass
 
     def parse_cmd_args(self, args: Namespace):
+        # 0. Set and validate language first so errors are translated
+        lang = getattr(args, "lang", None)
+        if isinstance(lang, str):
+            if lang not in ("en", "pt"):
+                raise ValueError(_("err_lang_invalid"))
+            set_lang(lang)
+
         is_test = getattr(args, "test", None) is not None
         # 1. Verify and autoload input_dir if resume is requested and it is missing
         if not getattr(args, "input_dir", None) and not is_test:
@@ -106,18 +116,18 @@ class Settings:
                     args.regex = state.get("regex_file") or getattr(args, "regex", None)
                 else:
                     raise ValueError(
-                        "Nenhum estado de retomada encontrado no diretório atual. É necessário especificar o 'input_dir'."
+                        _("err_resume_no_state")
                     )
             else:
                 raise ValueError(
-                    "o argumento posicional 'input_dir' é obrigatório a menos que --resume ou --test seja usado."
+                    _("err_input_dir_required")
                 )
 
         # 2. Check for required regex file if not resuming
         if not getattr(args, "resume", False):
             if not getattr(args, "regex", None):
                 raise ValueError(
-                    "o argumento '--regex' é obrigatório para definir os padrões de extração."
+                    _("err_regex_required_normal")
                 )
         else:
             # If resuming, load state to autoload regex if not explicitly passed
@@ -128,7 +138,7 @@ class Settings:
             # Still, we must have a regex file to resume
             if not getattr(args, "regex", None):
                 raise ValueError(
-                    "o argumento '--regex' é obrigatório para retomar a extração."
+                    _("err_regex_required_resume")
                 )
 
         # 3. Check pages_per_unit validation
@@ -140,7 +150,7 @@ class Settings:
                     raise ValueError
             except (ValueError, TypeError):
                 raise ValueError(
-                    "o argumento '--pages-per-unit' deve ser um número inteiro maior ou igual a 1."
+                    _("err_ppu_invalid")
                 )
 
         # 4. Bind parsed properties

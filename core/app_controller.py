@@ -5,6 +5,8 @@ from core.ocr_parser import DefaultOcrParser
 from core.csv_writer import DefaultCsvWriter
 from core.observer import ExtractionObserver
 from core.extraction_session import ExtractionSession
+from core.regex_engine import NativeRegexEngine
+from core.i18n import _
 
 
 class AppController:
@@ -22,14 +24,14 @@ class AppController:
         if not os.path.exists(settings.BASE_PATH):
             if self.observer:
                 self.observer.on_error(
-                    f"O diretório de entrada '{settings.BASE_PATH}' não existe."
+                    _("err_dir_not_exist", base_path=settings.BASE_PATH)
                 )
             return False
 
         if not os.path.isdir(settings.BASE_PATH):
             if self.observer:
                 self.observer.on_error(
-                    f"O caminho de entrada '{settings.BASE_PATH}' não é um diretório."
+                    _("err_not_a_dir", base_path=settings.BASE_PATH)
                 )
             return False
 
@@ -64,7 +66,7 @@ class AppController:
                         files.append(f)
             except Exception as e:
                 if self.observer:
-                    self.observer.on_error(f"Erro ao listar o diretório: {e}")
+                    self.observer.on_error(_("err_list_dir", error=e))
                 return False
 
         files.sort()
@@ -76,7 +78,8 @@ class AppController:
         # 6. Instantiate parser tools
         extractor = NativePdfExtractor()
         csv_writer = DefaultCsvWriter(path_output=settings.OUTPUT_CSV)
-        ocr_parser = DefaultOcrParser(extractor=extractor)
+        regex_engine = NativeRegexEngine(settings.REGEX_FILE)
+        ocr_parser = DefaultOcrParser(extractor=extractor, regex_engine=regex_engine)
 
         # 7. Load resume state
         loaded_state = settings.load_resume_state(settings.BASE_PATH)
@@ -115,11 +118,11 @@ class AppController:
             try:
                 # AppController executes parser and orchestrates CsvWriter to persist page-by-page
                 for page_dict in ocr_parser.process_file(
-                    full_file_path, session
+                    full_file_path, session, pages_per_unit=settings.PAGES_PER_UNIT
                 ):
                     csv_writer.write(page_dict)
             except Exception as e:
-                session.error(f"Erro no arquivo {rel_file_path}: {e}")
+                session.error(_("err_in_file", file_path=rel_file_path, error=e))
                 continue
 
             # File processed successfully, update resume state

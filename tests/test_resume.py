@@ -35,6 +35,12 @@ class TestResume(unittest.TestCase):
         self.mock_csv_writer = MagicMock()
         self.mock_csv_writer_class.return_value = self.mock_csv_writer
 
+        # Patch NativeRegexEngine
+        self.regex_patcher = patch("core.app_controller.NativeRegexEngine")
+        self.mock_regex_class = self.regex_patcher.start()
+        self.mock_regex = MagicMock()
+        self.mock_regex_class.return_value = self.mock_regex
+
         # Ensure clean state before each test
         for p in (self.state_file_cwd, self.state_file_input):
             if os.path.exists(p):
@@ -46,6 +52,7 @@ class TestResume(unittest.TestCase):
     def tearDown(self):
         self.parser_patcher.stop()
         self.csv_patcher.stop()
+        self.regex_patcher.stop()
         for p in (self.state_file_cwd, self.state_file_input):
             if os.path.exists(p):
                 try:
@@ -77,7 +84,7 @@ class TestResume(unittest.TestCase):
             json.dump(state_data, sf)
 
         # Setup mock parser process_file side effect
-        def mock_process_file(file_path, session):
+        def mock_process_file(file_path, session, pages_per_unit=1):
             session.successful_pages += 1
             session.total_pages += 1
             yield {"field": "value"}
@@ -120,7 +127,7 @@ class TestResume(unittest.TestCase):
         with open(self.state_file_cwd, "w", encoding="utf-8") as sf:
             json.dump(state_data, sf)
 
-        def mock_process_file(file_path, session):
+        def mock_process_file(file_path, session, pages_per_unit=1):
             session.successful_pages += 1
             session.total_pages += 1
             yield {"field": "value"}
@@ -149,7 +156,7 @@ class TestResume(unittest.TestCase):
         mock_listdir.return_value = ["file1.pdf"]
         mock_exists.side_effect = lambda p: True if p == "/dummy/dir" else False
 
-        def mock_process_file(file_path, session):
+        def mock_process_file(file_path, session, pages_per_unit=1):
             session.successful_pages += 1
             session.total_pages += 1
             yield {"field": "value"}
@@ -191,7 +198,7 @@ class TestResume(unittest.TestCase):
         with open(self.state_file_cwd, "w", encoding="utf-8") as sf:
             json.dump(state_data, sf)
 
-        def mock_process_file(file_path, session):
+        def mock_process_file(file_path, session, pages_per_unit=1):
             session.successful_pages += 1
             session.total_pages += 1
             yield {"field": "value"}
@@ -233,7 +240,7 @@ class TestResume(unittest.TestCase):
         with open(self.state_file_cwd, "w", encoding="utf-8") as sf:
             json.dump(state_data, sf)
 
-        def mock_process_file(file_path, session):
+        def mock_process_file(file_path, session, pages_per_unit=1):
             session.successful_pages += 1
             session.total_pages += 1
             yield {"field": "value"}
