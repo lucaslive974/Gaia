@@ -36,10 +36,9 @@ class TestCli(unittest.TestCase):
 
     @patch("main.argparse.ArgumentParser.parse_args")
     @patch("main.run_with_ui")
-    @patch("main.os.path.exists")
-    @patch("main.open", create=True)
+    @patch("config.settings.Settings.load_resume_state")
     def test_cli_parameterless_resume_success(
-        self, mock_open, mock_exists, mock_run_with_ui, mock_parse_args
+        self, mock_load_resume_state, mock_run_with_ui, mock_parse_args
     ):
         # Setup mock arguments with input_dir = None and resume = True
         mock_args = MagicMock()
@@ -48,15 +47,12 @@ class TestCli(unittest.TestCase):
         mock_args.resume = True
         mock_parse_args.return_value = mock_args
 
-        # Mock CWD state file existence and content loading
-        mock_exists.return_value = True
-        mock_file = MagicMock()
-        mock_file.read.return_value = json.dumps({
+        # Mock CWD state file loading content
+        mock_load_resume_state.return_value = {
             "input_dir": "/loaded/input/dir",
             "output_file": "/loaded/output.csv",
             "processed_files": ["f1.pdf"]
-        })
-        mock_open.return_value.__enter__.return_value = mock_file
+        }
 
         # Run main
         main()
@@ -67,6 +63,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(settings_passed.BASE_PATH, "/loaded/input/dir")
         self.assertEqual(settings_passed.OUTPUT_CSV, "/loaded/output.csv")
         self.assertTrue(settings_passed.RESUME)
+
 
 
     @patch("core.shell_manager.os.path.exists")

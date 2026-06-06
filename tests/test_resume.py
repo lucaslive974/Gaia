@@ -8,6 +8,12 @@ from config.settings import Settings
 
 class TestResume(unittest.TestCase):
     def setUp(self):
+        from config import settings as global_settings
+        global_settings.BASE_PATH = ""
+        global_settings.OUTPUT_CSV = os.path.join(os.getcwd(), "output.csv")
+        global_settings.RESUME = False
+
+        self.settings = Settings()
         self.state_file_cwd = os.path.join(os.getcwd(), ".gaia_resume.json")
         self.dummy_dir = "/dummy/dir"
         self.state_file_input = os.path.join(self.dummy_dir, ".gaia_resume.json")
@@ -43,7 +49,7 @@ class TestResume(unittest.TestCase):
         # Write fake resume state to CWD
         state_data = {
             "input_dir": "/dummy/dir",
-            "output_file": "/dummy/output.csv",
+            "output_file": self.settings.OUTPUT_CSV,
             "processed_files": ["file1.pdf"]
         }
         with open(self.state_file_cwd, "w", encoding="utf-8") as sf:
@@ -54,7 +60,7 @@ class TestResume(unittest.TestCase):
         mock_extractor.extract_pages.return_value = iter(["valid text"])
 
         mock_writer = MagicMock()
-        mock_writer._path = "/dummy/output.csv"
+        mock_writer._path = self.settings.OUTPUT_CSV
 
         parser = DefaultOcrParser(extractor=mock_extractor, csv_writer=mock_writer)
         
@@ -78,7 +84,7 @@ class TestResume(unittest.TestCase):
 
         state_data = {
             "input_dir": "/dummy/dir",
-            "output_file": "/dummy/output.csv",
+            "output_file": self.settings.OUTPUT_CSV,
             "processed_files": ["file1.pdf"]
         }
         with open(self.state_file_cwd, "w", encoding="utf-8") as sf:
@@ -89,7 +95,7 @@ class TestResume(unittest.TestCase):
         mock_extractor.extract_pages.return_value = iter(["valid text"])
 
         mock_writer = MagicMock()
-        mock_writer._path = "/dummy/output.csv"
+        mock_writer._path = self.settings.OUTPUT_CSV
 
         parser = DefaultOcrParser(extractor=mock_extractor, csv_writer=mock_writer)
         
@@ -122,7 +128,7 @@ class TestResume(unittest.TestCase):
         mock_observer.is_cancelled = False
 
         # Verify we write to both CWD and input dir state files
-        with patch("core.ocr_parser.open", create=True) as mock_open:
+        with patch("config.settings.open", create=True) as mock_open:
             parser.process("/dummy/dir", observer=mock_observer, resume=True)
             # Ensure open was called for both paths
             mock_open.assert_any_call(self.state_file_cwd, "w", encoding="utf-8")
