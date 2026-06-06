@@ -53,7 +53,7 @@ class AppController:
         # 4. Find all PDF files under settings.BASE_PATH
         files = []
         if settings.RECURSIVE:
-            for root, _, filenames in os.walk(settings.BASE_PATH):
+            for root, dirs, filenames in os.walk(settings.BASE_PATH):
                 for f in filenames:
                     if f.lower().endswith(".pdf"):
                         # Save relative path to maintain directory structure in resume state
