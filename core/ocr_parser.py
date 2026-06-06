@@ -96,26 +96,10 @@ class DefaultOcrParser(OcrParser):
 
         # Resolve output path for state tracking
         from config import settings
-        resolved_output = getattr(self._csv_writer, "_path", None) or settings["OUTPUT_CSV"]
-        state_file_cwd = path.join(os.getcwd(), ".gaia_resume.json")
-        state_file_input = path.join(dir_path, ".gaia_resume.json")
         processed_files = set()
 
         # We automatically resume if the file exists in either location, regardless of 'resume' flag
-        loaded_state = None
-        for sf_path in (state_file_input, state_file_cwd):
-            if path.exists(sf_path):
-                try:
-                    with open(sf_path, "r", encoding="utf-8") as sf:
-                        state_data = json.load(sf)
-                        if (
-                            state_data.get("input_dir") == dir_path
-                            and state_data.get("output_file") == resolved_output
-                        ):
-                            loaded_state = state_data
-                            break
-                except Exception:
-                    pass
+        loaded_state = settings.load_resume_state(dir_path)
 
         if loaded_state:
             processed_files = set(loaded_state.get("processed_files", []))
@@ -157,22 +141,9 @@ class DefaultOcrParser(OcrParser):
                     observer.on_error(f"Erro no arquivo {file}: {e}")
                 continue
 
-            # File processed successfully, update resume state in both files
+            # File processed successfully, update resume state in both files via settings
             processed_files.add(file)
-            for sf_path in (state_file_cwd, state_file_input):
-                try:
-                    with open(sf_path, "w", encoding="utf-8") as sf:
-                        json.dump(
-                            {
-                                "input_dir": dir_path,
-                                "output_file": resolved_output,
-                                "processed_files": list(processed_files),
-                            },
-                            sf,
-                            indent=4,
-                        )
-                except Exception:
-                    pass
+            settings.save_resume_state(dir_path, list(processed_files))
 
             if observer:
                 progress_percent = (file_index / total_files) * 100
@@ -183,12 +154,7 @@ class DefaultOcrParser(OcrParser):
 
         # Delete resume state if finished successfully and not cancelled
         if not (observer and getattr(observer, "is_cancelled", False)):
-            for sf_path in (state_file_cwd, state_file_input):
-                if path.exists(sf_path):
-                    try:
-                        os.remove(sf_path)
-                    except Exception:
-                        pass
+            settings.clear_resume_state(dir_path)
 
         if observer:
             observer.on_complete(self._successful_pages, self._total_pages)
