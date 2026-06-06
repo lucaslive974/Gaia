@@ -2,7 +2,6 @@ import re
 import time
 import os
 import unicodedata
-import json
 from os import path, listdir
 from abc import ABC, abstractmethod
 
@@ -96,6 +95,7 @@ class DefaultOcrParser(OcrParser):
 
         # Resolve output path for state tracking
         from config import settings
+
         processed_files = set()
 
         # We automatically resume if the file exists in either location, regardless of 'resume' flag
@@ -103,33 +103,37 @@ class DefaultOcrParser(OcrParser):
 
         if loaded_state:
             processed_files = set(loaded_state.get("processed_files", []))
+            self._successful_pages = loaded_state.get("successful_pages", 0)
+            self._failed_pages = loaded_state.get("failed_pages", 0)
+            self._total_pages = loaded_state.get("total_pages", 0)
 
         # Filter out already processed files
         remaining_files = [f for f in files if f not in processed_files]
         total_files = len(remaining_files)
+        total_original_files = len(files)
 
         if total_files == 0:
             if observer:
-                observer.on_start(0)
-                observer.on_complete(0, 0)
+                observer.on_start(total_original_files)
+                observer.on_complete(self._successful_pages, self._total_pages)
             return
 
         if observer:
-            observer.on_start(total_files)
+            observer.on_start(total_original_files)
 
-        for file_index, file in enumerate(remaining_files, start=1):
+        for file_index, file in enumerate(
+            remaining_files, start=len(processed_files) + 1
+        ):
             if observer and getattr(observer, "is_cancelled", False):
                 break
 
             start_time = time.perf_counter()
             file_path = path.join(dir_path, file)
 
-            # Calculate estimation
+            # Calculate estimation based on remaining files
             _estimative = round(self._estimative_acc / self._estimative_cnt)
-            total_estimative = total_files * _estimative
-            est_hours = round(
-                (total_estimative - (file_index * _estimative)) / 3600.0, 2
-            )
+            remaining_count = total_files - (file_index - len(processed_files) - 1)
+            est_hours = round((remaining_count * _estimative) / 3600.0, 2)
 
             if observer:
                 observer.on_file_start(file_index, file_path, est_hours)
@@ -143,10 +147,16 @@ class DefaultOcrParser(OcrParser):
 
             # File processed successfully, update resume state in both files via settings
             processed_files.add(file)
-            settings.save_resume_state(dir_path, list(processed_files))
+            settings.save_resume_state(
+                dir_path,
+                list(processed_files),
+                self._successful_pages,
+                self._failed_pages,
+                self._total_pages,
+            )
 
             if observer:
-                progress_percent = (file_index / total_files) * 100
+                progress_percent = (file_index / total_original_files) * 100
                 observer.on_file_complete(file_index, progress_percent)
 
             self._estimative_acc += time.perf_counter() - start_time
@@ -185,7 +195,6 @@ class DefaultOcrParser(OcrParser):
                     page_index,
                     total_pages,
                 )
-
 
     def _process_page(self, page_text: str, page_number: int) -> bool:
         try:
@@ -245,18 +254,13 @@ class DefaultOcrParser(OcrParser):
 
             if match:
                 resultados[chave] = match.group(1).strip()
-                # Move o ponteiro para o final do texto encontrado
                 posicao_atual = match.end()
             else:
-                # Retorna string vazia (ou None) se o OCR falhar em um campo específico
                 resultados[chave] = ""
 
         # Map internal keys to final CSV keys
-        mapped_resultados = {
-            self._KEY_MAP.get(k, k): v for k, v in resultados.items()
-        }
+        mapped_resultados = {self._KEY_MAP.get(k, k): v for k, v in resultados.items()}
 
-        # Validação: se não encontrou o campo principal, a página é inválida/lixo
         if not resultados.get("n_infracao"):
             err = ValueError("Invalid page structure: missing n_infracao")
             err.extracted_data = mapped_resultados

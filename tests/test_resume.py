@@ -50,7 +50,10 @@ class TestResume(unittest.TestCase):
         state_data = {
             "input_dir": "/dummy/dir",
             "output_file": self.settings.OUTPUT_CSV,
-            "processed_files": ["file1.pdf"]
+            "processed_files": ["file1.pdf"],
+            "successful_pages": 10,
+            "failed_pages": 2,
+            "total_pages": 12
         }
         with open(self.state_file_cwd, "w", encoding="utf-8") as sf:
             json.dump(state_data, sf)
@@ -85,7 +88,10 @@ class TestResume(unittest.TestCase):
         state_data = {
             "input_dir": "/dummy/dir",
             "output_file": self.settings.OUTPUT_CSV,
-            "processed_files": ["file1.pdf"]
+            "processed_files": ["file1.pdf"],
+            "successful_pages": 10,
+            "failed_pages": 2,
+            "total_pages": 12
         }
         with open(self.state_file_cwd, "w", encoding="utf-8") as sf:
             json.dump(state_data, sf)
@@ -144,7 +150,10 @@ class TestResume(unittest.TestCase):
         state_data = {
             "input_dir": "/dummy/dir",
             "output_file": "/dummy/output.csv",
-            "processed_files": []
+            "processed_files": [],
+            "successful_pages": 10,
+            "failed_pages": 2,
+            "total_pages": 12
         }
         with open(self.state_file_cwd, "w", encoding="utf-8") as sf:
             json.dump(state_data, sf)
@@ -177,7 +186,10 @@ class TestResume(unittest.TestCase):
         state_data = {
             "input_dir": "/dummy/dir",
             "output_file": "/dummy/output.csv",
-            "processed_files": ["file1.pdf"]
+            "processed_files": ["file1.pdf"],
+            "successful_pages": 10,
+            "failed_pages": 2,
+            "total_pages": 12
         }
         with open(self.state_file_cwd, "w", encoding="utf-8") as sf:
             json.dump(state_data, sf)
