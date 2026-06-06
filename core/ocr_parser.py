@@ -97,20 +97,28 @@ class DefaultOcrParser(OcrParser):
         # Resolve output path for state tracking
         from config import settings
         resolved_output = getattr(self._csv_writer, "_path", None) or settings["OUTPUT_CSV"]
-        state_file = path.join(os.getcwd(), ".gaia_resume.json")
+        state_file_cwd = path.join(os.getcwd(), ".gaia_resume.json")
+        state_file_input = path.join(dir_path, ".gaia_resume.json")
         processed_files = set()
 
-        if resume and path.exists(state_file):
-            try:
-                with open(state_file, "r", encoding="utf-8") as sf:
-                    state_data = json.load(sf)
-                    if (
-                        state_data.get("input_dir") == dir_path
-                        and state_data.get("output_csv") == resolved_output
-                    ):
-                        processed_files = set(state_data.get("processed_files", []))
-            except Exception:
-                pass
+        # We automatically resume if the file exists in either location, regardless of 'resume' flag
+        loaded_state = None
+        for sf_path in (state_file_input, state_file_cwd):
+            if path.exists(sf_path):
+                try:
+                    with open(sf_path, "r", encoding="utf-8") as sf:
+                        state_data = json.load(sf)
+                        if (
+                            state_data.get("input_dir") == dir_path
+                            and state_data.get("output_file") == resolved_output
+                        ):
+                            loaded_state = state_data
+                            break
+                except Exception:
+                    pass
+
+        if loaded_state:
+            processed_files = set(loaded_state.get("processed_files", []))
 
         # Filter out already processed files
         remaining_files = [f for f in files if f not in processed_files]
@@ -149,21 +157,22 @@ class DefaultOcrParser(OcrParser):
                     observer.on_error(f"Erro no arquivo {file}: {e}")
                 continue
 
-            # File processed successfully, update resume state
+            # File processed successfully, update resume state in both files
             processed_files.add(file)
-            try:
-                with open(state_file, "w", encoding="utf-8") as sf:
-                    json.dump(
-                        {
-                            "input_dir": dir_path,
-                            "output_csv": resolved_output,
-                            "processed_files": list(processed_files),
-                        },
-                        sf,
-                        indent=4,
-                    )
-            except Exception:
-                pass
+            for sf_path in (state_file_cwd, state_file_input):
+                try:
+                    with open(sf_path, "w", encoding="utf-8") as sf:
+                        json.dump(
+                            {
+                                "input_dir": dir_path,
+                                "output_file": resolved_output,
+                                "processed_files": list(processed_files),
+                            },
+                            sf,
+                            indent=4,
+                        )
+                except Exception:
+                    pass
 
             if observer:
                 progress_percent = (file_index / total_files) * 100
@@ -174,11 +183,12 @@ class DefaultOcrParser(OcrParser):
 
         # Delete resume state if finished successfully and not cancelled
         if not (observer and getattr(observer, "is_cancelled", False)):
-            if path.exists(state_file):
-                try:
-                    os.remove(state_file)
-                except Exception:
-                    pass
+            for sf_path in (state_file_cwd, state_file_input):
+                if path.exists(sf_path):
+                    try:
+                        os.remove(sf_path)
+                    except Exception:
+                        pass
 
         if observer:
             observer.on_complete(self._successful_pages, self._total_pages)
