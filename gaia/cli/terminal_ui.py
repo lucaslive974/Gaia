@@ -101,7 +101,7 @@ class ConsoleObserver(ExtractionObserver):
             if rlist:
                 ch = sys.stdin.read(1)
                 if ch == "\x1b":  # ESC key code
-                     return True
+                    return True
         except Exception:
             pass
         return False
@@ -219,8 +219,10 @@ def print_summary_dashboard(
     table.add_row(_("ui_summary_processed_files"), str(total_files))
     table.add_row(_("ui_summary_total_pages"), str(total_pages))
     table.add_row(_("ui_summary_successful_pages"), f"[blue]{successful_pages}[/blue]")
-    table.add_row(_("ui_summary_failures"), f"[red]{total_pages - successful_pages}[/red]")
-    
+    table.add_row(
+        _("ui_summary_failures"), f"[red]{total_pages - successful_pages}[/red]"
+    )
+
     seconds_str = _("ui_seconds")
     table.add_row(_("ui_summary_elapsed_time"), f"{elapsed_time:.2f} {seconds_str}")
 
@@ -265,9 +267,7 @@ def run_with_ui(settings):
                 success = False
 
     if observer.is_cancelled:
-        console.print(
-            f"\n[bold yellow]{_('ui_cancelled_msg')}[/bold yellow]\n"
-        )
+        console.print(f"\n[bold yellow]{_('ui_cancelled_msg')}[/bold yellow]\n")
         sys.exit(0)
 
     if not success:
@@ -293,9 +293,7 @@ def run_with_ui(settings):
             f"[yellow]{_('ui_failed_log_saved', path=f'[bold]{log_path}[/bold]')}[/yellow]\n"
         )
     else:
-        console.print(
-            f"\n[bold green]{_('ui_completed_success')}[/bold green]\n"
-        )
+        console.print(f"\n[bold green]{_('ui_completed_success')}[/bold green]\n")
 
 
 def run_test_mode(settings):
@@ -304,12 +302,9 @@ def run_test_mode(settings):
     from rich.table import Table
     from rich.panel import Panel
     from gaia import NativeRegexEngine, NativePdfExtractor
-    from gaia.ocr_parser import _pos_processing_text
 
     console = Console()
-    console.print(
-        Panel(f"[bold green]{_('test_title')}[/bold green]", expand=False)
-    )
+    console.print(Panel(f"[bold green]{_('test_title')}[/bold green]", expand=False))
 
     pdf_path = settings.TEST_FILE
     regex_path = settings.REGEX_FILE
@@ -321,40 +316,40 @@ def run_test_mode(settings):
     try:
         engine = NativeRegexEngine.from_file(regex_path)
     except Exception as e:
-        console.print(
-            f"\n[bold red]{_('test_err_load_regex')} {e}[/bold red]"
-        )
+        console.print(f"\n[bold red]{_('test_err_load_regex')} {e}[/bold red]")
         sys.exit(1)
 
     # 2. Extract First Page Text
     try:
         extractor = NativePdfExtractor()
         if not os.path.exists(pdf_path):
-            raise FileNotFoundError(f"Arquivo PDF não encontrado: {pdf_path}" if get_lang() == "pt" else f"PDF file not found: {pdf_path}")
+            raise FileNotFoundError(
+                f"Arquivo PDF não encontrado: {pdf_path}"
+                if get_lang() == "pt"
+                else f"PDF file not found: {pdf_path}"
+            )
 
         pages = list(extractor.extract_pages(pdf_path))
         if not pages:
-            raise ValueError("O arquivo PDF não contém páginas." if get_lang() == "pt" else "The PDF file has no pages.")
+            raise ValueError(
+                "O arquivo PDF não contém páginas."
+                if get_lang() == "pt"
+                else "The PDF file has no pages."
+            )
 
         raw_text = pages[0]
-        normalized_text = _pos_processing_text(raw_text)
+        normalized_text = raw_text
     except Exception as e:
-        console.print(
-            f"\n[bold red]{_('test_err_read_pdf')} {e}[/bold red]"
-        )
+        console.print(f"\n[bold red]{_('test_err_read_pdf')} {e}[/bold red]")
         sys.exit(1)
 
     # Print a snippet of normalized text to help debug
-    console.print(
-        f"\n[bold yellow]{_('test_start_normalized_text')}[/bold yellow]"
-    )
+    console.print(f"\n[bold yellow]{_('test_start_normalized_text')}[/bold yellow]")
     snippet = normalized_text[:500]
     console.print(snippet)
     if len(normalized_text) > 500:
         console.print("...")
-    console.print(
-        f"[bold yellow]{_('test_end_normalized_text')}[/bold yellow]\n"
-    )
+    console.print(f"[bold yellow]{_('test_end_normalized_text')}[/bold yellow]\n")
 
     # 3. Match patterns
     results, matched_status = engine.parse_test(normalized_text)
@@ -381,9 +376,11 @@ def run_test_mode(settings):
         regex_str = entry["regex_str"]
 
         status_str = (
-            f"[green]{_('test_status_matched')}[/green]" if matched else f"[red]{_('test_status_not_found')}[/red]"
+            f"[green]{_('test_status_matched')}[/green]"
+            if matched
+            else f"[red]{_('test_status_not_found')}[/red]"
         )
-        req_str = f"[bold red]{_('test_yes')}[/bold red]" if required else _('test_no')
+        req_str = f"[bold red]{_('test_yes')}[/bold red]" if required else _("test_no")
 
         if required and not val:
             has_missing_required = True
@@ -402,8 +399,5 @@ def run_test_mode(settings):
         )
         sys.exit(1)
     else:
-        console.print(
-            f"\n[bold green]{_('test_all_matched')}[/bold green]"
-        )
+        console.print(f"\n[bold green]{_('test_all_matched')}[/bold green]")
         sys.exit(0)
-

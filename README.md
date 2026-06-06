@@ -121,8 +121,7 @@ parser = DefaultOcrParser(extractor=NativePdfExtractor())
 # The parser yields raw text segments for each page/unit.
 # You then normalize the text and parse it using the RegexEngine.
 for unit_index, total_units, raw_text in parser.process_file("path/to/infraction.pdf", pages_per_unit=1):
-    text_normalized = pos_processing_text(raw_text)
-    record = engine.parse(text_normalized)
+    record = engine.parse(raw_text)
     print("Parsed Record:", record)
 ```
 

@@ -51,8 +51,3 @@ class DefaultOcrParser(OcrParser):
             if session.is_cancelled:
                 break
             yield unit_index, total_units, unit_text
-
-
-def pos_processing_text(text: str) -> str:
-    text = re.sub(r"[-—|°º]", " ", text)
-    return unicodedata.normalize("NFD", text).encode("ascii", "ignore").decode("ascii")

@@ -32,9 +32,7 @@ class AppController:
 
         if not os.path.isdir(settings.BASE_PATH):
             if self.observer:
-                self.observer.on_error(
-                    _("err_not_a_dir", base_path=settings.BASE_PATH)
-                )
+                self.observer.on_error(_("err_not_a_dir", base_path=settings.BASE_PATH))
             return False
 
         # 2. Create destination output CSV directory
@@ -118,22 +116,21 @@ class AppController:
             session.start_file(file_index, full_file_path)
 
             try:
-                from gaia.ocr_parser import pos_processing_text
-
                 # AppController executes parser and orchestrates CsvWriter to persist page-by-page
                 for unit_index, total_units, unit_text in ocr_parser.process_file(
                     full_file_path, session, pages_per_unit=settings.PAGES_PER_UNIT
                 ):
                     session.start_page(unit_index, total_units)
 
-                    text_normalized = pos_processing_text(unit_text)
                     try:
-                        page_dict = regex_engine.parse(text_normalized)
+                        page_dict = regex_engine.parse(unit_text)
                         success = True
                     except ValueError as e:
                         # Get partial results for error logging
-                        partial_results, matched = regex_engine.parse_test(text_normalized)
-                        self._log_failed_page(unit_text, unit_index, str(e), partial_results)
+                        partial_results, matched = regex_engine.parse_test(unit_text)
+                        self._log_failed_page(
+                            unit_text, unit_index, str(e), partial_results
+                        )
                         success = False
 
                     if success:
