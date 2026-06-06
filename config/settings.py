@@ -6,6 +6,9 @@ input_attr = [
     ["input_dir", "BASE_PATH"],
     ["output", "OUTPUT_CSV"],
     ["resume", "RESUME"],
+    ["regex", "REGEX_FILE"],
+    ["test", "TEST_FILE"],
+    ["recursive", "RECURSIVE"],
 ]
 
 
@@ -13,6 +16,9 @@ class Settings:
     BASE_PATH: str = ""
     OUTPUT_CSV: str = os.path.join(os.getcwd(), "output.csv")
     RESUME: bool = False
+    REGEX_FILE: str | None = None
+    TEST_FILE: str | None = None
+    RECURSIVE: bool = False
 
     def __getitem__(self, attr):
         try:
@@ -64,6 +70,7 @@ class Settings:
         state_data = {
             "input_dir": input_dir,
             "output_file": self.OUTPUT_CSV,
+            "regex_file": self.REGEX_FILE,
             "processed_files": processed_files,
             "successful_pages": successful_pages,
             "failed_pages": failed_pages,
@@ -86,23 +93,43 @@ class Settings:
                     pass
 
     def parse_cmd_args(self, args: Namespace):
+        is_test = getattr(args, "test", None) is not None
         # 1. Verify and autoload input_dir if resume is requested and it is missing
-        if not getattr(args, "input_dir", None):
+        if not getattr(args, "input_dir", None) and not is_test:
             if getattr(args, "resume", False):
                 state = self.load_resume_state()
                 if state and state.get("input_dir"):
                     args.input_dir = state.get("input_dir")
                     args.output = state.get("output_file") or args.output
+                    args.regex = state.get("regex_file") or getattr(args, "regex", None)
                 else:
                     raise ValueError(
                         "Nenhum estado de retomada encontrado no diretório atual. É necessário especificar o 'input_dir'."
                     )
             else:
                 raise ValueError(
-                    "o argumento posicional 'input_dir' é obrigatório a menos que --resume seja usado com um estado salvo."
+                    "o argumento posicional 'input_dir' é obrigatório a menos que --resume ou --test seja usado."
                 )
 
-        # 2. Bind parsed properties
+        # 2. Check for required regex file if not resuming
+        if not getattr(args, "resume", False):
+            if not getattr(args, "regex", None):
+                raise ValueError(
+                    "o argumento '--regex' é obrigatório para definir os padrões de extração."
+                )
+        else:
+            # If resuming, load state to autoload regex if not explicitly passed
+            state = self.load_resume_state(getattr(args, "input_dir", None))
+            if state and state.get("regex_file"):
+                args.regex = getattr(args, "regex", None) or state.get("regex_file")
+
+            # Still, we must have a regex file to resume
+            if not getattr(args, "regex", None):
+                raise ValueError(
+                    "o argumento '--regex' é obrigatório para retomar a extração."
+                )
+
+        # 3. Bind parsed properties
         for attr in input_attr:
             if hasattr(args, attr[0]):
                 setattr(self, attr[1], getattr(args, attr[0]))

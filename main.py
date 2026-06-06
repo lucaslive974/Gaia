@@ -22,10 +22,30 @@ def main():
         help=f"Caminho do arquivo CSV de saída (Padrão: {settings['OUTPUT_CSV']}).",
     )
     parser.add_argument(
-        "-r",
         "--resume",
         action="store_true",
         help="Retoma o processamento a partir do último arquivo concluído com sucesso.",
+    )
+    parser.add_argument(
+        "-r",
+        "--recursive",
+        action="store_true",
+        help="Busca arquivos PDF recursivamente nos subdiretórios.",
+    )
+    parser.add_argument(
+        "-g",
+        "--regex",
+        type=str,
+        default=None,
+        help="Caminho do arquivo JSON contendo as regras regex customizadas.",
+    )
+    parser.add_argument(
+        "-t",
+        "--test",
+        type=str,
+        default=None,
+        metavar="FILE_PATH",
+        help="Testa as regras de regex na primeira página do arquivo PDF fornecido.",
     )
 
     args = parser.parse_args()
@@ -35,7 +55,11 @@ def main():
     except ValueError as e:
         parser.error(str(e))
 
-    run_with_ui(settings)
+    if settings.TEST_FILE:
+        from core.terminal_ui import run_test_mode
+        run_test_mode(settings)
+    else:
+        run_with_ui(settings)
 
 
 if __name__ == "__main__":

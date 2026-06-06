@@ -12,12 +12,27 @@ class TestResume(unittest.TestCase):
         global_settings.BASE_PATH = ""
         global_settings.OUTPUT_CSV = os.path.join(os.getcwd(), "output.csv")
         global_settings.RESUME = False
+        global_settings.REGEX_FILE = "/dummy/regex.json"
 
         self.settings = Settings()
+        self.settings.REGEX_FILE = "/dummy/regex.json"
         self.state_file_cwd = os.path.join(os.getcwd(), ".gaia_resume.json")
         self.dummy_dir = "/dummy/dir"
         self.state_file_input = os.path.join(self.dummy_dir, ".gaia_resume.json")
-        
+
+        # Patch NativeRegexEngine
+        self.regex_patcher = patch("core.ocr_parser.NativeRegexEngine")
+        self.mock_native_regex = self.regex_patcher.start()
+        self.mock_engine_instance = MagicMock()
+        self.mock_native_regex.return_value = self.mock_engine_instance
+        # Mock parse to return some fields
+        self.mock_engine_instance.parse.return_value = {
+            "data_emissao": "10/10/2026",
+            "data_vencimento": "10/11/2026",
+            "n_infracao": "ABC1234",
+            "valor": "150,00"
+        }
+
         # Ensure clean state before each test
         for p in (self.state_file_cwd, self.state_file_input):
             if os.path.exists(p):
@@ -25,11 +40,9 @@ class TestResume(unittest.TestCase):
                     os.remove(p)
                 except Exception:
                     pass
-            # Create parent folder for dummy dir if we need a real file system write mock
-            # In our tests we will mock path.exists and open or use real files in a temp folder.
-            # Let's mock where necessary, or use real files in cwd for simple validation.
 
     def tearDown(self):
+        self.regex_patcher.stop()
         for p in (self.state_file_cwd, self.state_file_input):
             if os.path.exists(p):
                 try:

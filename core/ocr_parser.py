@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from core.extractor import BasePdfExtractor, NativePdfExtractor
 from core.csv_writer import CsvWriter, DefaultCsvWriter
 from core.observer import ExtractionObserver
+from core.regex_engine import RegexEngine, NativeRegexEngine
 
 
 class OcrParser(ABC):
@@ -22,55 +23,18 @@ class OcrParser(ABC):
 
 
 class DefaultOcrParser(OcrParser):
-    _DATE = r"\d{2}/\d{2}/\d{4}"
-    _RE_KVP = {
-        "data_emissao": re.compile(
-            rf"""Data\s+de\s+Emiss[ãa]o\s+({_DATE})""", re.IGNORECASE | re.VERBOSE
-        ),
-        "data_vencimento": re.compile(
-            rf"""Data\s+d[eo]\s+Vencimento\s+({_DATE})""", re.IGNORECASE | re.VERBOSE
-        ),
-        "n_infracao": re.compile(
-            r"""Auto\s+de\s+Infra[cç][ãa]o:?\s+([A-Z0-9]{6,7})""",
-            re.IGNORECASE | re.VERBOSE,
-        ),
-        "concessionaria": re.compile(
-            r"""Concession[áa]ria:?\s+([\w\s\-]+?)\s+Lan[cç]amento""",
-            re.IGNORECASE | re.VERBOSE,
-        ),
-        "linha": re.compile(
-            r"""Linha:\s+([\w\s/\-|]+?)(?=\s+Ve[íi]culo|\s+Placa|\s*$)""",
-            re.IGNORECASE | re.VERBOSE,
-        ),
-        "veiculo": re.compile(
-            r"""Ve[íi]culo:\s*(\d{4,6})""", re.IGNORECASE | re.VERBOSE
-        ),
-        "placa": re.compile(r"""Placa:\s*([A-Z0-9]{7})""", re.IGNORECASE | re.VERBOSE),
-        "data_ocorrencia": re.compile(
-            rf"""Data:\s+({_DATE})""", re.IGNORECASE | re.VERBOSE
-        ),
-        "hora_ocorrencia": re.compile(
-            r"""Hora:\s+(\d{2}:\d{2})""", re.IGNORECASE | re.VERBOSE
-        ),
-        "local": re.compile(
-            r"""Local:\s+(.*?)\s+Base\s+legal""", re.IGNORECASE | re.DOTALL | re.VERBOSE
-        ),
-        "descricao": re.compile(
-            r"""Descri[cç][ãa]o\s+da\s+infra[cç][ãa]o:\s+([^.]+)""",
-            re.IGNORECASE | re.VERBOSE,
-        ),
-        "valor": re.compile(
-            r"""Valor:\s+R\$\s*([\d.,]+)""", re.IGNORECASE | re.VERBOSE
-        ),
-    }
-
     def __init__(
         self,
         extractor: BasePdfExtractor | None = None,
         csv_writer: CsvWriter | None = None,
+        regex_engine: RegexEngine | None = None,
     ):
         self._extractor = extractor or NativePdfExtractor()
         self._csv_writer = csv_writer or DefaultCsvWriter()
+
+        from config import settings
+
+        self._regex_engine = regex_engine or NativeRegexEngine(settings.REGEX_FILE)
 
         self._estimative_acc = 1200
         self._estimative_cnt = 1
@@ -246,26 +210,21 @@ class DefaultOcrParser(OcrParser):
         # Aplica o seu pré-processamento normal
         text_pos_processed = _pos_processing_text(page_text)
 
-        resultados = {}
-        posicao_atual = 0
-
-        for chave, padrao in self._RE_KVP.items():
-            match = padrao.search(text_pos_processed, pos=posicao_atual)
-
-            if match:
-                resultados[chave] = match.group(1).strip()
-                posicao_atual = match.end()
-            else:
-                resultados[chave] = ""
+        try:
+            resultados = self._regex_engine.parse(text_pos_processed)
+        except ValueError as e:
+            # If parsing fails due to required fields missing, get partial matches for logging
+            partial_results, _ = self._regex_engine.parse_test(text_pos_processed)
+            mapped_partial = {
+                self._KEY_MAP.get(k, k): v for k, v in partial_results.items()
+            }
+            e.extracted_data = mapped_partial
+            raise e
 
         # Map internal keys to final CSV keys
-        mapped_resultados = {self._KEY_MAP.get(k, k): v for k, v in resultados.items()}
-
-        if not resultados.get("n_infracao"):
-            err = ValueError("Invalid page structure: missing n_infracao")
-            err.extracted_data = mapped_resultados
-            raise err
-
+        mapped_resultados = {
+            self._KEY_MAP.get(k, k): v for k, v in resultados.items()
+        }
         return mapped_resultados
 
     def _verify_path(self, dir_path: str):

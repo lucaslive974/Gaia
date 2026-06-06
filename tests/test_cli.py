@@ -21,6 +21,8 @@ class TestCli(unittest.TestCase):
         mock_args.input_dir = "/dummy/input"
         mock_args.output = "/dummy/output.csv"
         mock_args.resume = False
+        mock_args.regex = "/dummy/regex.json"
+        mock_args.test = None
         mock_parse_args.return_value = mock_args
 
         # Execute main
@@ -33,6 +35,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(settings_passed.BASE_PATH, "/dummy/input")
         self.assertEqual(settings_passed.OUTPUT_CSV, "/dummy/output.csv")
         self.assertFalse(settings_passed.RESUME)
+        self.assertEqual(settings_passed.REGEX_FILE, "/dummy/regex.json")
 
     @patch("main.argparse.ArgumentParser.parse_args")
     @patch("main.run_with_ui")
@@ -45,12 +48,15 @@ class TestCli(unittest.TestCase):
         mock_args.input_dir = None
         mock_args.output = "/dummy/output.csv"
         mock_args.resume = True
+        mock_args.regex = None
+        mock_args.test = None
         mock_parse_args.return_value = mock_args
 
         # Mock CWD state file loading content
         mock_load_resume_state.return_value = {
             "input_dir": "/loaded/input/dir",
             "output_file": "/loaded/output.csv",
+            "regex_file": "/loaded/regex.json",
             "processed_files": ["f1.pdf"]
         }
 
@@ -63,6 +69,7 @@ class TestCli(unittest.TestCase):
         self.assertEqual(settings_passed.BASE_PATH, "/loaded/input/dir")
         self.assertEqual(settings_passed.OUTPUT_CSV, "/loaded/output.csv")
         self.assertTrue(settings_passed.RESUME)
+        self.assertEqual(settings_passed.REGEX_FILE, "/loaded/regex.json")
 
 
 

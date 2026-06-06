@@ -288,3 +288,114 @@ def run_with_ui(settings):
             "\n[bold green]🎉 Processamento concluído com 100% de sucesso![/bold green]\n"
         )
 
+
+def run_test_mode(settings):
+    import sys
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+    from core.regex_engine import NativeRegexEngine
+    from core.extractor import NativePdfExtractor
+    from core.ocr_parser import _pos_processing_text
+
+    console = Console()
+    console.print(
+        Panel("[bold green]🧪 Gaia - Modo de Teste de Regex[/bold green]", expand=False)
+    )
+
+    pdf_path = settings.TEST_FILE
+    regex_path = settings.REGEX_FILE
+
+    console.print(f"[bold cyan]Arquivo PDF:[/bold cyan] {pdf_path}")
+    console.print(f"[bold cyan]Arquivo Regex:[/bold cyan] {regex_path}")
+
+    # 1. Load Regex Engine
+    try:
+        engine = NativeRegexEngine(regex_path)
+    except Exception as e:
+        console.print(
+            f"\n[bold red]❌ Erro ao carregar as regras de regex:[/bold red] {e}"
+        )
+        sys.exit(1)
+
+    # 2. Extract First Page Text
+    try:
+        extractor = NativePdfExtractor()
+        if not os.path.exists(pdf_path):
+            raise FileNotFoundError(f"Arquivo PDF não encontrado: {pdf_path}")
+
+        pages = list(extractor.extract_pages(pdf_path))
+        if not pages:
+            raise ValueError("O arquivo PDF não contém páginas.")
+
+        raw_text = pages[0]
+        normalized_text = _pos_processing_text(raw_text)
+    except Exception as e:
+        console.print(
+            f"\n[bold red]❌ Erro ao ler a primeira página do PDF:[/bold red] {e}"
+        )
+        sys.exit(1)
+
+    # Print a snippet of normalized text to help debug
+    console.print(
+        "\n[bold yellow]--- Início do Texto Normalizado da Primeira Página ---[/bold yellow]"
+    )
+    snippet = normalized_text[:500]
+    console.print(snippet)
+    if len(normalized_text) > 500:
+        console.print("...")
+    console.print(
+        "[bold yellow]--- Fim do Texto Normalizado da Primeira Página ---[/bold yellow]\n"
+    )
+
+    # 3. Match patterns
+    results, matched_status = engine.parse_test(normalized_text)
+
+    # 4. Render Table of Results
+    table = Table(
+        title="[bold green]📋 Resultados do Casamento de Padrões[/bold green]",
+        show_header=True,
+        header_style="bold magenta",
+    )
+    table.add_column("Campo", style="cyan")
+    table.add_column("Status", justify="center")
+    table.add_column("Valor Extraído", style="green")
+    table.add_column("Obrigatoriedade", justify="center")
+    table.add_column("Expressão Regular", style="dim")
+
+    has_missing_required = False
+    missing_required_fields = []
+
+    for key, entry in engine.patterns.items():
+        matched = matched_status[key]
+        required = entry["required"]
+        val = results[key]
+        regex_str = entry["regex_str"]
+
+        status_str = (
+            "[green]CORRESPONDIDO[/green]" if matched else "[red]NÃO ENCONTRADO[/red]"
+        )
+        req_str = "[bold red]Sim[/bold red]" if required else "Não"
+
+        if required and not val:
+            has_missing_required = True
+            missing_required_fields.append(key)
+            status_str = "[bold red]AUSENTE[/bold red]"
+
+        val_display = val if val else f"[dim](default: '{entry['default']}')[/dim]"
+
+        table.add_row(key, status_str, val_display, req_str, regex_str)
+
+    console.print(table)
+
+    if has_missing_required:
+        console.print(
+            f"\n[bold red]❌ Falha: Os seguintes campos obrigatórios não foram extraídos: {', '.join(missing_required_fields)}[/bold red]"
+        )
+        sys.exit(1)
+    else:
+        console.print(
+            "\n[bold green]🎉 Sucesso: Todos os campos obrigatórios foram extraídos com sucesso![/bold green]"
+        )
+        sys.exit(0)
+

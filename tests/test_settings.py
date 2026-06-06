@@ -20,11 +20,14 @@ class TestSettings(unittest.TestCase):
             os.path.join(os.getcwd(), "output.csv"),
         )
         self.assertFalse(self.settings.RESUME)
+        self.assertIsNone(self.settings.REGEX_FILE)
+        self.assertIsNone(self.settings.TEST_FILE)
 
     def test_getitem_success(self):
         """Test accessing settings attributes using dictionary syntax."""
         self.assertEqual(self.settings["BASE_PATH"], "")
         self.assertFalse(self.settings["RESUME"])
+        self.assertIsNone(self.settings["REGEX_FILE"])
 
     def test_getitem_key_error(self):
         """Test that accessing a non-existent key via dictionary syntax raises KeyError."""
@@ -35,18 +38,21 @@ class TestSettings(unittest.TestCase):
         """Test modifying settings attributes using dictionary syntax."""
         self.settings["BASE_PATH"] = "/custom/path"
         self.settings["RESUME"] = True
-        
+        self.settings["REGEX_FILE"] = "/my/regex.json"
+
         # Verify both dictionary-like and attribute-like access reflect the changes
         self.assertEqual(self.settings["BASE_PATH"], "/custom/path")
         self.assertEqual(self.settings.BASE_PATH, "/custom/path")
         self.assertTrue(self.settings["RESUME"])
         self.assertTrue(self.settings.RESUME)
+        self.assertEqual(self.settings["REGEX_FILE"], "/my/regex.json")
 
     def test_contains(self):
         """Test the 'in' operator on the settings object."""
         self.assertTrue("BASE_PATH" in self.settings)
         self.assertTrue("OUTPUT_CSV" in self.settings)
         self.assertTrue("RESUME" in self.settings)
+        self.assertTrue("REGEX_FILE" in self.settings)
         self.assertFalse("NON_EXISTENT_KEY" in self.settings)
 
     def test_parse_cmd_args_all_fields(self):
@@ -55,23 +61,28 @@ class TestSettings(unittest.TestCase):
             input_dir="/my/input",
             output="/my/output.csv",
             resume=True,
+            regex="/my/regex.json",
+            test=None,
         )
         self.settings.parse_cmd_args(args)
-        
+
         self.assertEqual(self.settings.BASE_PATH, "/my/input")
         self.assertEqual(self.settings.OUTPUT_CSV, "/my/output.csv")
         self.assertTrue(self.settings.RESUME)
+        self.assertEqual(self.settings.REGEX_FILE, "/my/regex.json")
 
     def test_parse_cmd_args_partial_fields(self):
         """Test parse_cmd_args with a Namespace containing only some mapped attributes."""
         args = Namespace(
             input_dir="/my/input_only",
+            regex="/my/regex.json",
             # other attributes are missing
         )
         self.settings.parse_cmd_args(args)
-        
+
         # Check that present fields were updated
         self.assertEqual(self.settings.BASE_PATH, "/my/input_only")
+        self.assertEqual(self.settings.REGEX_FILE, "/my/regex.json")
         # Check that missing fields retained their defaults
         self.assertFalse(self.settings.RESUME)
         self.assertEqual(
@@ -83,11 +94,13 @@ class TestSettings(unittest.TestCase):
         """Test that parse_cmd_args ignores attributes not in the mapping."""
         args = Namespace(
             input_dir="/my/input",
+            regex="/my/regex.json",
             extra_arg="some_value",
         )
         self.settings.parse_cmd_args(args)
-        
+
         self.assertEqual(self.settings.BASE_PATH, "/my/input")
+        self.assertEqual(self.settings.REGEX_FILE, "/my/regex.json")
         # Ensure extra arg is not set on settings
         self.assertFalse(hasattr(self.settings, "extra_arg"))
         self.assertFalse("extra_arg" in self.settings)
@@ -103,31 +116,39 @@ class TestSettings(unittest.TestCase):
         state_file_cwd = os.path.join(os.getcwd(), ".gaia_resume.json")
         state_file_input = os.path.join(input_dir, ".gaia_resume.json")
 
+        self.settings.REGEX_FILE = "/my/regex.json"
+
         with patch("config.settings.open", create=True) as mock_open:
             self.settings.save_resume_state(input_dir, ["file1.pdf"], 10, 2, 12)
             mock_open.assert_any_call(state_file_cwd, "w", encoding="utf-8")
             mock_open.assert_any_call(state_file_input, "w", encoding="utf-8")
 
-        with patch("config.settings.os.path.exists") as mock_exists, \
-             patch("config.settings.open", create=True) as mock_open:
+        with patch("config.settings.os.path.exists") as mock_exists, patch(
+            "config.settings.open", create=True
+        ) as mock_open:
             mock_exists.return_value = True
             mock_file = MagicMock()
-            mock_file.read.return_value = json.dumps({
-                "input_dir": input_dir,
-                "output_file": self.settings.OUTPUT_CSV,
-                "processed_files": ["file1.pdf"],
-                "successful_pages": 10,
-                "failed_pages": 2,
-                "total_pages": 12
-            })
+            mock_file.read.return_value = json.dumps(
+                {
+                    "input_dir": input_dir,
+                    "output_file": self.settings.OUTPUT_CSV,
+                    "regex_file": "/my/regex.json",
+                    "processed_files": ["file1.pdf"],
+                    "successful_pages": 10,
+                    "failed_pages": 2,
+                    "total_pages": 12,
+                }
+            )
             mock_open.return_value.__enter__.return_value = mock_file
-            
+
             state = self.settings.load_resume_state(input_dir)
             self.assertIsNotNone(state)
             self.assertEqual(state["processed_files"], ["file1.pdf"])
+            self.assertEqual(state["regex_file"], "/my/regex.json")
 
-        with patch("config.settings.os.path.exists") as mock_exists, \
-             patch("config.settings.os.remove") as mock_remove:
+        with patch("config.settings.os.path.exists") as mock_exists, patch(
+            "config.settings.os.remove"
+        ) as mock_remove:
             mock_exists.return_value = True
             self.settings.clear_resume_state(input_dir)
             mock_remove.assert_any_call(state_file_cwd)
@@ -135,15 +156,38 @@ class TestSettings(unittest.TestCase):
 
     def test_parse_cmd_args_value_errors(self):
         # Scenario 1: missing input_dir, resume = False -> should raise ValueError
-        args = Namespace(input_dir=None, resume=False, output="/my/output.csv")
+        args = Namespace(
+            input_dir=None, resume=False, output="/my/output.csv", regex="/my/regex.json"
+        )
         with self.assertRaises(ValueError):
             self.settings.parse_cmd_args(args)
 
         # Scenario 2: missing input_dir, resume = True but no state file -> should raise ValueError
         with patch.object(self.settings, "load_resume_state", return_value=None):
-            args = Namespace(input_dir=None, resume=True, output="/my/output.csv")
+            args = Namespace(
+                input_dir=None, resume=True, output="/my/output.csv", regex="/my/regex.json"
+            )
             with self.assertRaises(ValueError):
                 self.settings.parse_cmd_args(args)
+
+        # Scenario 3: input_dir provided, resume = False, but regex is missing -> should raise ValueError
+        args = Namespace(
+            input_dir="/my/input", resume=False, output="/my/output.csv", regex=None
+        )
+        with self.assertRaises(ValueError):
+            self.settings.parse_cmd_args(args)
+
+        # Scenario 4: test mode provided -> input_dir is not required, but regex is required
+        args = Namespace(
+            input_dir=None,
+            resume=False,
+            output="/my/output.csv",
+            regex="/my/regex.json",
+            test="/my/test.pdf",
+        )
+        self.settings.parse_cmd_args(args)
+        self.assertEqual(self.settings.TEST_FILE, "/my/test.pdf")
+        self.assertEqual(self.settings.REGEX_FILE, "/my/regex.json")
 
     def test_global_settings_instance(self):
         """Test that the global settings instance exported by the package functions properly."""
@@ -154,5 +198,3 @@ class TestSettings(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
