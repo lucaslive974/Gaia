@@ -12,9 +12,9 @@ class BasePdfExtractor(ABC):
         pass
 
     @abstractmethod
-    def extract_pages(self, pdf_path: str) -> Generator[tuple[str, str], None, None]:
+    def extract_pages(self, pdf_path: str) -> Generator[str, None, None]:
         """
-        Yields the text content of each page and the method used (text, method) sequentially.
+        Yields the text content of each page sequentially.
         """
         pass
 
@@ -34,8 +34,9 @@ class NativePdfExtractor(BasePdfExtractor):
         page = reader.pages[page_num - 1]
         return page.extract_text(extraction_mode="layout") or ""
 
-    def extract_pages(self, pdf_path: str) -> Generator[tuple[str, str], None, None]:
+    def extract_pages(self, pdf_path: str) -> Generator[str, None, None]:
         reader = PdfReader(pdf_path)
         for page_num in range(1, len(reader.pages) + 1):
-            yield self._extract_single_page(reader, page_num), "native"
+            yield self._extract_single_page(reader, page_num)
+
 
