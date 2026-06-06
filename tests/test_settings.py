@@ -1,5 +1,7 @@
 import unittest
 import os
+import json
+from unittest.mock import patch, MagicMock
 from argparse import Namespace
 from config.settings import Settings
 from config import settings as global_settings
@@ -89,6 +91,56 @@ class TestSettings(unittest.TestCase):
         # Ensure extra arg is not set on settings
         self.assertFalse(hasattr(self.settings, "extra_arg"))
         self.assertFalse("extra_arg" in self.settings)
+
+    def test_get_state_file_paths(self):
+        paths = self.settings.get_state_file_paths("/dummy/input")
+        self.assertEqual(len(paths), 2)
+        self.assertIn(os.path.join(os.getcwd(), ".gaia_resume.json"), paths)
+        self.assertIn(os.path.join("/dummy/input", ".gaia_resume.json"), paths)
+
+    def test_load_save_clear_resume_state(self):
+        input_dir = "/dummy/input"
+        state_file_cwd = os.path.join(os.getcwd(), ".gaia_resume.json")
+        state_file_input = os.path.join(input_dir, ".gaia_resume.json")
+
+        with patch("config.settings.open", create=True) as mock_open:
+            self.settings.save_resume_state(input_dir, ["file1.pdf"])
+            mock_open.assert_any_call(state_file_cwd, "w", encoding="utf-8")
+            mock_open.assert_any_call(state_file_input, "w", encoding="utf-8")
+
+        with patch("config.settings.os.path.exists") as mock_exists, \
+             patch("config.settings.open", create=True) as mock_open:
+            mock_exists.return_value = True
+            mock_file = MagicMock()
+            mock_file.read.return_value = json.dumps({
+                "input_dir": input_dir,
+                "output_file": self.settings.OUTPUT_CSV,
+                "processed_files": ["file1.pdf"]
+            })
+            mock_open.return_value.__enter__.return_value = mock_file
+            
+            state = self.settings.load_resume_state(input_dir)
+            self.assertIsNotNone(state)
+            self.assertEqual(state["processed_files"], ["file1.pdf"])
+
+        with patch("config.settings.os.path.exists") as mock_exists, \
+             patch("config.settings.os.remove") as mock_remove:
+            mock_exists.return_value = True
+            self.settings.clear_resume_state(input_dir)
+            mock_remove.assert_any_call(state_file_cwd)
+            mock_remove.assert_any_call(state_file_input)
+
+    def test_parse_cmd_args_value_errors(self):
+        # Scenario 1: missing input_dir, resume = False -> should raise ValueError
+        args = Namespace(input_dir=None, resume=False, output="/my/output.csv")
+        with self.assertRaises(ValueError):
+            self.settings.parse_cmd_args(args)
+
+        # Scenario 2: missing input_dir, resume = True but no state file -> should raise ValueError
+        with patch.object(self.settings, "load_resume_state", return_value=None):
+            args = Namespace(input_dir=None, resume=True, output="/my/output.csv")
+            with self.assertRaises(ValueError):
+                self.settings.parse_cmd_args(args)
 
     def test_global_settings_instance(self):
         """Test that the global settings instance exported by the package functions properly."""
