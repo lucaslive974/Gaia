@@ -87,14 +87,14 @@ class TestCli(unittest.TestCase):
         mock_parser_instance = MagicMock()
         mock_parser_class.return_value = mock_parser_instance
 
-        mock_observer = MagicMock()
-        controller = AppController(observer=mock_observer)
-
         settings = Settings()
         settings.BASE_PATH = "/dummy/input"
         settings.OUTPUT_CSV = "/dummy/output.csv"
         settings.RESUME = True
         settings.REGEX_FILE = "/dummy/regex.json"
+
+        mock_observer = MagicMock()
+        controller = AppController(settings, observer=mock_observer)
 
         # mock os.listdir to return empty list so it finishes quickly
         with patch("gaia.cli.app_controller.os.listdir", return_value=[]):
@@ -120,14 +120,14 @@ class TestCli(unittest.TestCase):
         )
         mock_isdir.return_value = True
 
-        mock_observer = MagicMock()
-        controller = AppController(observer=mock_observer)
-
         settings = Settings()
         settings.BASE_PATH = "/dummy/input"
         settings.OUTPUT_CSV = "/dummy/output.csv"
         settings.RESUME = False
         settings.REGEX_FILE = "/dummy/regex.json"
+
+        mock_observer = MagicMock()
+        controller = AppController(settings, observer=mock_observer)
 
         with patch("gaia.cli.app_controller.os.listdir", return_value=[]):
             controller.run(settings)

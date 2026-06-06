@@ -251,7 +251,7 @@ def run_with_ui(settings):
         console=console,
     )
     observer = ConsoleObserver(console, progress)
-    controller = AppController(observer)
+    controller = AppController(settings, observer=observer)
 
     start_time = time.perf_counter()
 

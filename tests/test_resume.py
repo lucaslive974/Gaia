@@ -87,7 +87,7 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = AppController(observer=mock_observer)
+        controller = AppController(self.settings, observer=mock_observer)
         self.settings.RESUME = True
 
         # Set parse side effect to verify it processes only file2.pdf
@@ -142,7 +142,7 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = AppController(observer=mock_observer)
+        controller = AppController(self.settings, observer=mock_observer)
         self.settings.RESUME = True
 
         success = controller.run(self.settings)
@@ -182,7 +182,7 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = AppController(observer=mock_observer)
+        controller = AppController(self.settings, observer=mock_observer)
         self.settings.RESUME = True
 
         with patch("gaia.config.settings.open", create=True) as mock_open:
@@ -225,7 +225,7 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = AppController(observer=mock_observer)
+        controller = AppController(self.settings, observer=mock_observer)
         self.settings.RESUME = True
 
         success = controller.run(self.settings)
@@ -268,7 +268,7 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = True  # Cancelled!
 
-        controller = AppController(observer=mock_observer)
+        controller = AppController(self.settings, observer=mock_observer)
         self.settings.RESUME = True
 
         success = controller.run(self.settings)

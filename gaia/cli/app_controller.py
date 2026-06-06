@@ -18,80 +18,49 @@ class AppController:
     parsing progress, CSV persistence, and execution resumption.
     """
 
-    def __init__(self, observer: ExtractionObserver | None = None):
+    def __init__(
+        self,
+        settings: Settings,
+        observer: ExtractionObserver | None = None,
+        extractor: NativePdfExtractor | None = None,
+        csv_writer: DefaultCsvWriter | None = None,
+        regex_engine: NativeRegexEngine | None = None,
+        ocr_parser: DefaultOcrParser | None = None,
+    ):
+        self.settings = settings
         self.observer = observer
+        self.extractor = extractor or NativePdfExtractor()
+        self.csv_writer = csv_writer or DefaultCsvWriter(
+            path_output=settings.OUTPUT_CSV
+        )
+        self.regex_engine = regex_engine or NativeRegexEngine.from_file(
+            settings.REGEX_FILE
+        )
+        self.ocr_parser = ocr_parser or DefaultOcrParser(extractor=self.extractor)
 
-    def run(self, settings: Settings) -> bool:
+    def run(self, settings: Settings | None = None) -> bool:
+        if settings is not None:
+            self.settings = settings
+
         # 1. Validations
-        if not os.path.exists(settings.BASE_PATH):
-            if self.observer:
-                self.observer.on_error(
-                    _("err_dir_not_exist", base_path=settings.BASE_PATH)
-                )
+        if not self._validate_paths():
             return False
 
-        if not os.path.isdir(settings.BASE_PATH):
-            if self.observer:
-                self.observer.on_error(_("err_not_a_dir", base_path=settings.BASE_PATH))
+        # 2. Preparation
+        self._prepare_environment()
+
+        # 3. Find files
+        files = self._find_pdf_files()
+        if files is None:
             return False
 
-        # 2. Create destination output CSV directory
-        output_dir = os.path.dirname(settings.OUTPUT_CSV)
-        if output_dir:
-            os.makedirs(output_dir, exist_ok=True)
-
-        # 3. Clean up previous gaia_errors.log if not in resume mode
-        log_path = os.path.join(os.getcwd(), "gaia_errors.log")
-        if not settings.RESUME and os.path.exists(log_path):
-            try:
-                os.remove(log_path)
-            except Exception:
-                pass
-
-        # 4. Find all PDF files under settings.BASE_PATH
-        files = []
-        if settings.RECURSIVE:
-            for root, dirs, filenames in os.walk(settings.BASE_PATH):
-                for f in filenames:
-                    if f.lower().endswith(".pdf"):
-                        # Save relative path to maintain directory structure in resume state
-                        rel_path = os.path.relpath(
-                            os.path.join(root, f), settings.BASE_PATH
-                        )
-                        files.append(rel_path)
-        else:
-            try:
-                for f in os.listdir(settings.BASE_PATH):
-                    if f.lower().endswith(".pdf"):
-                        files.append(f)
-            except Exception as e:
-                if self.observer:
-                    self.observer.on_error(_("err_list_dir", error=e))
-                return False
-
-        files.sort()
         total_original_files = len(files)
 
-        # 5. Instantiate session
+        # 4. Initialize session
         session = ExtractionSession(self.observer)
-
-        # 6. Instantiate parser tools
-        extractor = NativePdfExtractor()
-        csv_writer = DefaultCsvWriter(path_output=settings.OUTPUT_CSV)
-        regex_engine = NativeRegexEngine.from_file(settings.REGEX_FILE)
-        ocr_parser = DefaultOcrParser(extractor=extractor)
-
-        # 7. Load resume state
-        loaded_state = settings.load_resume_state(settings.BASE_PATH)
-        if loaded_state:
-            session.processed_files = loaded_state.get("processed_files", [])
-            session.successful_pages = loaded_state.get("successful_pages", 0)
-            session.failed_pages = loaded_state.get("failed_pages", 0)
-            session.total_pages = loaded_state.get("total_pages", 0)
+        self._load_resume_state(session)
 
         processed_files_set = set(session.processed_files)
-
-        # Filter out already processed files
         remaining_files = [f for f in files if f not in processed_files_set]
         total_files = len(remaining_files)
 
@@ -102,6 +71,79 @@ class AppController:
 
         session.start(total_original_files)
 
+        # 5. Process remaining files
+        self._process_remaining_files(session, remaining_files, processed_files_set)
+
+        # 6. Finalize session
+        self._finalize_session(session)
+
+        return True
+
+    def _validate_paths(self) -> bool:
+        if not os.path.exists(self.settings.BASE_PATH):
+            if self.observer:
+                self.observer.on_error(
+                    _("err_dir_not_exist", base_path=self.settings.BASE_PATH)
+                )
+            return False
+
+        if not os.path.isdir(self.settings.BASE_PATH):
+            if self.observer:
+                self.observer.on_error(
+                    _("err_not_a_dir", base_path=self.settings.BASE_PATH)
+                )
+            return False
+        return True
+
+    def _prepare_environment(self) -> None:
+        output_dir = os.path.dirname(self.settings.OUTPUT_CSV)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+
+        log_path = os.path.join(os.getcwd(), "gaia_errors.log")
+        if not self.settings.RESUME and os.path.exists(log_path):
+            try:
+                os.remove(log_path)
+            except Exception:
+                pass
+
+    def _find_pdf_files(self) -> list[str] | None:
+        files = []
+        if self.settings.RECURSIVE:
+            for root, dirs, filenames in os.walk(self.settings.BASE_PATH):
+                for f in filenames:
+                    if f.lower().endswith(".pdf"):
+                        rel_path = os.path.relpath(
+                            os.path.join(root, f), self.settings.BASE_PATH
+                        )
+                        files.append(rel_path)
+        else:
+            try:
+                for f in os.listdir(self.settings.BASE_PATH):
+                    if f.lower().endswith(".pdf"):
+                        files.append(f)
+            except Exception as e:
+                if self.observer:
+                    self.observer.on_error(_("err_list_dir", error=e))
+                return None
+
+        files.sort()
+        return files
+
+    def _load_resume_state(self, session: ExtractionSession) -> None:
+        loaded_state = self.settings.load_resume_state(self.settings.BASE_PATH)
+        if loaded_state:
+            session.processed_files = loaded_state.get("processed_files", [])
+            session.successful_pages = loaded_state.get("successful_pages", 0)
+            session.failed_pages = loaded_state.get("failed_pages", 0)
+            session.total_pages = loaded_state.get("total_pages", 0)
+
+    def _process_remaining_files(
+        self,
+        session: ExtractionSession,
+        remaining_files: list[str],
+        processed_files_set: set[str],
+    ) -> None:
         for file_index, rel_file_path in enumerate(
             remaining_files, start=len(processed_files_set) + 1
         ):
@@ -111,57 +153,56 @@ class AppController:
                 session.is_cancelled = True
                 break
 
-            full_file_path = os.path.join(settings.BASE_PATH, rel_file_path)
+            self._process_single_file(session, file_index, rel_file_path)
 
-            session.start_file(file_index, full_file_path)
+    def _process_single_file(
+        self, session: ExtractionSession, file_index: int, rel_file_path: str
+    ) -> None:
+        full_file_path = os.path.join(self.settings.BASE_PATH, rel_file_path)
+        session.start_file(file_index, full_file_path)
 
-            try:
-                # AppController executes parser and orchestrates CsvWriter to persist page-by-page
-                for unit_index, total_units, unit_text in ocr_parser.process_file(
-                    full_file_path, session, pages_per_unit=settings.PAGES_PER_UNIT
-                ):
-                    session.start_page(unit_index, total_units)
+        try:
+            for unit_index, total_units, unit_text in self.ocr_parser.process_file(
+                full_file_path, session, pages_per_unit=self.settings.PAGES_PER_UNIT
+            ):
+                session.start_page(unit_index, total_units)
+                self._process_page(unit_text, unit_index, total_units, session)
+        except Exception as e:
+            session.error(_("err_in_file", file_path=rel_file_path, error=e))
+            return
 
-                    try:
-                        page_dict = regex_engine.parse(unit_text)
-                        success = True
-                    except ValueError as e:
-                        # Get partial results for error logging
-                        partial_results, matched = regex_engine.parse_test(unit_text)
-                        self._log_failed_page(
-                            unit_text, unit_index, str(e), partial_results
-                        )
-                        success = False
+        session.processed_files.append(rel_file_path)
+        self.settings.save_resume_state(
+            self.settings.BASE_PATH,
+            session.processed_files,
+            session.successful_pages,
+            session.failed_pages,
+            session.total_pages,
+        )
+        session.complete_file(file_index)
 
-                    if success:
-                        session.process_page_result(True, unit_index, total_units)
-                        csv_writer.write(page_dict)
-                    else:
-                        session.process_page_result(False, unit_index, total_units)
+    def _process_page(
+        self,
+        unit_text: str,
+        unit_index: int,
+        total_units: int,
+        session: ExtractionSession,
+    ) -> None:
+        try:
+            page_dict = self.regex_engine.parse(unit_text)
+            session.process_page_result(True, unit_index, total_units)
+            self.csv_writer.write(page_dict)
+        except ValueError as e:
+            # Get partial results for error logging
+            partial_results, _u = self.regex_engine.parse_test(unit_text)
+            self._log_failed_page(unit_text, unit_index, str(e), partial_results)
+            session.process_page_result(False, unit_index, total_units)
 
-            except Exception as e:
-                session.error(_("err_in_file", file_path=rel_file_path, error=e))
-                continue
-
-            # File processed successfully, update resume state
-            session.processed_files.append(rel_file_path)
-            settings.save_resume_state(
-                settings.BASE_PATH,
-                session.processed_files,
-                session.successful_pages,
-                session.failed_pages,
-                session.total_pages,
-            )
-
-            session.complete_file(file_index)
-
+    def _finalize_session(self, session: ExtractionSession) -> None:
         # Delete resume state if finished successfully and not cancelled
         if not session.is_cancelled:
-            settings.clear_resume_state(settings.BASE_PATH)
-
+            self.settings.clear_resume_state(self.settings.BASE_PATH)
         session.complete()
-
-        return True
 
     def _log_failed_page(
         self,
