@@ -70,12 +70,9 @@ class ConsoleObserver(ExtractionObserver):
         self.current_file_name = "Nenhum"
         self.total_pages = 0
         self.successful_pages = 0
-        self.native_pages = 0
-        self.ocr_pages = 0
         self.error_pages = 0
         self.current_page = 0
         self.total_current_pages = 0
-        self.method = ""
         self.is_cancelled = False
 
         self.total_files_task = self.progress.add_task(
@@ -103,7 +100,7 @@ class ConsoleObserver(ExtractionObserver):
             if rlist:
                 ch = sys.stdin.read(1)
                 if ch == "\x1b":  # ESC key code
-                    return True
+                     return True
         except Exception:
             pass
         return False
@@ -146,16 +143,10 @@ class ConsoleObserver(ExtractionObserver):
         error_pages: int,
         page_index: int,
         total_pages: int,
-        native_pages: int,
-        ocr_pages: int,
-        method: str,
     ):
         self.successful_pages = extracted_pages
         self.error_pages = error_pages
-        self.native_pages = native_pages
-        self.ocr_pages = ocr_pages
         self.current_page = page_index
-        self.method = method
         self.progress.update(self.current_file_task, completed=page_index)
         self._update_live()
 
@@ -191,21 +182,12 @@ class ConsoleObserver(ExtractionObserver):
             f"[bold green]📊 Painel de Extração (Gaia)[/bold green]\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             f"📂 [bold cyan]Arquivos Processados:[/bold cyan] {self.file_index} de {self.total_files}\n"
-            f"📄 [bold blue]Páginas Nativas (Leve):[/bold blue] {self.native_pages}\n"
-            f"🤖 [bold yellow]Páginas OCR (Tesseract):[/bold yellow] {self.ocr_pages}\n"
+            f"📄 [bold blue]Páginas com Sucesso:[/bold blue] {self.successful_pages}\n"
             f"🚨 [bold red]Falhas de Leitura:[/bold red] {self.error_pages}\n"
             f"⏳ [bold white]Tempo Restante Estimado:[/bold white] {eta_str}\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             f"🔍 [bold magenta]Arquivo Atual:[/bold magenta] [white]{self.current_file_name}[/white]"
         )
-
-        if self.method:
-            method_str = (
-                "[cyan]Nativo[/cyan]"
-                if self.method == "native"
-                else "[yellow]OCR[/yellow]"
-            )
-            status_text += f" [dim]({method_str})[/dim]"
 
         status_panel = Panel(status_text, border_style="green", expand=True)
 
@@ -217,8 +199,6 @@ def print_summary_dashboard(
     total_files: int,
     total_pages: int,
     successful_pages: int,
-    native_pages: int,
-    ocr_pages: int,
     elapsed_time: float,
 ):
     table = Table(
@@ -231,10 +211,80 @@ def print_summary_dashboard(
 
     table.add_row("Arquivos Processados", str(total_files))
     table.add_row("Total de Páginas", str(total_pages))
-    table.add_row("Páginas Nativas (Leve/Rápido)", f"[blue]{native_pages}[/blue]")
-    table.add_row("Páginas OCR Tesseract (Pesado)", f"[yellow]{ocr_pages}[/yellow]")
+    table.add_row("Páginas Processadas com Sucesso", f"[blue]{successful_pages}[/blue]")
     table.add_row("Falhas de Extração", f"[red]{total_pages - successful_pages}[/red]")
-    table.add_row("Tempo Total Decorrido", f"{(elapsed_time / (60 * 60)):.0f} segundos")
+    table.add_row("Tempo Total Decorrido", f"{elapsed_time:.2f} segundos")
 
     console.print("\n")
     console.print(table)
+
+
+def run_with_ui(settings):
+    from core.shell_manager import ShellManager
+    import time
+    from rich.progress import (
+        SpinnerColumn,
+        TextColumn,
+        BarColumn,
+        TaskProgressColumn,
+        TimeRemainingColumn,
+    )
+
+    console = Console()
+    progress = Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeRemainingColumn(),
+        console=console,
+    )
+    observer = ConsoleObserver(console, progress)
+    shell = ShellManager(observer)
+
+    start_time = time.perf_counter()
+
+    with TerminalManager():
+        with Live(
+            observer.get_renderable(), console=console, refresh_per_second=10
+        ) as live:
+            observer.set_live(live)
+            try:
+                success = shell.run(settings)
+            except KeyboardInterrupt:
+                observer.is_cancelled = True
+                success = False
+
+    if observer.is_cancelled:
+        console.print(
+            "\n[bold yellow]⚠️ Processamento cancelado pelo usuário (Ctrl+C ou ESC).[/bold yellow]\n"
+        )
+        sys.exit(0)
+
+    if not success:
+        sys.exit(1)
+
+    elapsed_time = time.perf_counter() - start_time
+    total_pages = observer.successful_pages + observer.error_pages
+
+    print_summary_dashboard(
+        console=console,
+        total_files=observer.file_index,
+        total_pages=total_pages,
+        successful_pages=observer.successful_pages,
+        elapsed_time=elapsed_time,
+    )
+
+    log_path = os.path.join(os.getcwd(), "gaia_errors.log")
+    if observer.successful_pages < total_pages:
+        console.print(
+            f"\n[bold red]⚠️ Atenção: {total_pages - observer.successful_pages} página(s) falharam na extração.[/bold red]"
+        )
+        console.print(
+            f"[yellow]O texto extraído das páginas com falha foi salvo em: [bold]{log_path}[/bold][/yellow]\n"
+        )
+    else:
+        console.print(
+            "\n[bold green]🎉 Processamento concluído com 100% de sucesso![/bold green]\n"
+        )
+
