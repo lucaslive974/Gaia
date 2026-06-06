@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gaia-pdf-parser"
-version = "1.0.0"
+version = "1.0.1"
 description = "General-purpose PDF to CSV data extraction library."
 readme = "README.md"
 requires-python = ">=3.10"
