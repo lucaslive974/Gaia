@@ -2,6 +2,7 @@ import re
 import time
 import os
 import unicodedata
+import json
 from os import path, listdir
 from abc import ABC, abstractmethod
 
@@ -12,7 +13,12 @@ from core.observer import ExtractionObserver
 
 class OcrParser(ABC):
     @abstractmethod
-    def process(self, dir_path: str, observer: ExtractionObserver | None = None):
+    def process(
+        self,
+        dir_path: str,
+        observer: ExtractionObserver | None = None,
+        resume: bool = False,
+    ):
         pass
 
 
@@ -70,13 +76,16 @@ class DefaultOcrParser(OcrParser):
         self._estimative_acc = 1200
         self._estimative_cnt = 1
 
-    def process(self, dir_path: str, observer: ExtractionObserver | None = None):
+    def process(
+        self,
+        dir_path: str,
+        observer: ExtractionObserver | None = None,
+        resume: bool = False,
+    ):
         self._verify_path(dir_path)
         self._total_pages = 0
         self._successful_pages = 0
         self._failed_pages = 0
-        self._native_pages = 0
-        self._ocr_pages = 0
 
         try:
             files = [f for f in listdir(dir_path) if f.lower().endswith(".pdf")]
@@ -85,18 +94,38 @@ class DefaultOcrParser(OcrParser):
                 observer.on_error(f"Erro ao listar o diretório: {e}")
             raise e
 
-        total_files = len(files)
+        # Resolve output path for state tracking
+        from config import settings
+        resolved_output = getattr(self._csv_writer, "_path", None) or settings["OUTPUT_CSV"]
+        state_file = path.join(os.getcwd(), ".gaia_resume.json")
+        processed_files = set()
+
+        if resume and path.exists(state_file):
+            try:
+                with open(state_file, "r", encoding="utf-8") as sf:
+                    state_data = json.load(sf)
+                    if (
+                        state_data.get("input_dir") == dir_path
+                        and state_data.get("output_csv") == resolved_output
+                    ):
+                        processed_files = set(state_data.get("processed_files", []))
+            except Exception:
+                pass
+
+        # Filter out already processed files
+        remaining_files = [f for f in files if f not in processed_files]
+        total_files = len(remaining_files)
+
         if total_files == 0:
             if observer:
-                observer.on_error(
-                    "Nenhum arquivo PDF encontrado no diretório selecionado."
-                )
+                observer.on_start(0)
+                observer.on_complete(0, 0)
             return
 
         if observer:
             observer.on_start(total_files)
 
-        for file_index, file in enumerate(files, start=1):
+        for file_index, file in enumerate(remaining_files, start=1):
             if observer and getattr(observer, "is_cancelled", False):
                 break
 
@@ -120,12 +149,36 @@ class DefaultOcrParser(OcrParser):
                     observer.on_error(f"Erro no arquivo {file}: {e}")
                 continue
 
+            # File processed successfully, update resume state
+            processed_files.add(file)
+            try:
+                with open(state_file, "w", encoding="utf-8") as sf:
+                    json.dump(
+                        {
+                            "input_dir": dir_path,
+                            "output_csv": resolved_output,
+                            "processed_files": list(processed_files),
+                        },
+                        sf,
+                        indent=4,
+                    )
+            except Exception:
+                pass
+
             if observer:
                 progress_percent = (file_index / total_files) * 100
                 observer.on_file_complete(file_index, progress_percent)
 
             self._estimative_acc += time.perf_counter() - start_time
             self._estimative_cnt += 1
+
+        # Delete resume state if finished successfully and not cancelled
+        if not (observer and getattr(observer, "is_cancelled", False)):
+            if path.exists(state_file):
+                try:
+                    os.remove(state_file)
+                except Exception:
+                    pass
 
         if observer:
             observer.on_complete(self._successful_pages, self._total_pages)
@@ -135,7 +188,7 @@ class DefaultOcrParser(OcrParser):
         self._total_pages += total_pages
 
         page_generator = self._extractor.extract_pages(file_path)
-        for page_index, (page_text, method) in enumerate(page_generator, start=1):
+        for page_index, page_text in enumerate(page_generator, start=1):
             if observer and getattr(observer, "is_cancelled", False):
                 break
 
@@ -145,10 +198,6 @@ class DefaultOcrParser(OcrParser):
             success = self._process_page(page_text, page_index)
             if success:
                 self._successful_pages += 1
-                if method == "native":
-                    self._native_pages += 1
-                else:
-                    self._ocr_pages += 1
             else:
                 self._failed_pages += 1
 
@@ -159,10 +208,8 @@ class DefaultOcrParser(OcrParser):
                     self._failed_pages,
                     page_index,
                     total_pages,
-                    self._native_pages,
-                    self._ocr_pages,
-                    method,
                 )
+
 
     def _process_page(self, page_text: str, page_number: int) -> bool:
         try:
