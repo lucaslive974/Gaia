@@ -1,5 +1,5 @@
 import os
-from config.settings import Settings
+from gaia.config.settings import Settings
 from gaia import (
     NativePdfExtractor,
     DefaultOcrParser,

@@ -1,7 +1,7 @@
 import csv
 from os import path
 from abc import ABC, abstractmethod
-from config import settings
+from gaia.config import settings
 
 
 class CsvWriter(ABC):

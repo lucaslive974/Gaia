@@ -229,7 +229,7 @@ def print_summary_dashboard(
 
 
 def run_with_ui(settings):
-    from cli.app_controller import AppController
+    from gaia.cli.app_controller import AppController
     import time
     from rich.progress import (
         SpinnerColumn,

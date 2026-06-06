@@ -18,6 +18,9 @@ dependencies = [
     "pypdf>=6.13.0",
 ]
 
+[project.scripts]
+gaia = "gaia.main:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["gaia*"]

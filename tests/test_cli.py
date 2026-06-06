@@ -7,14 +7,14 @@ import json
 # Set working directory to Gaia root
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from main import main
-from cli.app_controller import AppController
-from config.settings import Settings
+from gaia.main import main
+from gaia.cli.app_controller import AppController
+from gaia.config.settings import Settings
 
 
 class TestCli(unittest.TestCase):
-    @patch("main.argparse.ArgumentParser.parse_args")
-    @patch("main.run_with_ui")
+    @patch("gaia.main.argparse.ArgumentParser.parse_args")
+    @patch("gaia.main.run_with_ui")
     def test_cli_execution_flow(self, mock_run_with_ui, mock_parse_args):
         # Setup mocks
         mock_args = MagicMock()
@@ -38,9 +38,9 @@ class TestCli(unittest.TestCase):
         self.assertFalse(settings_passed.RESUME)
         self.assertEqual(settings_passed.REGEX_FILE, "/dummy/regex.json")
 
-    @patch("main.argparse.ArgumentParser.parse_args")
-    @patch("main.run_with_ui")
-    @patch("config.settings.Settings.load_resume_state")
+    @patch("gaia.main.argparse.ArgumentParser.parse_args")
+    @patch("gaia.main.run_with_ui")
+    @patch("gaia.config.settings.Settings.load_resume_state")
     def test_cli_parameterless_resume_success(
         self, mock_load_resume_state, mock_run_with_ui, mock_parse_args
     ):
@@ -73,11 +73,11 @@ class TestCli(unittest.TestCase):
         self.assertTrue(settings_passed.RESUME)
         self.assertEqual(settings_passed.REGEX_FILE, "/loaded/regex.json")
 
-    @patch("cli.app_controller.os.path.exists")
-    @patch("cli.app_controller.os.path.isdir")
-    @patch("cli.app_controller.NativeRegexEngine")
-    @patch("cli.app_controller.DefaultOcrParser")
-    @patch("cli.app_controller.DefaultCsvWriter")
+    @patch("gaia.cli.app_controller.os.path.exists")
+    @patch("gaia.cli.app_controller.os.path.isdir")
+    @patch("gaia.cli.app_controller.NativeRegexEngine")
+    @patch("gaia.cli.app_controller.DefaultOcrParser")
+    @patch("gaia.cli.app_controller.DefaultCsvWriter")
     def test_app_controller_validations_and_run(
         self, mock_csv_writer, mock_parser_class, mock_regex_engine, mock_isdir, mock_exists
     ):
@@ -97,18 +97,18 @@ class TestCli(unittest.TestCase):
         settings.REGEX_FILE = "/dummy/regex.json"
 
         # mock os.listdir to return empty list so it finishes quickly
-        with patch("cli.app_controller.os.listdir", return_value=[]):
+        with patch("gaia.cli.app_controller.os.listdir", return_value=[]):
             success = controller.run(settings)
 
         self.assertTrue(success)
         mock_exists.assert_any_call("/dummy/input")
         mock_isdir.assert_any_call("/dummy/input")
 
-    @patch("cli.app_controller.os.path.exists")
-    @patch("cli.app_controller.os.path.isdir")
-    @patch("cli.app_controller.os.remove")
-    @patch("cli.app_controller.NativeRegexEngine")
-    @patch("cli.app_controller.DefaultOcrParser")
+    @patch("gaia.cli.app_controller.os.path.exists")
+    @patch("gaia.cli.app_controller.os.path.isdir")
+    @patch("gaia.cli.app_controller.os.remove")
+    @patch("gaia.cli.app_controller.NativeRegexEngine")
+    @patch("gaia.cli.app_controller.DefaultOcrParser")
     def test_app_controller_log_deletion(
         self, mock_parser_class, mock_regex_engine, mock_remove, mock_isdir, mock_exists
     ):
@@ -129,14 +129,14 @@ class TestCli(unittest.TestCase):
         settings.RESUME = False
         settings.REGEX_FILE = "/dummy/regex.json"
 
-        with patch("cli.app_controller.os.listdir", return_value=[]):
+        with patch("gaia.cli.app_controller.os.listdir", return_value=[]):
             controller.run(settings)
         mock_remove.assert_called_once()
 
         # Scenario 2: Resume is True -> Should NOT remove gaia_errors.log
         mock_remove.reset_mock()
         settings.RESUME = True
-        with patch("cli.app_controller.os.listdir", return_value=[]):
+        with patch("gaia.cli.app_controller.os.listdir", return_value=[]):
             controller.run(settings)
         mock_remove.assert_not_called()
 

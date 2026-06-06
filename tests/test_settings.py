@@ -3,8 +3,8 @@ import os
 import json
 from unittest.mock import patch, MagicMock
 from argparse import Namespace
-from config.settings import Settings
-from config import settings as global_settings
+from gaia.config.settings import Settings
+from gaia.config import settings as global_settings
 
 
 class TestSettings(unittest.TestCase):
@@ -127,13 +127,13 @@ class TestSettings(unittest.TestCase):
 
         self.settings.REGEX_FILE = "/my/regex.json"
 
-        with patch("config.settings.open", create=True) as mock_open:
+        with patch("gaia.config.settings.open", create=True) as mock_open:
             self.settings.save_resume_state(input_dir, ["file1.pdf"], 10, 2, 12)
             mock_open.assert_any_call(state_file_cwd, "w", encoding="utf-8")
             mock_open.assert_any_call(state_file_input, "w", encoding="utf-8")
 
-        with patch("config.settings.os.path.exists") as mock_exists, patch(
-            "config.settings.open", create=True
+        with patch("gaia.config.settings.os.path.exists") as mock_exists, patch(
+            "gaia.config.settings.open", create=True
         ) as mock_open:
             mock_exists.return_value = True
             mock_file = MagicMock()
@@ -155,8 +155,8 @@ class TestSettings(unittest.TestCase):
             self.assertEqual(state["processed_files"], ["file1.pdf"])
             self.assertEqual(state["regex_file"], "/my/regex.json")
 
-        with patch("config.settings.os.path.exists") as mock_exists, patch(
-            "config.settings.os.remove"
+        with patch("gaia.config.settings.os.path.exists") as mock_exists, patch(
+            "gaia.config.settings.os.remove"
         ) as mock_remove:
             mock_exists.return_value = True
             self.settings.clear_resume_state(input_dir)

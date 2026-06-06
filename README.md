@@ -130,9 +130,16 @@ for record in parser.process_file("path/to/infraction.pdf", pages_per_unit=1):
 
 ### 2. Command-Line Interface (CLI)
 
-Run Gaia through its command-line interface.
+Gaia can be executed directly as a global shell command, as a python module run, or as a local script.
 
 ```bash
+# 1. As a global command (after package installation)
+gaia <input_dir> [options]
+
+# 2. As a python module run
+python -m gaia <input_dir> [options]
+
+# 3. As a local script (from the repository root)
 python main.py <input_dir> [options]
 ```
 
@@ -152,17 +159,17 @@ python main.py <input_dir> [options]
 
 * **Basic processing run**:
   ```bash
-  python main.py /path/to/pdfs -g rules.json
+  gaia /path/to/pdfs -g rules.json
   ```
 
 * **Resume an interrupted run**:
   ```bash
-  python main.py /path/to/pdfs --resume
+  gaia /path/to/pdfs --resume
   ```
 
 * **Test matching logic on a single file**:
   ```bash
-  python main.py -t sample.pdf -g rules.json
+  gaia -t sample.pdf -g rules.json
   ```
 
 ---
