@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import sys
 import os
+import json
 
 # Set working directory to Gaia root
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -32,6 +33,41 @@ class TestCli(unittest.TestCase):
         self.assertEqual(settings_passed.BASE_PATH, "/dummy/input")
         self.assertEqual(settings_passed.OUTPUT_CSV, "/dummy/output.csv")
         self.assertFalse(settings_passed.RESUME)
+
+    @patch("main.argparse.ArgumentParser.parse_args")
+    @patch("main.run_with_ui")
+    @patch("main.os.path.exists")
+    @patch("main.open", create=True)
+    def test_cli_parameterless_resume_success(
+        self, mock_open, mock_exists, mock_run_with_ui, mock_parse_args
+    ):
+        # Setup mock arguments with input_dir = None and resume = True
+        mock_args = MagicMock()
+        mock_args.input_dir = None
+        mock_args.output = "/dummy/output.csv"
+        mock_args.resume = True
+        mock_parse_args.return_value = mock_args
+
+        # Mock CWD state file existence and content loading
+        mock_exists.return_value = True
+        mock_file = MagicMock()
+        mock_file.read.return_value = json.dumps({
+            "input_dir": "/loaded/input/dir",
+            "output_file": "/loaded/output.csv",
+            "processed_files": ["f1.pdf"]
+        })
+        mock_open.return_value.__enter__.return_value = mock_file
+
+        # Run main
+        main()
+
+        # Assert settings contains the loaded paths from state file
+        mock_run_with_ui.assert_called_once()
+        settings_passed = mock_run_with_ui.call_args[0][0]
+        self.assertEqual(settings_passed.BASE_PATH, "/loaded/input/dir")
+        self.assertEqual(settings_passed.OUTPUT_CSV, "/loaded/output.csv")
+        self.assertTrue(settings_passed.RESUME)
+
 
     @patch("core.shell_manager.os.path.exists")
     @patch("core.shell_manager.os.path.isdir")
