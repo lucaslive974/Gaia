@@ -2,7 +2,7 @@
 
 **Gaia** is a versatile and robust PDF data extraction system designed to retrieve structured key-value pair (KVP) records from PDF documents. It is packaged both as a **programmatic Python library** (`gaia`) and a feature-rich **command-line tool (CLI)**.
 
-Gaia uses a modular architecture combining fast native text extraction and fallback Optical Character Recognition (OCR) to ensure resilience and high fidelity.
+Gaia uses a modular architecture using fast native text extraction to ensure high speed and fidelity.
 
 ---
 
@@ -11,12 +11,11 @@ Gaia uses a modular architecture combining fast native text extraction and fallb
 * **Dual-Purpose Design**:
   * **Programmatic Library**: Install `gaia-pdf-parser` and integrate `OcrParser`, `RegexEngine`, and other components directly into your own codebase.
   * **Command-Line Interface**: Run parsing pipelines directly from your shell with dynamic dashboards, detailed progress tracking, and configurable execution.
-* **Hybrid Processing Pipeline (Native + OCR Fallback)**:
-  * Attempts ultra-fast native text extraction (via `pypdf`) first.
-  * Dynamically falls back to OCR (via `Tesseract OCR` and `pdf2image`) **only for the specific pages** that are scanned images or fail schema validation.
+* **Fast Native PDF Processing**:
+  * Employs fast native layout-based text extraction (via `pypdf`).
 * **Dynamic Terminal Interface (TUI)**:
   * Real-time metrics rendered via `rich.live`.
-  * Live status dashboard featuring counters for processed files, page types (Native vs. OCR), failures, and a progress bar with numerical Estimated Time of Arrival (**ETA**).
+  * Live status dashboard featuring counters for processed files, pages, failures, and a progress bar with numerical Estimated Time of Arrival (**ETA**).
 * **Robust Session Resume**:
   * Automatically checkpoints progress using a state file (`.gaia_resume.json`). If interrupted, the `--resume` flag lets you pick up right where you left off.
 * **Custom Regex Configurations**:
@@ -45,7 +44,7 @@ Gaia/
 │   ├── __init__.py          # Main entry points exposing library API classes
 │   ├── csv_writer.py        # Streamlined thread-safe CSV writing
 │   ├── extraction_session.py# Session progress tracking & No-Op placeholders
-│   ├── extractor.py         # Native and OCR engines
+│   ├── extractor.py         # Native PDF text extraction engine
 │   ├── i18n.py              # Internationalization & gettext wrapper
 │   ├── locale/              # Compiled translations directory
 │   │   ├── en/LC_MESSAGES/messages.mo
@@ -69,17 +68,6 @@ Gaia/
 
 ### Prerequisites
 1. **Python 3.10+**
-2. **Tesseract OCR** (for OCR fallback on scanned documents)
-   * Debian/Ubuntu:
-     ```bash
-     sudo apt update
-     sudo apt install tesseract-ocr tesseract-ocr-por
-     ```
-3. **Poppler** (required by `pdf2image` to convert PDF pages to images)
-   * Debian/Ubuntu:
-     ```bash
-     sudo apt install poppler-utils
-     ```
 
 ### Environment Setup & Packaging
 
