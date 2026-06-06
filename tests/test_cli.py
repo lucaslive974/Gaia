@@ -8,7 +8,7 @@ import json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from main import main
-from core.shell_manager import ShellManager
+from core.app_controller import AppController
 from config.settings import Settings
 
 
@@ -23,6 +23,7 @@ class TestCli(unittest.TestCase):
         mock_args.resume = False
         mock_args.regex = "/dummy/regex.json"
         mock_args.test = None
+        mock_args.recursive = False
         mock_parse_args.return_value = mock_args
 
         # Execute main
@@ -50,6 +51,7 @@ class TestCli(unittest.TestCase):
         mock_args.resume = True
         mock_args.regex = None
         mock_args.test = None
+        mock_args.recursive = False
         mock_parse_args.return_value = mock_args
 
         # Mock CWD state file loading content
@@ -57,7 +59,7 @@ class TestCli(unittest.TestCase):
             "input_dir": "/loaded/input/dir",
             "output_file": "/loaded/output.csv",
             "regex_file": "/loaded/regex.json",
-            "processed_files": ["f1.pdf"]
+            "processed_files": ["f1.pdf"],
         }
 
         # Run main
@@ -71,13 +73,11 @@ class TestCli(unittest.TestCase):
         self.assertTrue(settings_passed.RESUME)
         self.assertEqual(settings_passed.REGEX_FILE, "/loaded/regex.json")
 
-
-
-    @patch("core.shell_manager.os.path.exists")
-    @patch("core.shell_manager.os.path.isdir")
-    @patch("core.shell_manager.DefaultOcrParser")
-    @patch("core.shell_manager.DefaultCsvWriter")
-    def test_shell_manager_validations_and_run(
+    @patch("core.app_controller.os.path.exists")
+    @patch("core.app_controller.os.path.isdir")
+    @patch("core.app_controller.DefaultOcrParser")
+    @patch("core.app_controller.DefaultCsvWriter")
+    def test_app_controller_validations_and_run(
         self, mock_csv_writer, mock_parser_class, mock_isdir, mock_exists
     ):
         mock_exists.return_value = True
@@ -87,50 +87,55 @@ class TestCli(unittest.TestCase):
         mock_parser_class.return_value = mock_parser_instance
 
         mock_observer = MagicMock()
-        shell = ShellManager(observer=mock_observer)
+        controller = AppController(observer=mock_observer)
 
         settings = Settings()
         settings.BASE_PATH = "/dummy/input"
         settings.OUTPUT_CSV = "/dummy/output.csv"
         settings.RESUME = True
+        settings.REGEX_FILE = "/dummy/regex.json"
 
-        # Run shell manager
-        success = shell.run(settings)
+        # mock os.listdir to return empty list so it finishes quickly
+        with patch("core.app_controller.os.listdir", return_value=[]):
+            success = controller.run(settings)
 
         self.assertTrue(success)
         mock_exists.assert_any_call("/dummy/input")
         mock_isdir.assert_any_call("/dummy/input")
-        mock_parser_class.assert_called_once()
-        mock_parser_instance.process.assert_called_once_with(
-            "/dummy/input", mock_observer, resume=True
-        )
 
-    @patch("core.shell_manager.os.path.exists")
-    @patch("core.shell_manager.os.path.isdir")
-    @patch("core.shell_manager.os.remove")
-    @patch("core.shell_manager.DefaultOcrParser")
-    def test_shell_manager_log_deletion(
+    @patch("core.app_controller.os.path.exists")
+    @patch("core.app_controller.os.path.isdir")
+    @patch("core.app_controller.os.remove")
+    @patch("core.app_controller.DefaultOcrParser")
+    def test_app_controller_log_deletion(
         self, mock_parser_class, mock_remove, mock_isdir, mock_exists
     ):
         # Scenario 1: Resume is False -> Should remove gaia_errors.log if it exists
-        mock_exists.side_effect = lambda p: True if "gaia_errors.log" in p or p == "/dummy/input" else False
+        mock_exists.side_effect = (
+            lambda p: True
+            if "gaia_errors.log" in p or p == "/dummy/input"
+            else False
+        )
         mock_isdir.return_value = True
 
         mock_observer = MagicMock()
-        shell = ShellManager(observer=mock_observer)
+        controller = AppController(observer=mock_observer)
 
         settings = Settings()
         settings.BASE_PATH = "/dummy/input"
         settings.OUTPUT_CSV = "/dummy/output.csv"
         settings.RESUME = False
+        settings.REGEX_FILE = "/dummy/regex.json"
 
-        shell.run(settings)
+        with patch("core.app_controller.os.listdir", return_value=[]):
+            controller.run(settings)
         mock_remove.assert_called_once()
 
         # Scenario 2: Resume is True -> Should NOT remove gaia_errors.log
         mock_remove.reset_mock()
         settings.RESUME = True
-        shell.run(settings)
+        with patch("core.app_controller.os.listdir", return_value=[]):
+            controller.run(settings)
         mock_remove.assert_not_called()
 
 

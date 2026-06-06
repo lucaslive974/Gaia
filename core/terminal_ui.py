@@ -220,7 +220,7 @@ def print_summary_dashboard(
 
 
 def run_with_ui(settings):
-    from core.shell_manager import ShellManager
+    from core.app_controller import AppController
     import time
     from rich.progress import (
         SpinnerColumn,
@@ -240,7 +240,7 @@ def run_with_ui(settings):
         console=console,
     )
     observer = ConsoleObserver(console, progress)
-    shell = ShellManager(observer)
+    controller = AppController(observer)
 
     start_time = time.perf_counter()
 
@@ -250,7 +250,7 @@ def run_with_ui(settings):
         ) as live:
             observer.set_live(live)
             try:
-                success = shell.run(settings)
+                success = controller.run(settings)
             except KeyboardInterrupt:
                 observer.is_cancelled = True
                 success = False

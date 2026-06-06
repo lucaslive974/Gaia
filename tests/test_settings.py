@@ -22,12 +22,14 @@ class TestSettings(unittest.TestCase):
         self.assertFalse(self.settings.RESUME)
         self.assertIsNone(self.settings.REGEX_FILE)
         self.assertIsNone(self.settings.TEST_FILE)
+        self.assertFalse(self.settings.RECURSIVE)
 
     def test_getitem_success(self):
         """Test accessing settings attributes using dictionary syntax."""
         self.assertEqual(self.settings["BASE_PATH"], "")
         self.assertFalse(self.settings["RESUME"])
         self.assertIsNone(self.settings["REGEX_FILE"])
+        self.assertFalse(self.settings["RECURSIVE"])
 
     def test_getitem_key_error(self):
         """Test that accessing a non-existent key via dictionary syntax raises KeyError."""
@@ -39,6 +41,7 @@ class TestSettings(unittest.TestCase):
         self.settings["BASE_PATH"] = "/custom/path"
         self.settings["RESUME"] = True
         self.settings["REGEX_FILE"] = "/my/regex.json"
+        self.settings["RECURSIVE"] = True
 
         # Verify both dictionary-like and attribute-like access reflect the changes
         self.assertEqual(self.settings["BASE_PATH"], "/custom/path")
@@ -46,6 +49,8 @@ class TestSettings(unittest.TestCase):
         self.assertTrue(self.settings["RESUME"])
         self.assertTrue(self.settings.RESUME)
         self.assertEqual(self.settings["REGEX_FILE"], "/my/regex.json")
+        self.assertTrue(self.settings["RECURSIVE"])
+        self.assertTrue(self.settings.RECURSIVE)
 
     def test_contains(self):
         """Test the 'in' operator on the settings object."""
@@ -53,6 +58,7 @@ class TestSettings(unittest.TestCase):
         self.assertTrue("OUTPUT_CSV" in self.settings)
         self.assertTrue("RESUME" in self.settings)
         self.assertTrue("REGEX_FILE" in self.settings)
+        self.assertTrue("RECURSIVE" in self.settings)
         self.assertFalse("NON_EXISTENT_KEY" in self.settings)
 
     def test_parse_cmd_args_all_fields(self):
@@ -63,6 +69,7 @@ class TestSettings(unittest.TestCase):
             resume=True,
             regex="/my/regex.json",
             test=None,
+            recursive=True,
         )
         self.settings.parse_cmd_args(args)
 
@@ -70,6 +77,7 @@ class TestSettings(unittest.TestCase):
         self.assertEqual(self.settings.OUTPUT_CSV, "/my/output.csv")
         self.assertTrue(self.settings.RESUME)
         self.assertEqual(self.settings.REGEX_FILE, "/my/regex.json")
+        self.assertTrue(self.settings.RECURSIVE)
 
     def test_parse_cmd_args_partial_fields(self):
         """Test parse_cmd_args with a Namespace containing only some mapped attributes."""
@@ -85,6 +93,7 @@ class TestSettings(unittest.TestCase):
         self.assertEqual(self.settings.REGEX_FILE, "/my/regex.json")
         # Check that missing fields retained their defaults
         self.assertFalse(self.settings.RESUME)
+        self.assertFalse(self.settings.RECURSIVE)
         self.assertEqual(
             self.settings.OUTPUT_CSV,
             os.path.join(os.getcwd(), "output.csv"),
