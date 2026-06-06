@@ -6,5 +6,5 @@ build
 dist
 *.log
 *.csv
-
+.gaia_resume.json
 poc

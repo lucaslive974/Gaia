@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 from typing import Generator
 
 from core.extractor import BasePdfExtractor, NativePdfExtractor
-from core.observer import ExtractionObserver
 from core.regex_engine import RegexEngine, NativeRegexEngine
+from core.extraction_session import ExtractionSession
 
 
 class OcrParser(ABC):
@@ -14,7 +14,7 @@ class OcrParser(ABC):
     def process_file(
         self,
         file_path: str,
-        observer: ExtractionObserver | None = None,
+        session: ExtractionSession,
     ) -> Generator[dict[str, str], None, None]:
         pass
 
@@ -31,48 +31,48 @@ class DefaultOcrParser(OcrParser):
 
         self._regex_engine = regex_engine or NativeRegexEngine(settings.REGEX_FILE)
 
-        self.successful_pages = 0
-        self.failed_pages = 0
-        self.total_pages = 0
-
     def process_file(
         self,
         file_path: str,
-        observer: ExtractionObserver | None = None,
+        session: ExtractionSession,
     ) -> Generator[dict[str, str], None, None]:
-        total_pages = self._extractor.get_page_count(file_path)
-        self.total_pages += total_pages
+        from config import settings
 
-        page_generator = self._extractor.extract_pages(file_path)
-        for page_index, page_text in enumerate(page_generator, start=1):
-            if observer and getattr(observer, "is_cancelled", False):
+        total_pages = self._extractor.get_page_count(file_path)
+        session.total_pages += total_pages
+
+        pages_per_unit = getattr(settings, "PAGES_PER_UNIT", 1)
+
+        raw_pages = list(self._extractor.extract_pages(file_path))
+
+        # Chunk the pages list into units of pages_per_unit size
+        units = []
+        for i in range(0, len(raw_pages), pages_per_unit):
+            unit_chunk = raw_pages[i : i + pages_per_unit]
+            unit_text = "\n".join(unit_chunk)
+            units.append(unit_text)
+
+        total_units = len(units)
+
+        for unit_index, unit_text in enumerate(units, start=1):
+            if session.is_cancelled:
                 break
 
-            if observer:
-                observer.on_page_start(page_index, total_pages)
+            session.start_page(unit_index, total_units)
 
             try:
-                page_dict = self._parse_page(page_text)
+                page_dict = self._parse_page(unit_text)
                 success = True
             except ValueError as e:
                 extracted_data = getattr(e, "extracted_data", None)
-                self._log_failed_page(page_text, page_index, str(e), extracted_data)
+                self._log_failed_page(unit_text, unit_index, str(e), extracted_data)
                 success = False
 
             if success:
-                self.successful_pages += 1
+                session.process_page_result(True, unit_index, total_units)
                 yield page_dict
             else:
-                self.failed_pages += 1
-
-            if observer:
-                observer.on_page_processed(
-                    success,
-                    self.successful_pages,
-                    self.failed_pages,
-                    page_index,
-                    total_pages,
-                )
+                session.process_page_result(False, unit_index, total_units)
 
     def _log_failed_page(
         self,

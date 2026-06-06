@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 from core.ocr_parser import DefaultOcrParser
+from core.extraction_session import ExtractionSession
 
 
 class TestParser(unittest.TestCase):
@@ -31,19 +32,65 @@ class TestParser(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
+        session = ExtractionSession(mock_observer)
+
         # Execute generator and consume it
-        pages = list(parser.process_file("/dummy/file.pdf", observer=mock_observer))
+        pages = list(parser.process_file("/dummy/file.pdf", session=session))
 
         mock_observer.on_page_start.assert_called_once_with(1, 1)
         mock_observer.on_page_processed.assert_called_once_with(True, 1, 0, 1, 1)
 
         self.assertEqual(len(pages), 1)
         written_dict = pages[0]
-        # Verify returned keys match JSON config directly (no legacy key map)
         self.assertEqual(written_dict["data_emissao"], "10/10/2026")
         self.assertEqual(written_dict["data_vencimento"], "10/11/2026")
         self.assertEqual(written_dict["n_infracao"], "ABC1234")
         self.assertEqual(written_dict["valor"], "150,00")
+
+    def test_parser_orchestration_multi_page_units(self):
+        from config import settings
+
+        # Enable 2 pages per unit
+        settings.PAGES_PER_UNIT = 2
+
+        mock_extractor = MagicMock()
+        mock_extractor.get_page_count.return_value = 2
+
+        page1_text = "Data de Emissao 10/10/2026\n"
+        page2_text = "N Auto de Infracao ABC1234\n"
+        mock_extractor.extract_pages.return_value = iter([page1_text, page2_text])
+
+        mock_regex = MagicMock()
+        mock_regex.parse.return_value = {
+            "data_emissao": "10/10/2026",
+            "n_infracao": "ABC1234",
+        }
+
+        parser = DefaultOcrParser(
+            extractor=mock_extractor, regex_engine=mock_regex
+        )
+
+        mock_observer = MagicMock()
+        mock_observer.is_cancelled = False
+
+        session = ExtractionSession(mock_observer)
+
+        # Execute generator and consume it
+        pages = list(parser.process_file("/dummy/file.pdf", session=session))
+
+        # Reset settings after test to not affect others
+        settings.PAGES_PER_UNIT = 1
+
+        # Verify that pages were combined and parse was called with the combined text
+        mock_regex.parse.assert_called_once_with(f"{page1_text}\n{page2_text}")
+
+        # Observer is notified once for the combined unit (index 1, total 1)
+        mock_observer.on_page_start.assert_called_once_with(1, 1)
+        mock_observer.on_page_processed.assert_called_once_with(True, 1, 0, 1, 1)
+
+        self.assertEqual(len(pages), 1)
+        self.assertEqual(pages[0]["data_emissao"], "10/10/2026")
+        self.assertEqual(pages[0]["n_infracao"], "ABC1234")
 
 
 if __name__ == "__main__":

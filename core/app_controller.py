@@ -1,10 +1,10 @@
 import os
-import time
 from config.settings import Settings
 from core.extractor import NativePdfExtractor
 from core.ocr_parser import DefaultOcrParser
 from core.csv_writer import DefaultCsvWriter
 from core.observer import ExtractionObserver
+from core.extraction_session import ExtractionSession
 
 
 class AppController:
@@ -70,103 +70,74 @@ class AppController:
         files.sort()
         total_original_files = len(files)
 
-        # 5. Instantiate parser tools
+        # 5. Instantiate session
+        session = ExtractionSession(self.observer)
+
+        # 6. Instantiate parser tools
         extractor = NativePdfExtractor()
         csv_writer = DefaultCsvWriter(path_output=settings.OUTPUT_CSV)
         ocr_parser = DefaultOcrParser(extractor=extractor)
 
-        # 6. Load resume state
-        processed_files = set()
-        ocr_parser.successful_pages = 0
-        ocr_parser.failed_pages = 0
-        ocr_parser.total_pages = 0
-
+        # 7. Load resume state
         loaded_state = settings.load_resume_state(settings.BASE_PATH)
         if loaded_state:
-            processed_files = set(loaded_state.get("processed_files", []))
-            ocr_parser.successful_pages = loaded_state.get(
-                "successful_pages", 0
-            )
-            ocr_parser.failed_pages = loaded_state.get("failed_pages", 0)
-            ocr_parser.total_pages = loaded_state.get("total_pages", 0)
+            session.processed_files = loaded_state.get("processed_files", [])
+            session.successful_pages = loaded_state.get("successful_pages", 0)
+            session.failed_pages = loaded_state.get("failed_pages", 0)
+            session.total_pages = loaded_state.get("total_pages", 0)
+
+        processed_files_set = set(session.processed_files)
 
         # Filter out already processed files
-        remaining_files = [f for f in files if f not in processed_files]
+        remaining_files = [f for f in files if f not in processed_files_set]
         total_files = len(remaining_files)
 
         if total_files == 0:
-            if self.observer:
-                self.observer.on_start(total_original_files)
-                self.observer.on_complete(
-                    ocr_parser.successful_pages, ocr_parser.total_pages
-                )
+            session.start(total_original_files)
+            session.complete()
             return True
 
-        if self.observer:
-            self.observer.on_start(total_original_files)
-
-        # Time estimation counters
-        estimative_acc = 1200
-        estimative_cnt = 1
+        session.start(total_original_files)
 
         for file_index, rel_file_path in enumerate(
-            remaining_files, start=len(processed_files) + 1
+            remaining_files, start=len(processed_files_set) + 1
         ):
-            if self.observer and getattr(self.observer, "is_cancelled", False):
+            if session.is_cancelled or (
+                self.observer and getattr(self.observer, "is_cancelled", False)
+            ):
+                session.is_cancelled = True
                 break
 
-            start_time = time.perf_counter()
             full_file_path = os.path.join(settings.BASE_PATH, rel_file_path)
 
-            # Calculate estimation based on remaining files
-            _estimative = round(estimative_acc / estimative_cnt)
-            remaining_count = total_files - (
-                file_index - len(processed_files) - 1
-            )
-            est_hours = round((remaining_count * _estimative) / 3600.0, 2)
-
-            if self.observer:
-                self.observer.on_file_start(
-                    file_index, full_file_path, est_hours
-                )
+            session.start_file(file_index, full_file_path)
 
             try:
                 # AppController executes parser and orchestrates CsvWriter to persist page-by-page
                 for page_dict in ocr_parser.process_file(
-                    full_file_path, self.observer
+                    full_file_path, session
                 ):
                     csv_writer.write(page_dict)
             except Exception as e:
-                if self.observer:
-                    self.observer.on_error(
-                        f"Erro no arquivo {rel_file_path}: {e}"
-                    )
+                session.error(f"Erro no arquivo {rel_file_path}: {e}")
                 continue
 
             # File processed successfully, update resume state
-            processed_files.add(rel_file_path)
+            session.processed_files.append(rel_file_path)
             settings.save_resume_state(
                 settings.BASE_PATH,
-                list(processed_files),
-                ocr_parser.successful_pages,
-                ocr_parser.failed_pages,
-                ocr_parser.total_pages,
+                session.processed_files,
+                session.successful_pages,
+                session.failed_pages,
+                session.total_pages,
             )
 
-            if self.observer:
-                progress_percent = (file_index / total_original_files) * 100
-                self.observer.on_file_complete(file_index, progress_percent)
-
-            estimative_acc += time.perf_counter() - start_time
-            estimative_cnt += 1
+            session.complete_file(file_index)
 
         # Delete resume state if finished successfully and not cancelled
-        if not (self.observer and getattr(self.observer, "is_cancelled", False)):
+        if not session.is_cancelled:
             settings.clear_resume_state(settings.BASE_PATH)
 
-        if self.observer:
-            self.observer.on_complete(
-                ocr_parser.successful_pages, ocr_parser.total_pages
-            )
+        session.complete()
 
         return True

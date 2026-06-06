@@ -9,6 +9,7 @@ input_attr = [
     ["regex", "REGEX_FILE"],
     ["test", "TEST_FILE"],
     ["recursive", "RECURSIVE"],
+    ["pages_per_unit", "PAGES_PER_UNIT"],
 ]
 
 
@@ -19,6 +20,7 @@ class Settings:
     REGEX_FILE: str | None = None
     TEST_FILE: str | None = None
     RECURSIVE: bool = False
+    PAGES_PER_UNIT: int = 1
 
     def __getitem__(self, attr):
         try:
@@ -129,7 +131,19 @@ class Settings:
                     "o argumento '--regex' é obrigatório para retomar a extração."
                 )
 
-        # 3. Bind parsed properties
+        # 3. Check pages_per_unit validation
+        pages_per_unit = getattr(args, "pages_per_unit", None)
+        if pages_per_unit is not None:
+            try:
+                ppu_val = int(pages_per_unit)
+                if ppu_val < 1:
+                    raise ValueError
+            except (ValueError, TypeError):
+                raise ValueError(
+                    "o argumento '--pages-per-unit' deve ser um número inteiro maior ou igual a 1."
+                )
+
+        # 4. Bind parsed properties
         for attr in input_attr:
             if hasattr(args, attr[0]):
                 setattr(self, attr[1], getattr(args, attr[0]))

@@ -47,6 +47,13 @@ def main():
         metavar="FILE_PATH",
         help="Testa as regras de regex na primeira página do arquivo PDF fornecido.",
     )
+    parser.add_argument(
+        "-p",
+        "--pages-per-unit",
+        type=int,
+        default=1,
+        help="Número de páginas que compõem uma unidade de texto para o casamento de padrões (Padrão: 1).",
+    )
 
     args = parser.parse_args()
 

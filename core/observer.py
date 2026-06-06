@@ -94,3 +94,36 @@ class QueueObserver(ExtractionObserver):
     def on_error(self, error_message: str):
         self._queue.put(("ERROR", error_message))
 
+
+class DefaultExtractionObserver(ExtractionObserver):
+    """
+    Default no-op implementation of ExtractionObserver.
+    """
+    def on_start(self, total_files: int):
+        pass
+
+    def on_file_start(self, file_index: int, file_path: str, estimated_hours: float):
+        pass
+
+    def on_page_start(self, page_index: int, total_pages: int):
+        pass
+
+    def on_page_processed(
+        self,
+        success: bool,
+        extracted_pages: int,
+        error_pages: int,
+        page_index: int,
+        total_pages: int
+    ):
+        pass
+
+    def on_file_complete(self, file_index: int, progress_percent: float):
+        pass
+
+    def on_complete(self, successful_pages: int, total_pages: int):
+        pass
+
+    def on_error(self, error_message: str):
+        pass
+

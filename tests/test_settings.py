@@ -198,6 +198,39 @@ class TestSettings(unittest.TestCase):
         self.assertEqual(self.settings.TEST_FILE, "/my/test.pdf")
         self.assertEqual(self.settings.REGEX_FILE, "/my/regex.json")
 
+        # Scenario 5: pages_per_unit less than 1 -> should raise ValueError
+        args = Namespace(
+            input_dir="/my/input",
+            resume=False,
+            output="/my/output.csv",
+            regex="/my/regex.json",
+            pages_per_unit=0,
+        )
+        with self.assertRaises(ValueError):
+            self.settings.parse_cmd_args(args)
+
+        # Scenario 6: pages_per_unit is negative -> should raise ValueError
+        args = Namespace(
+            input_dir="/my/input",
+            resume=False,
+            output="/my/output.csv",
+            regex="/my/regex.json",
+            pages_per_unit=-5,
+        )
+        with self.assertRaises(ValueError):
+            self.settings.parse_cmd_args(args)
+
+        # Scenario 7: pages_per_unit is not an integer -> should raise ValueError
+        args = Namespace(
+            input_dir="/my/input",
+            resume=False,
+            output="/my/output.csv",
+            regex="/my/regex.json",
+            pages_per_unit="abc",
+        )
+        with self.assertRaises(ValueError):
+            self.settings.parse_cmd_args(args)
+
     def test_global_settings_instance(self):
         """Test that the global settings instance exported by the package functions properly."""
         self.assertIn("BASE_PATH", global_settings)

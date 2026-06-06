@@ -77,9 +77,9 @@ class TestResume(unittest.TestCase):
             json.dump(state_data, sf)
 
         # Setup mock parser process_file side effect
-        def mock_process_file(file_path, observer):
-            self.mock_parser.successful_pages += 1
-            self.mock_parser.total_pages += 1
+        def mock_process_file(file_path, session):
+            session.successful_pages += 1
+            session.total_pages += 1
             yield {"field": "value"}
 
         self.mock_parser.process_file.side_effect = mock_process_file
@@ -94,8 +94,6 @@ class TestResume(unittest.TestCase):
         self.assertTrue(success)
 
         # Assert only file2.pdf was processed
-        # on_file_start is called inside controller.run for each remaining file
-        # remaining_files has length 1 (since file1.pdf is skipped)
         self.assertEqual(mock_observer.on_file_start.call_count, 1)
         called_args = mock_observer.on_file_start.call_args[0]
         self.assertTrue(called_args[1].endswith("file2.pdf"))
@@ -122,9 +120,9 @@ class TestResume(unittest.TestCase):
         with open(self.state_file_cwd, "w", encoding="utf-8") as sf:
             json.dump(state_data, sf)
 
-        def mock_process_file(file_path, observer):
-            self.mock_parser.successful_pages += 1
-            self.mock_parser.total_pages += 1
+        def mock_process_file(file_path, session):
+            session.successful_pages += 1
+            session.total_pages += 1
             yield {"field": "value"}
 
         self.mock_parser.process_file.side_effect = mock_process_file
@@ -151,9 +149,9 @@ class TestResume(unittest.TestCase):
         mock_listdir.return_value = ["file1.pdf"]
         mock_exists.side_effect = lambda p: True if p == "/dummy/dir" else False
 
-        def mock_process_file(file_path, observer):
-            self.mock_parser.successful_pages += 1
-            self.mock_parser.total_pages += 1
+        def mock_process_file(file_path, session):
+            session.successful_pages += 1
+            session.total_pages += 1
             yield {"field": "value"}
 
         self.mock_parser.process_file.side_effect = mock_process_file
@@ -193,9 +191,9 @@ class TestResume(unittest.TestCase):
         with open(self.state_file_cwd, "w", encoding="utf-8") as sf:
             json.dump(state_data, sf)
 
-        def mock_process_file(file_path, observer):
-            self.mock_parser.successful_pages += 1
-            self.mock_parser.total_pages += 1
+        def mock_process_file(file_path, session):
+            session.successful_pages += 1
+            session.total_pages += 1
             yield {"field": "value"}
 
         self.mock_parser.process_file.side_effect = mock_process_file
@@ -235,9 +233,9 @@ class TestResume(unittest.TestCase):
         with open(self.state_file_cwd, "w", encoding="utf-8") as sf:
             json.dump(state_data, sf)
 
-        def mock_process_file(file_path, observer):
-            self.mock_parser.successful_pages += 1
-            self.mock_parser.total_pages += 1
+        def mock_process_file(file_path, session):
+            session.successful_pages += 1
+            session.total_pages += 1
             yield {"field": "value"}
 
         self.mock_parser.process_file.side_effect = mock_process_file
