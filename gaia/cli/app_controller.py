@@ -81,7 +81,7 @@ class AppController:
         extractor = NativePdfExtractor()
         csv_writer = DefaultCsvWriter(path_output=settings.OUTPUT_CSV)
         regex_engine = NativeRegexEngine.from_file(settings.REGEX_FILE)
-        ocr_parser = DefaultOcrParser(extractor=extractor, regex_engine=regex_engine)
+        ocr_parser = DefaultOcrParser(extractor=extractor)
 
         # 7. Load resume state
         loaded_state = settings.load_resume_state(settings.BASE_PATH)
@@ -118,11 +118,30 @@ class AppController:
             session.start_file(file_index, full_file_path)
 
             try:
+                from gaia.ocr_parser import pos_processing_text
+
                 # AppController executes parser and orchestrates CsvWriter to persist page-by-page
-                for page_dict in ocr_parser.process_file(
+                for unit_index, total_units, unit_text in ocr_parser.process_file(
                     full_file_path, session, pages_per_unit=settings.PAGES_PER_UNIT
                 ):
-                    csv_writer.write(page_dict)
+                    session.start_page(unit_index, total_units)
+
+                    text_normalized = pos_processing_text(unit_text)
+                    try:
+                        page_dict = regex_engine.parse(text_normalized)
+                        success = True
+                    except ValueError as e:
+                        # Get partial results for error logging
+                        partial_results, matched = regex_engine.parse_test(text_normalized)
+                        self._log_failed_page(unit_text, unit_index, str(e), partial_results)
+                        success = False
+
+                    if success:
+                        session.process_page_result(True, unit_index, total_units)
+                        csv_writer.write(page_dict)
+                    else:
+                        session.process_page_result(False, unit_index, total_units)
+
             except Exception as e:
                 session.error(_("err_in_file", file_path=rel_file_path, error=e))
                 continue
@@ -146,3 +165,24 @@ class AppController:
         session.complete()
 
         return True
+
+    def _log_failed_page(
+        self,
+        page_text: str,
+        page_number: int,
+        error_msg: str,
+        extracted_data: dict[str, str] | None = None,
+    ):
+        log_path = os.path.join(os.getcwd(), "gaia_errors.log")
+        try:
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(f"\n{'=' * 80}\n")
+                f.write(_("log_fail_extraction", page_number=page_number) + "\n")
+                f.write(_("log_error", error=error_msg) + "\n")
+                if extracted_data:
+                    f.write(_("log_extracted_fields", fields=extracted_data) + "\n")
+                f.write(f"{'-' * 80}\n")
+                f.write(page_text)
+                f.write(f"\n{'=' * 80}\n")
+        except Exception:
+            pass

@@ -40,6 +40,7 @@ class TestResume(unittest.TestCase):
         self.mock_regex_class = self.regex_patcher.start()
         self.mock_regex = MagicMock()
         self.mock_regex_class.return_value = self.mock_regex
+        self.mock_regex_class.from_file.return_value = self.mock_regex
 
         # Ensure clean state before each test
         for p in (self.state_file_cwd, self.state_file_input):
@@ -94,9 +95,10 @@ class TestResume(unittest.TestCase):
 
         def mock_process_file(file_path, session, pages_per_unit=1):
             processed_files.append(os.path.basename(file_path))
-            yield {"field": "value"}
+            yield (1, 1, "raw text")
 
         self.mock_parser.process_file.side_effect = mock_process_file
+        self.mock_regex.parse.return_value = {"field": "value"}
 
         success = controller.run(self.settings)
         self.assertTrue(success)
@@ -132,9 +134,10 @@ class TestResume(unittest.TestCase):
             self.assertEqual(session.successful_pages, 10)
             self.assertEqual(session.failed_pages, 2)
             self.assertEqual(session.total_pages, 12)
-            yield {"field": "value"}
+            yield (1, 1, "raw text")
 
         self.mock_parser.process_file.side_effect = mock_process_file
+        self.mock_regex.parse.return_value = {"field": "value"}
 
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
@@ -171,9 +174,10 @@ class TestResume(unittest.TestCase):
         def mock_process_file(file_path, session, pages_per_unit=1):
             session.successful_pages += 1
             session.total_pages += 1
-            yield {"field": "value"}
+            yield (1, 1, "raw text")
 
         self.mock_parser.process_file.side_effect = mock_process_file
+        self.mock_regex.parse.return_value = {"field": "value"}
 
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
@@ -213,9 +217,10 @@ class TestResume(unittest.TestCase):
         def mock_process_file(file_path, session, pages_per_unit=1):
             session.successful_pages += 1
             session.total_pages += 1
-            yield {"field": "value"}
+            yield (1, 1, "raw text")
 
         self.mock_parser.process_file.side_effect = mock_process_file
+        self.mock_regex.parse.return_value = {"field": "value"}
 
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
@@ -255,9 +260,10 @@ class TestResume(unittest.TestCase):
         def mock_process_file(file_path, session, pages_per_unit=1):
             session.successful_pages += 1
             session.total_pages += 1
-            yield {"field": "value"}
+            yield (1, 1, "raw text")
 
         self.mock_parser.process_file.side_effect = mock_process_file
+        self.mock_regex.parse.return_value = {"field": "value"}
 
         mock_observer = MagicMock()
         mock_observer.is_cancelled = True  # Cancelled!
