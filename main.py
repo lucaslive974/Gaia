@@ -1,6 +1,6 @@
 import argparse
 from config import settings
-from core.shell_manager import ShellManager
+from core.terminal_ui import run_with_ui
 
 
 def main():
@@ -20,27 +20,18 @@ def main():
         help=f"Caminho do arquivo CSV de saída (Padrão: {settings['OUTPUT_CSV']}).",
     )
     parser.add_argument(
-        "-t",
-        "--traineddata",
-        type=str,
-        default=settings["TRAINED_DATA_DIR"],
-        help=f"Caminho da pasta traineddata do Tesseract (Padrão: {settings['TRAINED_DATA_DIR']}).",
-    )
-
-    parser.add_argument(
-        "-m",
-        "--mode",
-        type=str,
-        default=settings["MODE"],
-        help=f"Modo de extração (Padrão: {settings['MODE']})",
+        "-r",
+        "--resume",
+        action="store_true",
+        help="Retoma o processamento a partir do último arquivo concluído com sucesso.",
     )
 
     args = parser.parse_args()
     settings.parse_cmd_args(args)
 
-    shell = ShellManager()
-    shell.run(settings)
+    run_with_ui(settings)
 
 
 if __name__ == "__main__":
     main()
+

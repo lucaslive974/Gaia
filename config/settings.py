@@ -4,16 +4,14 @@ import os
 input_attr = [
     ["input_dir", "BASE_PATH"],
     ["output", "OUTPUT_CSV"],
-    ["traineddata", "TRAINED_DATA_DIR"],
-    ["mode", "MODE"],
+    ["resume", "RESUME"],
 ]
 
 
 class Settings:
     BASE_PATH: str = ""
-    TRAINED_DATA_DIR: str = os.path.join(os.getcwd(), "traineddata")
     OUTPUT_CSV: str = os.path.join(os.getcwd(), "output.csv")
-    MODE: str = "native"
+    RESUME: bool = False
 
     def __getitem__(self, attr):
         try:
@@ -32,3 +30,4 @@ class Settings:
         for attr in input_attr:
             if hasattr(args, attr[0]):
                 setattr(self, attr[1], getattr(args, attr[0]))
+
