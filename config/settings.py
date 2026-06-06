@@ -52,12 +52,22 @@ class Settings:
                     pass
         return None
 
-    def save_resume_state(self, input_dir: str, processed_files: list[str]) -> None:
+    def save_resume_state(
+        self,
+        input_dir: str,
+        processed_files: list[str],
+        successful_pages: int,
+        failed_pages: int,
+        total_pages: int,
+    ) -> None:
         state_paths = self.get_state_file_paths(input_dir)
         state_data = {
             "input_dir": input_dir,
             "output_file": self.OUTPUT_CSV,
             "processed_files": processed_files,
+            "successful_pages": successful_pages,
+            "failed_pages": failed_pages,
+            "total_pages": total_pages,
         }
         for sf_path in state_paths:
             try:

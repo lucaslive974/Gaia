@@ -104,7 +104,7 @@ class TestSettings(unittest.TestCase):
         state_file_input = os.path.join(input_dir, ".gaia_resume.json")
 
         with patch("config.settings.open", create=True) as mock_open:
-            self.settings.save_resume_state(input_dir, ["file1.pdf"])
+            self.settings.save_resume_state(input_dir, ["file1.pdf"], 10, 2, 12)
             mock_open.assert_any_call(state_file_cwd, "w", encoding="utf-8")
             mock_open.assert_any_call(state_file_input, "w", encoding="utf-8")
 
@@ -115,7 +115,10 @@ class TestSettings(unittest.TestCase):
             mock_file.read.return_value = json.dumps({
                 "input_dir": input_dir,
                 "output_file": self.settings.OUTPUT_CSV,
-                "processed_files": ["file1.pdf"]
+                "processed_files": ["file1.pdf"],
+                "successful_pages": 10,
+                "failed_pages": 2,
+                "total_pages": 12
             })
             mock_open.return_value.__enter__.return_value = mock_file
             
