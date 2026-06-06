@@ -27,10 +27,7 @@ class ExtractionObserver(ABC):
         extracted_pages: int,
         error_pages: int,
         page_index: int,
-        total_pages: int,
-        native_pages: int,
-        ocr_pages: int,
-        method: str
+        total_pages: int
     ):
         """Called after a page has been processed."""
         pass
@@ -78,14 +75,11 @@ class QueueObserver(ExtractionObserver):
         extracted_pages: int,
         error_pages: int,
         page_index: int,
-        total_pages: int,
-        native_pages: int,
-        ocr_pages: int,
-        method: str
+        total_pages: int
     ):
         self._queue.put((
             "PAGE_PROCESSED",
-            (success, extracted_pages, error_pages, page_index, total_pages, native_pages, ocr_pages, method)
+            (success, extracted_pages, error_pages, page_index, total_pages)
         ))
 
     @override
@@ -99,3 +93,4 @@ class QueueObserver(ExtractionObserver):
     @override
     def on_error(self, error_message: str):
         self._queue.put(("ERROR", error_message))
+
