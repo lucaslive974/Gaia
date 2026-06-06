@@ -1,5 +1,5 @@
 import time
-from core.observer import ExtractionObserver, DefaultExtractionObserver
+from gaia.observer import ExtractionObserver, DefaultExtractionObserver
 
 
 class ExtractionSession:
@@ -71,3 +71,29 @@ class ExtractionSession:
     @is_cancelled.setter
     def is_cancelled(self, value: bool):
         self._is_cancelled = value
+
+
+class NoOpExtractionSession(ExtractionSession):
+    def __init__(self):
+        super().__init__()
+
+    def start(self, total_files: int):
+        pass
+
+    def start_file(self, file_index: int, file_path: str):
+        pass
+
+    def start_page(self, page_index: int, total_pages: int):
+        pass
+
+    def process_page_result(self, success: bool, page_index: int, total_pages: int):
+        pass
+
+    def complete_file(self, file_index: int):
+        pass
+
+    def complete(self):
+        pass
+
+    def error(self, error_message: str):
+        pass

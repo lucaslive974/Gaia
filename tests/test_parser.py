@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
-from core.ocr_parser import DefaultOcrParser
-from core.extraction_session import ExtractionSession
+from gaia import DefaultOcrParser, ExtractionSession
 
 
 class TestParser(unittest.TestCase):
@@ -114,6 +113,32 @@ class TestParser(unittest.TestCase):
         self.assertEqual(len(pages), 1)
         self.assertTrue(session.is_cancelled)
         mock_regex.parse.assert_called_once_with("page 1")
+
+    def test_parser_programmatic_import_and_parameterless_session(self):
+        # Verify that we can import public symbols directly from 'gaia' package
+        from gaia import (
+            DefaultOcrParser,
+            NoOpExtractionSession
+        )
+
+        mock_extractor = MagicMock()
+        mock_extractor.get_page_count.return_value = 1
+        mock_extractor.extract_pages.return_value = iter(["valid text page"])
+
+        mock_regex = MagicMock()
+        mock_regex.parse.return_value = {"field": "value"}
+
+        # Instantiate without importing modules internally
+        parser = DefaultOcrParser(
+            extractor=mock_extractor, regex_engine=mock_regex
+        )
+
+        # Execute process_file without passing the session parameter
+        pages = list(parser.process_file("/dummy/file.pdf"))
+
+        self.assertEqual(len(pages), 1)
+        self.assertEqual(pages[0]["field"], "value")
+        mock_regex.parse.assert_called_once_with("valid text page")
 
 
 if __name__ == "__main__":

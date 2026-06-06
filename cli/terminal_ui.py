@@ -1,13 +1,13 @@
 import os
 import sys
 from typing import override
-from core.observer import ExtractionObserver
 from rich.console import Console, Group
 from rich.progress import Progress
 from rich.table import Table
 from rich.panel import Panel
 from rich.live import Live
-from core.i18n import _, get_lang
+from gaia import ExtractionObserver
+from gaia.i18n import _, get_lang
 
 try:
     import termios
@@ -229,7 +229,7 @@ def print_summary_dashboard(
 
 
 def run_with_ui(settings):
-    from core.app_controller import AppController
+    from cli.app_controller import AppController
     import time
     from rich.progress import (
         SpinnerColumn,
@@ -303,9 +303,8 @@ def run_test_mode(settings):
     from rich.console import Console
     from rich.table import Table
     from rich.panel import Panel
-    from core.regex_engine import NativeRegexEngine
-    from core.extractor import NativePdfExtractor
-    from core.ocr_parser import _pos_processing_text
+    from gaia import NativeRegexEngine, NativePdfExtractor
+    from gaia.ocr_parser import _pos_processing_text
 
     console = Console()
     console.print(
@@ -320,7 +319,7 @@ def run_test_mode(settings):
 
     # 1. Load Regex Engine
     try:
-        engine = NativeRegexEngine(regex_path)
+        engine = NativeRegexEngine.from_file(regex_path)
     except Exception as e:
         console.print(
             f"\n[bold red]{_('test_err_load_regex')} {e}[/bold red]"

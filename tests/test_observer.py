@@ -1,6 +1,6 @@
 import unittest
 import queue
-from core.observer import QueueObserver
+from gaia import QueueObserver
 
 
 class TestObserver(unittest.TestCase):

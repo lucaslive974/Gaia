@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 import os
 import json
-from core.app_controller import AppController
+from cli.app_controller import AppController
 from config.settings import Settings
 
 
@@ -24,19 +24,19 @@ class TestResume(unittest.TestCase):
         self.state_file_input = os.path.join(self.dummy_dir, ".gaia_resume.json")
 
         # Patch DefaultOcrParser
-        self.parser_patcher = patch("core.app_controller.DefaultOcrParser")
+        self.parser_patcher = patch("cli.app_controller.DefaultOcrParser")
         self.mock_parser_class = self.parser_patcher.start()
         self.mock_parser = MagicMock()
         self.mock_parser_class.return_value = self.mock_parser
 
         # Patch DefaultCsvWriter
-        self.csv_patcher = patch("core.app_controller.DefaultCsvWriter")
+        self.csv_patcher = patch("cli.app_controller.DefaultCsvWriter")
         self.mock_csv_writer_class = self.csv_patcher.start()
         self.mock_csv_writer = MagicMock()
         self.mock_csv_writer_class.return_value = self.mock_csv_writer
 
         # Patch NativeRegexEngine
-        self.regex_patcher = patch("core.app_controller.NativeRegexEngine")
+        self.regex_patcher = patch("cli.app_controller.NativeRegexEngine")
         self.mock_regex_class = self.regex_patcher.start()
         self.mock_regex = MagicMock()
         self.mock_regex_class.return_value = self.mock_regex
@@ -60,9 +60,9 @@ class TestResume(unittest.TestCase):
                 except Exception:
                     pass
 
-    @patch("core.app_controller.os.listdir")
-    @patch("core.app_controller.os.path.exists")
-    @patch("core.app_controller.os.path.isdir")
+    @patch("cli.app_controller.os.listdir")
+    @patch("cli.app_controller.os.path.exists")
+    @patch("cli.app_controller.os.path.isdir")
     def test_resume_skips_processed_files(
         self, mock_isdir, mock_exists, mock_listdir
     ):
@@ -105,9 +105,9 @@ class TestResume(unittest.TestCase):
         called_args = mock_observer.on_file_start.call_args[0]
         self.assertTrue(called_args[1].endswith("file2.pdf"))
 
-    @patch("core.app_controller.os.listdir")
-    @patch("core.app_controller.os.path.exists")
-    @patch("core.app_controller.os.path.isdir")
+    @patch("cli.app_controller.os.listdir")
+    @patch("cli.app_controller.os.path.exists")
+    @patch("cli.app_controller.os.path.isdir")
     def test_auto_resume_without_resume_flag(
         self, mock_isdir, mock_exists, mock_listdir
     ):
@@ -146,9 +146,9 @@ class TestResume(unittest.TestCase):
         # Even with resume=False, if the state exists in input dir / cwd, it auto-resumes
         self.assertEqual(mock_observer.on_file_start.call_count, 1)
 
-    @patch("core.app_controller.os.listdir")
-    @patch("core.app_controller.os.path.exists")
-    @patch("core.app_controller.os.path.isdir")
+    @patch("cli.app_controller.os.listdir")
+    @patch("cli.app_controller.os.path.exists")
+    @patch("cli.app_controller.os.path.isdir")
     def test_resume_creates_and_saves_state_both_locations(
         self, mock_isdir, mock_exists, mock_listdir
     ):
@@ -175,9 +175,9 @@ class TestResume(unittest.TestCase):
             mock_open.assert_any_call(self.state_file_cwd, "w", encoding="utf-8")
             mock_open.assert_any_call(self.state_file_input, "w", encoding="utf-8")
 
-    @patch("core.app_controller.os.listdir")
-    @patch("core.app_controller.os.path.exists")
-    @patch("core.app_controller.os.path.isdir")
+    @patch("cli.app_controller.os.listdir")
+    @patch("cli.app_controller.os.path.exists")
+    @patch("cli.app_controller.os.path.isdir")
     def test_resume_deletes_state_on_success(
         self, mock_isdir, mock_exists, mock_listdir
     ):
@@ -217,9 +217,9 @@ class TestResume(unittest.TestCase):
         # Check that CWD state file was deleted
         self.assertFalse(os.path.isfile(self.state_file_cwd))
 
-    @patch("core.app_controller.os.listdir")
-    @patch("core.app_controller.os.path.exists")
-    @patch("core.app_controller.os.path.isdir")
+    @patch("cli.app_controller.os.listdir")
+    @patch("cli.app_controller.os.path.exists")
+    @patch("cli.app_controller.os.path.isdir")
     def test_resume_preserves_state_on_cancel(
         self, mock_isdir, mock_exists, mock_listdir
     ):

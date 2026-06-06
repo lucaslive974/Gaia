@@ -8,3 +8,4 @@ dist
 *.csv
 .gaia_resume.json
 poc
+*.egg-info/

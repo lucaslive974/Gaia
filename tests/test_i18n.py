@@ -1,5 +1,5 @@
 import unittest
-from core.i18n import _, set_lang, get_lang
+from gaia.i18n import _, set_lang, get_lang
 
 
 class TestI18n(unittest.TestCase):

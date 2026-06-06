@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from core.extractor import NativePdfExtractor
+from gaia.extractor import NativePdfExtractor
 
 
 class TestExtractors(unittest.TestCase):
-    @patch("core.extractor.PdfReader")
+    @patch("gaia.extractor.PdfReader")
     def test_native_extractor_page_count(self, mock_pdf_reader):
         mock_reader_instance = MagicMock()
         mock_reader_instance.pages = [MagicMock(), MagicMock()]
@@ -13,7 +13,7 @@ class TestExtractors(unittest.TestCase):
         extractor = NativePdfExtractor()
         self.assertEqual(extractor.get_page_count("dummy.pdf"), 2)
 
-    @patch("core.extractor.PdfReader")
+    @patch("gaia.extractor.PdfReader")
     def test_native_extractor_extract_pages(self, mock_pdf_reader):
         mock_reader_instance = MagicMock()
         page1 = MagicMock()

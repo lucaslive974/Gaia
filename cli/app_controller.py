@@ -1,12 +1,14 @@
 import os
 from config.settings import Settings
-from core.extractor import NativePdfExtractor
-from core.ocr_parser import DefaultOcrParser
-from core.csv_writer import DefaultCsvWriter
-from core.observer import ExtractionObserver
-from core.extraction_session import ExtractionSession
-from core.regex_engine import NativeRegexEngine
-from core.i18n import _
+from gaia import (
+    NativePdfExtractor,
+    DefaultOcrParser,
+    DefaultCsvWriter,
+    ExtractionObserver,
+    ExtractionSession,
+    NativeRegexEngine,
+)
+from gaia.i18n import _
 
 
 class AppController:
@@ -78,7 +80,7 @@ class AppController:
         # 6. Instantiate parser tools
         extractor = NativePdfExtractor()
         csv_writer = DefaultCsvWriter(path_output=settings.OUTPUT_CSV)
-        regex_engine = NativeRegexEngine(settings.REGEX_FILE)
+        regex_engine = NativeRegexEngine.from_file(settings.REGEX_FILE)
         ocr_parser = DefaultOcrParser(extractor=extractor, regex_engine=regex_engine)
 
         # 7. Load resume state

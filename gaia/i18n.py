@@ -46,7 +46,7 @@ def load_po_file(filepath: str) -> dict[str, str]:
 def init_i18n():
     global _translations
     import gettext
-    locale_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "locale")
+    locale_dir = os.path.join(os.path.dirname(__file__), "locale")
     for lang in ["en", "pt"]:
         try:
             t = gettext.translation("messages", localedir=locale_dir, languages=[lang])

@@ -1,8 +1,8 @@
 import sys
 import argparse
 from config import settings
-from core.terminal_ui import run_with_ui
-from core.i18n import _, set_lang
+from cli.terminal_ui import run_with_ui
+from gaia.i18n import _, set_lang
 
 
 def main():
@@ -83,7 +83,7 @@ def main():
         parser.error(str(e))
 
     if settings.TEST_FILE:
-        from core.terminal_ui import run_test_mode
+        from cli.terminal_ui import run_test_mode
         run_test_mode(settings)
     else:
         run_with_ui(settings)

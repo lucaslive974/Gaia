@@ -1,120 +1,194 @@
-# Gaia — Extrator Inteligente de PDFs (CLI)
+# Gaia — Intelligent PDF Data Extractor (CLI & Programmatic Library)
 
-O **Gaia** é uma ferramenta de linha de comando (CLI) projetada para extrair informações estruturadas de notificações de infrações de trânsito em formato PDF. Ele foi estruturado para suportar fluxos de extração complexos, combinando leitura nativa rápida e reconhecimento óptico de caracteres (OCR) robusto de forma modular e resiliente.
+**Gaia** is a versatile and robust PDF data extraction system designed to retrieve structured key-value pair (KVP) records from PDF documents. It is packaged both as a **programmatic Python library** (`gaia`) and a feature-rich **command-line tool (CLI)**.
 
----
-
-## 🚀 Funcionalidades Principais
-
-* **Pipeline de Extração Híbrida (Native + OCR)**:
-  * O sistema tenta processar a página nativamente de forma ultra-rápida (via `pypdf`).
-  * Caso a página seja um PDF escaneado (imagem) ou falhe na validação de campos obrigatórios, o Gaia realiza o fallback automaticamente para OCR (via `Tesseract OCR` e `pdf2image`) **apenas para aquela página específica**.
-* **Interface de Terminal (TUI) Dinâmica**:
-  * Renderização dinâmica em tempo real (via `rich.live`).
-  * Painel consolidado contendo contadores de arquivos processados, páginas lidas de forma nativa vs. OCR e falhas.
-  * Barra de progresso visual com estimativa numérica de tempo restante (**ETA**).
-* **Cancelamento Gracioso**:
-  * Suporta interrupção pelo usuário pressionando as teclas `ESC` ou `Ctrl+C` a qualquer momento, fechando conexões e restaurando o terminal de forma segura.
-* **Log de Erros Detalhado**:
-  * Páginas que falham na extração ou validação de campos obrigatórios são registradas no arquivo `gaia_errors.log` contendo os dados extraídos parcialmente e o texto completo da página para depuração posterior.
-* **Saída Estruturada**:
-  * Todos os registros validados são exportados para um arquivo CSV unificado (`output.csv`).
+Gaia uses a modular architecture combining fast native text extraction and fallback Optical Character Recognition (OCR) to ensure resilience and high fidelity.
 
 ---
 
-## 📁 Estrutura de Arquivos do Projeto
+## 🚀 Key Features
+
+* **Dual-Purpose Design**:
+  * **Programmatic Library**: Install `gaia-pdf-parser` and integrate `OcrParser`, `RegexEngine`, and other components directly into your own codebase.
+  * **Command-Line Interface**: Run parsing pipelines directly from your shell with dynamic dashboards, detailed progress tracking, and configurable execution.
+* **Hybrid Processing Pipeline (Native + OCR Fallback)**:
+  * Attempts ultra-fast native text extraction (via `pypdf`) first.
+  * Dynamically falls back to OCR (via `Tesseract OCR` and `pdf2image`) **only for the specific pages** that are scanned images or fail schema validation.
+* **Dynamic Terminal Interface (TUI)**:
+  * Real-time metrics rendered via `rich.live`.
+  * Live status dashboard featuring counters for processed files, page types (Native vs. OCR), failures, and a progress bar with numerical Estimated Time of Arrival (**ETA**).
+* **Robust Session Resume**:
+  * Automatically checkpoints progress using a state file (`.gaia_resume.json`). If interrupted, the `--resume` flag lets you pick up right where you left off.
+* **Custom Regex Configurations**:
+  * Supply custom pattern matching rules via a JSON configuration file.
+* **Multi-Page Unit Grouping**:
+  * Group multiple pages as a single unit using `--pages-per-unit` for patterns that span across page boundaries.
+* **Internationalization (i18n)**:
+  * Complete user interface and message translation support for English (`en`) and Portuguese (`pt`).
+* **Graceful Interrupt Handlers**:
+  * Supports clean cancellation via `ESC` or `Ctrl+C`, ensuring resources, files, and terminal settings are restored safely.
+
+---
+
+## 📁 Project Directory Structure
 
 ```text
 Gaia/
+├── cli/
+│   ├── __init__.py          # CLI subpackage initialization
+│   ├── app_controller.py    # Main orchestration of CLI execution
+│   └── terminal_ui.py       # Rich TUI display and keyboard input handling
 ├── config/
-│   └── settings.py          # Configurações globais e caminhos padrão
-├── core/
-│   ├── csv_writer.py        # Gravação incremental e segura no arquivo CSV
-│   ├── extractor.py         # Motores de extração (Nativo, OCR, Fallback)
-│   ├── observer.py          # Interface observadora para progresso
-│   ├── ocr_parser.py        # Regex KVP (Key-Value Pair) e validação de páginas
-│   ├── shell_manager.py     # Orquestrador principal do ciclo de vida da CLI
-│   └── terminal_ui.py       # Gerenciador de interface rica (TUI) e teclado
-├── main.py                  # Ponto de entrada da aplicação (argparse)
-├── requirements.txt         # Dependências do Python
-├── tests/                   # Suíte de testes unitários e de integração
+│   ├── __init__.py
+│   └── settings.py          # Global settings, arguments parsing, state persistence
+├── gaia/
+│   ├── __init__.py          # Main entry points exposing library API classes
+│   ├── csv_writer.py        # Streamlined thread-safe CSV writing
+│   ├── extraction_session.py# Session progress tracking & No-Op placeholders
+│   ├── extractor.py         # Native and OCR engines
+│   ├── i18n.py              # Internationalization & gettext wrapper
+│   ├── locale/              # Compiled translations directory
+│   │   ├── en/LC_MESSAGES/messages.mo
+│   │   └── pt/LC_MESSAGES/messages.mo
+│   ├── observer.py          # Progress notification interface (observer pattern)
+│   ├── ocr_parser.py        # Key-Value Pair regex matcher and verification
+│   └── regex_engine.py      # Abstracted matching engine
+├── main.py                  # CLI binary / entry point
+├── pyproject.toml           # Setuptools PEP 621 packaging definitions
+├── requirements.txt         # Package requirements
+├── tests/                   # Extensive test suites
 └── tools/
     └── linux/
-        └── run_tests.sh     # Script utilitário para execução da suíte de testes
+        ├── compile_locales.sh # Compiles Translation Catalog (.po -> .mo)
+        └── run_tests.sh       # Script to execute unittest suite
 ```
 
 ---
 
-## 🛠️ Requisitos e Instalação
+## 🛠️ Requirements & Installation
 
-### Pré-requisitos
+### Prerequisites
 1. **Python 3.10+**
-2. **Tesseract OCR**: Necessário para a extração em PDFs que contêm imagens escaneadas.
-   * No Debian/Ubuntu:
+2. **Tesseract OCR** (for OCR fallback on scanned documents)
+   * Debian/Ubuntu:
      ```bash
      sudo apt update
      sudo apt install tesseract-ocr tesseract-ocr-por
      ```
-3. **Poppler**: Requisito do `pdf2image` para converter páginas de PDF em imagem.
-   * No Debian/Ubuntu:
+3. **Poppler** (required by `pdf2image` to convert PDF pages to images)
+   * Debian/Ubuntu:
      ```bash
      sudo apt install poppler-utils
      ```
 
-### Configuração do Ambiente
+### Environment Setup & Packaging
 
-1. Clone o repositório ou navegue até a pasta do projeto:
+1. Clone or navigate to the repository:
    ```bash
    cd Trabalho/Gaia
    ```
 
-2. Crie e ative o ambiente virtual:
+2. Setup virtual environment:
    ```bash
    python -m venv .venv
    source .venv/bin/activate
    ```
 
-3. Instale as dependências:
+3. Install the package in editable mode:
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
 ---
 
-## 💻 Como Usar
+## 💻 Usage
 
-A CLI do Gaia possui interface em português e aceita argumentos para configurar os caminhos de entrada e saída.
+### 1. As a Python Library
 
-```bash
-python main.py <diretorio_de_entrada> [opções]
+You can import and use the components of Gaia directly within Python without needing the CLI or a console wrapper.
+
+```python
+from gaia import DefaultOcrParser, NativeRegexEngine, NativePdfExtractor
+
+# 1. Setup the Regex engine with rules already in-memory (dictionary)
+regex_rules = {
+    "infraction_id": {
+        "regex": r"Código da Infração:\s*([A-Za-z0-9-]+)",
+        "required": True
+    },
+    "plate": {
+        "regex": r"Placa:\s*([A-Z]{3}-?\d[A-Z0-9]\d{2})",
+        "required": True
+    }
+}
+engine = NativeRegexEngine(regex_rules)
+
+# Alternatively, load rules from a JSON file path:
+# engine = NativeRegexEngine.from_file("path/to/rules.json")
+
+# 2. Setup the parser
+parser = DefaultOcrParser(
+    extractor=NativePdfExtractor(),
+    regex_engine=engine
+)
+
+# 3. Process files programmatically
+# (The parser works cleanly with or without a formal ExtractionSession)
+for record in parser.process_file("path/to/infraction.pdf", pages_per_unit=1):
+    print("Parsed Record:", record)
 ```
 
-### Argumentos:
-* `<diretorio_de_entrada>`: Caminho do diretório contendo os arquivos PDF a serem processados. (Obrigatório)
+---
 
-### Opções:
-* `-o`, `--output` `<caminho_csv>`: Caminho do arquivo CSV de saída (Padrão: `./output.csv`).
-* `-t`, `--traineddata` `<caminho_traineddata>`: Caminho da pasta contendo os dados de treinamento do Tesseract (Padrão: `./traineddata`).
+### 2. Command-Line Interface (CLI)
 
-### Exemplos de Execução:
+Run Gaia through its command-line interface.
 
-* **Execução básica**:
+```bash
+python main.py <input_dir> [options]
+```
+
+#### Positional Arguments
+* `<input_dir>`: Path to the directory containing the PDF files to process.
+
+#### Options
+* `-o`, `--output` `<path>`: Custom output CSV file path (Default: `output.csv` in your working directory).
+* `-g`, `--regex` `<path>`: Path to a JSON file containing customized regex extraction rules.
+* `-r`, `--recursive`: Search for PDF files recursively within subdirectories.
+* `--resume`: Resume processing using checkpoint data from `.gaia_resume.json`.
+* `-t`, `--test` `<file_path>`: Test your regex rules on the first page of the provided PDF.
+* `-p`, `--pages-per-unit` `<int>`: The number of pages grouped together as a single block for extraction matching (Default: `1`).
+* `-l`, `--lang` `{"en", "pt"}`: Force the interface language to English or Portuguese (Default: `en`).
+
+#### Examples
+
+* **Basic processing run**:
   ```bash
-  python main.py /home/lucaslima/Documents/Multas
+  python main.py /path/to/pdfs -g rules.json
   ```
 
-* **Definindo arquivo de saída personalizado**:
+* **Resume an interrupted run**:
   ```bash
-  python main.py /home/lucaslima/Documents/Multas -o /home/lucaslima/Documents/resultado.csv
+  python main.py /path/to/pdfs --resume
+  ```
+
+* **Test matching logic on a single file**:
+  ```bash
+  python main.py -t sample.pdf -g rules.json
   ```
 
 ---
 
-## 🧪 Executando Testes
+## 🧪 Testing and Tools
 
-A suíte de testes valida a lógica do fluxo da CLI, os extratores de texto, o comportamento do observer e do parser KVP.
-
-Para executar todos os testes, utilize o script utilitário:
+### Running the Test Suite
+The unit and integration tests validate CLI logic, parser fallbacks, observers, and settings parsing.
 ```bash
 ./tools/linux/run_tests.sh
+```
+
+### Compiling Localization Catalogs
+To re-compile updated translation dictionary catalogs (`.po`) to gettext binary files (`.mo`):
+```bash
+./tools/linux/compile_locales.sh
 ```

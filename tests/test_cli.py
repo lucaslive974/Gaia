@@ -8,7 +8,7 @@ import json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from main import main
-from core.app_controller import AppController
+from cli.app_controller import AppController
 from config.settings import Settings
 
 
@@ -73,11 +73,11 @@ class TestCli(unittest.TestCase):
         self.assertTrue(settings_passed.RESUME)
         self.assertEqual(settings_passed.REGEX_FILE, "/loaded/regex.json")
 
-    @patch("core.app_controller.os.path.exists")
-    @patch("core.app_controller.os.path.isdir")
-    @patch("core.app_controller.NativeRegexEngine")
-    @patch("core.app_controller.DefaultOcrParser")
-    @patch("core.app_controller.DefaultCsvWriter")
+    @patch("cli.app_controller.os.path.exists")
+    @patch("cli.app_controller.os.path.isdir")
+    @patch("cli.app_controller.NativeRegexEngine")
+    @patch("cli.app_controller.DefaultOcrParser")
+    @patch("cli.app_controller.DefaultCsvWriter")
     def test_app_controller_validations_and_run(
         self, mock_csv_writer, mock_parser_class, mock_regex_engine, mock_isdir, mock_exists
     ):
@@ -97,18 +97,18 @@ class TestCli(unittest.TestCase):
         settings.REGEX_FILE = "/dummy/regex.json"
 
         # mock os.listdir to return empty list so it finishes quickly
-        with patch("core.app_controller.os.listdir", return_value=[]):
+        with patch("cli.app_controller.os.listdir", return_value=[]):
             success = controller.run(settings)
 
         self.assertTrue(success)
         mock_exists.assert_any_call("/dummy/input")
         mock_isdir.assert_any_call("/dummy/input")
 
-    @patch("core.app_controller.os.path.exists")
-    @patch("core.app_controller.os.path.isdir")
-    @patch("core.app_controller.os.remove")
-    @patch("core.app_controller.NativeRegexEngine")
-    @patch("core.app_controller.DefaultOcrParser")
+    @patch("cli.app_controller.os.path.exists")
+    @patch("cli.app_controller.os.path.isdir")
+    @patch("cli.app_controller.os.remove")
+    @patch("cli.app_controller.NativeRegexEngine")
+    @patch("cli.app_controller.DefaultOcrParser")
     def test_app_controller_log_deletion(
         self, mock_parser_class, mock_regex_engine, mock_remove, mock_isdir, mock_exists
     ):
@@ -129,14 +129,14 @@ class TestCli(unittest.TestCase):
         settings.RESUME = False
         settings.REGEX_FILE = "/dummy/regex.json"
 
-        with patch("core.app_controller.os.listdir", return_value=[]):
+        with patch("cli.app_controller.os.listdir", return_value=[]):
             controller.run(settings)
         mock_remove.assert_called_once()
 
         # Scenario 2: Resume is True -> Should NOT remove gaia_errors.log
         mock_remove.reset_mock()
         settings.RESUME = True
-        with patch("core.app_controller.os.listdir", return_value=[]):
+        with patch("cli.app_controller.os.listdir", return_value=[]):
             controller.run(settings)
         mock_remove.assert_not_called()
 

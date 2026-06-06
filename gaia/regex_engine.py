@@ -24,12 +24,16 @@ class RegexEngine(ABC):
 
 
 class NativeRegexEngine(RegexEngine):
-    def __init__(self, regex_file_path: str):
-        self.regex_file_path = regex_file_path
+    def __init__(self, patterns_data: dict[str, Any]):
+        self.regex_file_path = None
         self.patterns: dict[str, dict[str, Any]] = {}
-        self.load_and_validate(regex_file_path)
+        self.load_and_validate(patterns_data)
 
-    def load_and_validate(self, file_path: str):
+    @classmethod
+    def from_file(cls, file_path: str) -> "NativeRegexEngine":
+        """
+        Loads regex patterns from a JSON file and instantiates the engine.
+        """
         if not file_path:
             raise ValueError("O caminho do arquivo de regex deve ser fornecido.")
         if not os.path.exists(file_path):
@@ -43,8 +47,14 @@ class NativeRegexEngine(RegexEngine):
         except Exception as e:
             raise ValueError(f"Erro ao ler o arquivo de regex: {e}")
 
+        engine = cls(data)
+        engine.regex_file_path = file_path
+        return engine
+
+    def load_and_validate(self, data: dict[str, Any]):
         if not isinstance(data, dict):
             raise ValueError("O JSON de regex deve ser um objeto no nível raiz.")
+
 
         patterns = {}
         for key, value in data.items():

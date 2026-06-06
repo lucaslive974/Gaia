@@ -2,7 +2,7 @@ import unittest
 import tempfile
 import json
 import os
-from core.regex_engine import NativeRegexEngine
+from gaia import NativeRegexEngine
 
 
 class TestRegexEngine(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestRegexEngine(unittest.TestCase):
         self.temp_files.append(path)
         return path
 
-    def test_load_and_validate_valid_config(self):
+    def test_load_and_validate_valid_config_from_file(self):
         config = {
             "data_emissao": {
                 "regex": r"Data\s+de\s+Emiss[ãa]o\s+(\d{2}/\d{2}/\d{4})",
@@ -42,7 +42,7 @@ class TestRegexEngine(unittest.TestCase):
             },
         }
         file_path = self.create_temp_regex_file(config)
-        engine = NativeRegexEngine(file_path)
+        engine = NativeRegexEngine.from_file(file_path)
 
         self.assertEqual(engine.regex_file_path, file_path)
         self.assertIn("data_emissao", engine.patterns)
@@ -53,13 +53,25 @@ class TestRegexEngine(unittest.TestCase):
         self.assertFalse(engine.patterns["linha"]["required"])
         self.assertEqual(engine.patterns["linha"]["default"], "")
 
+    def test_instantiation_with_in_memory_dict(self):
+        config = {
+            "key1": {"regex": r"key1:\s*(\w+)", "required": True, "default": ""},
+        }
+        engine = NativeRegexEngine(config)
+        self.assertIsNone(engine.regex_file_path)
+        self.assertIn("key1", engine.patterns)
+        
+        text = "key1: value1"
+        results = engine.parse(text)
+        self.assertEqual(results["key1"], "value1")
+
     def test_load_and_validate_missing_path(self):
         with self.assertRaises(ValueError):
-            NativeRegexEngine("")
+            NativeRegexEngine.from_file("")
 
     def test_load_and_validate_nonexistent_file(self):
         with self.assertRaises(FileNotFoundError):
-            NativeRegexEngine("/nonexistent/file.json")
+            NativeRegexEngine.from_file("/nonexistent/file.json")
 
     def test_load_and_validate_invalid_json(self):
         with tempfile.NamedTemporaryFile(
@@ -69,46 +81,35 @@ class TestRegexEngine(unittest.TestCase):
             path = tf.name
         self.temp_files.append(path)
         with self.assertRaises(ValueError):
-            NativeRegexEngine(path)
+            NativeRegexEngine.from_file(path)
 
     def test_load_and_validate_invalid_schema_root(self):
-        file_path = self.create_temp_regex_file(["not a dictionary"])
         with self.assertRaises(ValueError):
-            NativeRegexEngine(file_path)
+            NativeRegexEngine(["not a dictionary"])
 
     def test_load_and_validate_invalid_field_schema(self):
-        file_path = self.create_temp_regex_file({"field": "not a dictionary"})
         with self.assertRaises(ValueError):
-            NativeRegexEngine(file_path)
+            NativeRegexEngine({"field": "not a dictionary"})
 
     def test_load_and_validate_missing_regex_key(self):
-        file_path = self.create_temp_regex_file({"field": {"required": True}})
         with self.assertRaises(ValueError):
-            NativeRegexEngine(file_path)
+            NativeRegexEngine({"field": {"required": True}})
 
     def test_load_and_validate_invalid_regex_type(self):
-        file_path = self.create_temp_regex_file({"field": {"regex": 123}})
         with self.assertRaises(ValueError):
-            NativeRegexEngine(file_path)
+            NativeRegexEngine({"field": {"regex": 123}})
 
     def test_load_and_validate_invalid_flags_type(self):
-        file_path = self.create_temp_regex_file(
-            {"field": {"regex": "abc", "flags": "not a list"}}
-        )
         with self.assertRaises(ValueError):
-            NativeRegexEngine(file_path)
+            NativeRegexEngine({"field": {"regex": "abc", "flags": "not a list"}})
 
     def test_load_and_validate_invalid_flag_string(self):
-        file_path = self.create_temp_regex_file(
-            {"field": {"regex": "abc", "flags": ["INVALID_FLAG"]}}
-        )
         with self.assertRaises(ValueError):
-            NativeRegexEngine(file_path)
+            NativeRegexEngine({"field": {"regex": "abc", "flags": ["INVALID_FLAG"]}})
 
     def test_load_and_validate_invalid_regex_pattern(self):
-        file_path = self.create_temp_regex_file({"field": {"regex": "["}})
         with self.assertRaises(ValueError):
-            NativeRegexEngine(file_path)
+            NativeRegexEngine({"field": {"regex": "["}})
 
     def test_parse_success(self):
         config = {
@@ -119,8 +120,7 @@ class TestRegexEngine(unittest.TestCase):
                 "default": "missing",
             },
         }
-        file_path = self.create_temp_regex_file(config)
-        engine = NativeRegexEngine(file_path)
+        engine = NativeRegexEngine(config)
 
         text = "some text key1: value1 key2: value2"
         results = engine.parse(text)
@@ -132,8 +132,7 @@ class TestRegexEngine(unittest.TestCase):
             "first": {"regex": r"word:\s*(\w+)", "required": True},
             "second": {"regex": r"word:\s*(\w+)", "required": True},
         }
-        file_path = self.create_temp_regex_file(config)
-        engine = NativeRegexEngine(file_path)
+        engine = NativeRegexEngine(config)
 
         text = "word: apple and then word: banana"
         results = engine.parse(text)
@@ -142,8 +141,7 @@ class TestRegexEngine(unittest.TestCase):
 
     def test_parse_missing_required_raises_value_error(self):
         config = {"key1": {"regex": r"key1:\s*(\w+)", "required": True}}
-        file_path = self.create_temp_regex_file(config)
-        engine = NativeRegexEngine(file_path)
+        engine = NativeRegexEngine(config)
 
         text = "key2: value2"
         with self.assertRaises(ValueError):
@@ -154,8 +152,7 @@ class TestRegexEngine(unittest.TestCase):
             "key1": {"regex": r"key1:\s*(\w+)", "required": True},
             "key2": {"regex": r"key2:\s*(\w+)", "required": False},
         }
-        file_path = self.create_temp_regex_file(config)
-        engine = NativeRegexEngine(file_path)
+        engine = NativeRegexEngine(config)
 
         text = "key2: value2"
         results, matched = engine.parse_test(text)

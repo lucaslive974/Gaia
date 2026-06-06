@@ -1,7 +1,7 @@
 from argparse import Namespace
 import os
 import json
-from core.i18n import _, set_lang
+from gaia.i18n import _, set_lang
 
 input_attr = [
     ["input_dir", "BASE_PATH"],

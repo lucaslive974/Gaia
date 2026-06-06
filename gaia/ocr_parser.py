@@ -4,10 +4,10 @@ import unicodedata
 from abc import ABC, abstractmethod
 from typing import Generator
 
-from core.extractor import BasePdfExtractor, NativePdfExtractor
-from core.regex_engine import RegexEngine
-from core.extraction_session import ExtractionSession
-from core.i18n import _
+from gaia.extractor import BasePdfExtractor, NativePdfExtractor
+from gaia.regex_engine import RegexEngine
+from gaia.extraction_session import ExtractionSession
+from gaia.i18n import _
 
 
 class OcrParser(ABC):
@@ -15,7 +15,7 @@ class OcrParser(ABC):
     def process_file(
         self,
         file_path: str,
-        session: ExtractionSession,
+        session: ExtractionSession | None = None,
     ) -> Generator[dict[str, str], None, None]:
         pass
 
@@ -34,9 +34,12 @@ class DefaultOcrParser(OcrParser):
     def process_file(
         self,
         file_path: str,
-        session: ExtractionSession,
+        session: ExtractionSession | None = None,
         pages_per_unit: int = 1,
     ) -> Generator[dict[str, str], None, None]:
+        from gaia.extraction_session import NoOpExtractionSession
+        session = session or NoOpExtractionSession()
+
         total_pages = self._extractor.get_page_count(file_path)
         session.total_pages += total_pages
 

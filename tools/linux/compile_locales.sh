@@ -10,10 +10,10 @@ cd "$PROJECT_ROOT"
 
 echo "Compiling locales..."
 
-mkdir -p locale/en/LC_MESSAGES
-mkdir -p locale/pt/LC_MESSAGES
+mkdir -p gaia/locale/en/LC_MESSAGES
+mkdir -p gaia/locale/pt/LC_MESSAGES
 
-msgfmt -o locale/en/LC_MESSAGES/messages.mo locale/en/messages.po
-msgfmt -o locale/pt/LC_MESSAGES/messages.mo locale/pt/messages.po
+msgfmt -o gaia/locale/en/LC_MESSAGES/messages.mo gaia/locale/en/messages.po
+msgfmt -o gaia/locale/pt/LC_MESSAGES/messages.mo gaia/locale/pt/messages.po
 
 echo "Locales compiled successfully!"
