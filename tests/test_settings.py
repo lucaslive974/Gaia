@@ -14,19 +14,15 @@ class TestSettings(unittest.TestCase):
         """Test that a new Settings instance has the expected default values."""
         self.assertEqual(self.settings.BASE_PATH, "")
         self.assertEqual(
-            self.settings.TRAINED_DATA_DIR,
-            os.path.join(os.getcwd(), "traineddata"),
-        )
-        self.assertEqual(
             self.settings.OUTPUT_CSV,
             os.path.join(os.getcwd(), "output.csv"),
         )
-        self.assertEqual(self.settings.MODE, "native")
+        self.assertFalse(self.settings.RESUME)
 
     def test_getitem_success(self):
         """Test accessing settings attributes using dictionary syntax."""
         self.assertEqual(self.settings["BASE_PATH"], "")
-        self.assertEqual(self.settings["MODE"], "native")
+        self.assertFalse(self.settings["RESUME"])
 
     def test_getitem_key_error(self):
         """Test that accessing a non-existent key via dictionary syntax raises KeyError."""
@@ -36,20 +32,19 @@ class TestSettings(unittest.TestCase):
     def test_setitem(self):
         """Test modifying settings attributes using dictionary syntax."""
         self.settings["BASE_PATH"] = "/custom/path"
-        self.settings["MODE"] = "ocr"
+        self.settings["RESUME"] = True
         
         # Verify both dictionary-like and attribute-like access reflect the changes
         self.assertEqual(self.settings["BASE_PATH"], "/custom/path")
         self.assertEqual(self.settings.BASE_PATH, "/custom/path")
-        self.assertEqual(self.settings["MODE"], "ocr")
-        self.assertEqual(self.settings.MODE, "ocr")
+        self.assertTrue(self.settings["RESUME"])
+        self.assertTrue(self.settings.RESUME)
 
     def test_contains(self):
         """Test the 'in' operator on the settings object."""
         self.assertTrue("BASE_PATH" in self.settings)
-        self.assertTrue("TRAINED_DATA_DIR" in self.settings)
         self.assertTrue("OUTPUT_CSV" in self.settings)
-        self.assertTrue("MODE" in self.settings)
+        self.assertTrue("RESUME" in self.settings)
         self.assertFalse("NON_EXISTENT_KEY" in self.settings)
 
     def test_parse_cmd_args_all_fields(self):
@@ -57,15 +52,13 @@ class TestSettings(unittest.TestCase):
         args = Namespace(
             input_dir="/my/input",
             output="/my/output.csv",
-            traineddata="/my/traineddata",
-            mode="ocr",
+            resume=True,
         )
         self.settings.parse_cmd_args(args)
         
         self.assertEqual(self.settings.BASE_PATH, "/my/input")
         self.assertEqual(self.settings.OUTPUT_CSV, "/my/output.csv")
-        self.assertEqual(self.settings.TRAINED_DATA_DIR, "/my/traineddata")
-        self.assertEqual(self.settings.MODE, "ocr")
+        self.assertTrue(self.settings.RESUME)
 
     def test_parse_cmd_args_partial_fields(self):
         """Test parse_cmd_args with a Namespace containing only some mapped attributes."""
@@ -78,10 +71,10 @@ class TestSettings(unittest.TestCase):
         # Check that present fields were updated
         self.assertEqual(self.settings.BASE_PATH, "/my/input_only")
         # Check that missing fields retained their defaults
-        self.assertEqual(self.settings.MODE, "native")
+        self.assertFalse(self.settings.RESUME)
         self.assertEqual(
-            self.settings.TRAINED_DATA_DIR,
-            os.path.join(os.getcwd(), "traineddata"),
+            self.settings.OUTPUT_CSV,
+            os.path.join(os.getcwd(), "output.csv"),
         )
 
     def test_parse_cmd_args_unmapped_fields_ignored(self):
@@ -100,11 +93,11 @@ class TestSettings(unittest.TestCase):
     def test_global_settings_instance(self):
         """Test that the global settings instance exported by the package functions properly."""
         self.assertIn("BASE_PATH", global_settings)
-        self.assertIn("TRAINED_DATA_DIR", global_settings)
         self.assertIn("OUTPUT_CSV", global_settings)
-        self.assertIn("MODE", global_settings)
+        self.assertIn("RESUME", global_settings)
 
 
 if __name__ == "__main__":
     unittest.main()
+
 

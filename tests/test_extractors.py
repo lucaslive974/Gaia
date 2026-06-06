@@ -27,8 +27,9 @@ class TestExtractors(unittest.TestCase):
         pages = list(extractor.extract_pages("dummy.pdf"))
         
         self.assertEqual(len(pages), 2)
-        self.assertEqual(pages[0], ("Native Page 1", "native"))
-        self.assertEqual(pages[1], ("Native Page 2", "native"))
+        self.assertEqual(pages[0], "Native Page 1")
+        self.assertEqual(pages[1], "Native Page 2")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,117 +7,91 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from main import main
+from core.shell_manager import ShellManager
+from config.settings import Settings
 
 
 class TestCli(unittest.TestCase):
     @patch("main.argparse.ArgumentParser.parse_args")
-    @patch("core.shell_manager.os.path.exists")
-    @patch("core.shell_manager.os.path.isdir")
-    @patch("core.shell_manager.DefaultOcrParser")
-    @patch("core.shell_manager.Console")
-    @patch("core.shell_manager.Progress")
-    def test_cli_execution_flow(
-        self,
-        mock_progress,
-        mock_console,
-        mock_parser_class,
-        mock_isdir,
-        mock_exists,
-        mock_parse_args,
-    ):
+    @patch("main.run_with_ui")
+    def test_cli_execution_flow(self, mock_run_with_ui, mock_parse_args):
         # Setup mocks
-        mock_exists.return_value = True
-        mock_isdir.return_value = True
-
         mock_args = MagicMock()
         mock_args.input_dir = "/dummy/input"
         mock_args.output = "/dummy/output.csv"
-        mock_args.traineddata = "/dummy/traineddata"
+        mock_args.resume = False
         mock_parse_args.return_value = mock_args
 
-        mock_parser_instance = MagicMock()
-        mock_parser_class.return_value = mock_parser_instance
-
-        # We need mock parser internal variables for the dashboard print
-        mock_parser_instance._total_pages = 10
-        mock_parser_instance._successful_pages = 8
-        mock_parser_instance._native_pages = 5
-        mock_parser_instance._ocr_pages = 3
-
-        # Mock os.listdir for file count
-        with patch(
-            "core.shell_manager.os.listdir", return_value=["file1.pdf", "file2.pdf"]
-        ):
-            # Execute main
-            main()
+        # Execute main
+        main()
 
         # Assertions
         mock_parse_args.assert_called_once()
-        mock_exists.assert_any_call("/dummy/input")
-        mock_isdir.assert_any_call("/dummy/input")
-        mock_parser_class.assert_called_once()
-        mock_parser_instance.process.assert_called_once()
+        mock_run_with_ui.assert_called_once()
+        settings_passed = mock_run_with_ui.call_args[0][0]
+        self.assertEqual(settings_passed.BASE_PATH, "/dummy/input")
+        self.assertEqual(settings_passed.OUTPUT_CSV, "/dummy/output.csv")
+        self.assertFalse(settings_passed.RESUME)
 
     @patch("core.shell_manager.os.path.exists")
     @patch("core.shell_manager.os.path.isdir")
     @patch("core.shell_manager.DefaultOcrParser")
-    @patch("core.shell_manager.Console")
-    @patch("core.shell_manager.Progress")
     @patch("core.shell_manager.DefaultCsvWriter")
-    @patch("core.shell_manager.NativePdfExtractor")
-    def test_shell_manager_passes_settings_to_components(
-        self,
-        mock_native_extractor_class,
-        mock_csv_writer_class,
-        mock_progress,
-        mock_console,
-        mock_parser_class,
-        mock_isdir,
-        mock_exists,
+    def test_shell_manager_validations_and_run(
+        self, mock_csv_writer, mock_parser_class, mock_isdir, mock_exists
     ):
-        from core.shell_manager import ShellManager
-        from config.settings import Settings
-
         mock_exists.return_value = True
         mock_isdir.return_value = True
 
         mock_parser_instance = MagicMock()
         mock_parser_class.return_value = mock_parser_instance
-        mock_parser_instance._total_pages = 0
-        mock_parser_instance._successful_pages = 0
-        mock_parser_instance._native_pages = 0
-        mock_parser_instance._ocr_pages = 0
 
-        # Test scenario 1: OCR Mode
-        ocr_settings = Settings()
-        ocr_settings.BASE_PATH = "/dummy/input"
-        ocr_settings.OUTPUT_CSV = "/dummy/output_ocr.csv"
-        ocr_settings.TRAINED_DATA_DIR = "/dummy/traineddata_ocr"
-        ocr_settings.MODE = "ocr"
+        mock_observer = MagicMock()
+        shell = ShellManager(observer=mock_observer)
 
-        shell = ShellManager(console=mock_console)
-        # Mock listdir to avoid file counting issues
-        with patch("core.shell_manager.os.listdir", return_value=[]):
-            shell.run(ocr_settings)
+        settings = Settings()
+        settings.BASE_PATH = "/dummy/input"
+        settings.OUTPUT_CSV = "/dummy/output.csv"
+        settings.RESUME = True
 
-        # Assert DefaultCsvWriter was initialized with the custom output path
-        mock_csv_writer_class.assert_any_call(path_output="/dummy/output_ocr.csv")
-        # Assert OcrPdfExtractor was initialized with the custom traineddata
+        # Run shell manager
+        success = shell.run(settings)
 
-        # Test scenario 2: Native Mode
-        mock_csv_writer_class.reset_mock()
-        native_settings = Settings()
-        native_settings.BASE_PATH = "/dummy/input"
-        native_settings.OUTPUT_CSV = "/dummy/output_native.csv"
-        native_settings.MODE = "native"
+        self.assertTrue(success)
+        mock_exists.assert_any_call("/dummy/input")
+        mock_isdir.assert_any_call("/dummy/input")
+        mock_parser_class.assert_called_once()
+        mock_parser_instance.process.assert_called_once_with(
+            "/dummy/input", mock_observer, resume=True
+        )
 
-        with patch("core.shell_manager.os.listdir", return_value=[]):
-            shell.run(native_settings)
+    @patch("core.shell_manager.os.path.exists")
+    @patch("core.shell_manager.os.path.isdir")
+    @patch("core.shell_manager.os.remove")
+    @patch("core.shell_manager.DefaultOcrParser")
+    def test_shell_manager_log_deletion(
+        self, mock_parser_class, mock_remove, mock_isdir, mock_exists
+    ):
+        # Scenario 1: Resume is False -> Should remove gaia_errors.log if it exists
+        mock_exists.side_effect = lambda p: True if "gaia_errors.log" in p or p == "/dummy/input" else False
+        mock_isdir.return_value = True
 
-        # Assert DefaultCsvWriter was initialized with the native output path
-        mock_csv_writer_class.assert_any_call(path_output="/dummy/output_native.csv")
-        # Assert NativePdfExtractor was initialized (takes no args)
-        mock_native_extractor_class.assert_any_call()
+        mock_observer = MagicMock()
+        shell = ShellManager(observer=mock_observer)
+
+        settings = Settings()
+        settings.BASE_PATH = "/dummy/input"
+        settings.OUTPUT_CSV = "/dummy/output.csv"
+        settings.RESUME = False
+
+        shell.run(settings)
+        mock_remove.assert_called_once()
+
+        # Scenario 2: Resume is True -> Should NOT remove gaia_errors.log
+        mock_remove.reset_mock()
+        settings.RESUME = True
+        shell.run(settings)
+        mock_remove.assert_not_called()
 
 
 if __name__ == "__main__":

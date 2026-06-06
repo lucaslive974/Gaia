@@ -17,8 +17,9 @@ class TestObserver(unittest.TestCase):
         observer.on_page_start(3, 10)
         self.assertEqual(q.get(), ("PAGE_START", (3, 10)))
         
-        observer.on_page_processed(True, 3, 0, 3, 10, 2, 1, "native")
-        self.assertEqual(q.get(), ("PAGE_PROCESSED", (True, 3, 0, 3, 10, 2, 1, "native")))
+        observer.on_page_processed(True, 3, 0, 3, 10)
+        self.assertEqual(q.get(), ("PAGE_PROCESSED", (True, 3, 0, 3, 10)))
+
         
         observer.on_file_complete(1, 100.0)
         self.assertEqual(q.get(), ("FILE_COMPLETE", (1, 100.0)))

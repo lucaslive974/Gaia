@@ -20,7 +20,7 @@ class TestParser(unittest.TestCase):
             "N Auto de Infracao ABC1234\n"
             "Valor: R$ 150,00"
         )
-        mock_extractor.extract_pages.return_value = iter([(valid_text, "native")])
+        mock_extractor.extract_pages.return_value = iter([valid_text])
         
         mock_writer = MagicMock()
         
@@ -33,7 +33,8 @@ class TestParser(unittest.TestCase):
         mock_observer.on_start.assert_called_once_with(1)
         mock_observer.on_file_start.assert_called_once()
         mock_observer.on_page_start.assert_called_once_with(1, 1)
-        mock_observer.on_page_processed.assert_called_once_with(True, 1, 0, 1, 1, 1, 0, "native")
+        mock_observer.on_page_processed.assert_called_once_with(True, 1, 0, 1, 1)
+
         mock_observer.on_file_complete.assert_called_once_with(1, 100.0)
         mock_observer.on_complete.assert_called_once_with(1, 1)
         
