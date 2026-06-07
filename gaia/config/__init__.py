@@ -1,3 +1,4 @@
-from gaia.config.settings import Settings
+from gaia.config.options import Options
 
-settings = Settings()
+options = Options()
+

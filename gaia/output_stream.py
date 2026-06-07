@@ -1,7 +1,7 @@
 import csv
 from os import path
 from abc import ABC, abstractmethod
-from gaia.config import settings
+from gaia.config import options
 
 
 class OutputStream(ABC):
@@ -15,7 +15,7 @@ class CsvWriteStream(OutputStream):
         self._path = path_output
 
     def write(self, content: dict[str, str]):
-        output_path = self._path or settings["OUTPUT_CSV"]
+        output_path = self._path or options["OUTPUT_CSV"]
         file_exists = path.exists(output_path)
 
         with open(output_path, mode="a", newline="", encoding="utf-8") as csv_file:
