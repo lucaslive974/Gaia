@@ -1,8 +1,8 @@
 import os
 from gaia.config.settings import Settings
 from gaia import (
-    NativePdfExtractor,
-    DefaultOcrParser,
+    NativePdfParser,
+    PdfParser,
     DefaultCsvWriter,
     DefaultExtractionObserver,
     ExtractionObserver,
@@ -23,21 +23,19 @@ class AppController:
         self,
         settings: Settings,
         observer: ExtractionObserver | None = None,
-        extractor: NativePdfExtractor | None = None,
         csv_writer: DefaultCsvWriter | None = None,
         regex_engine: NativeRegexEngine | None = None,
-        ocr_parser: DefaultOcrParser | None = None,
+        pdf_parser: PdfParser | None = None,
     ):
         self.settings = settings
         self.observer = observer or DefaultExtractionObserver()
-        self.extractor = extractor or NativePdfExtractor()
         self.csv_writer = csv_writer or DefaultCsvWriter(
             path_output=settings.OUTPUT_CSV
         )
         self.regex_engine = regex_engine or NativeRegexEngine.from_file(
             settings.REGEX_FILE
         )
-        self.ocr_parser = ocr_parser or DefaultOcrParser(extractor=self.extractor)
+        self.pdf_parser = pdf_parser or NativePdfParser()
 
     def run(self, settings: Settings | None = None) -> bool:
         if settings is not None:
@@ -158,7 +156,7 @@ class AppController:
         session.start_file(file_index, full_file_path)
 
         try:
-            for unit_index, total_units, unit_text in self.ocr_parser.process_file(
+            for unit_index, total_units, unit_text in self.pdf_parser.process_file(
                 full_file_path, session, pages_per_unit=self.settings.PAGES_PER_UNIT
             ):
                 session.start_page(unit_index, total_units)

@@ -76,7 +76,7 @@ class TestCli(unittest.TestCase):
     @patch("gaia.cli.app_controller.os.path.exists")
     @patch("gaia.cli.app_controller.os.path.isdir")
     @patch("gaia.cli.app_controller.NativeRegexEngine")
-    @patch("gaia.cli.app_controller.DefaultOcrParser")
+    @patch("gaia.cli.app_controller.NativePdfParser")
     @patch("gaia.cli.app_controller.DefaultCsvWriter")
     def test_app_controller_validations_and_run(
         self, mock_csv_writer, mock_parser_class, mock_regex_engine, mock_isdir, mock_exists
@@ -108,7 +108,7 @@ class TestCli(unittest.TestCase):
     @patch("gaia.cli.app_controller.os.path.isdir")
     @patch("gaia.cli.app_controller.os.remove")
     @patch("gaia.cli.app_controller.NativeRegexEngine")
-    @patch("gaia.cli.app_controller.DefaultOcrParser")
+    @patch("gaia.cli.app_controller.NativePdfParser")
     def test_app_controller_log_deletion(
         self, mock_parser_class, mock_regex_engine, mock_remove, mock_isdir, mock_exists
     ):

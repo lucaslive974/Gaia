@@ -301,7 +301,7 @@ def run_test_mode(settings):
     from rich.console import Console
     from rich.table import Table
     from rich.panel import Panel
-    from gaia import NativeRegexEngine, NativePdfExtractor
+    from gaia import NativeRegexEngine, NativePdfParser
 
     console = Console()
     console.print(Panel(f"[bold green]{_('test_title')}[/bold green]", expand=False))
@@ -321,7 +321,7 @@ def run_test_mode(settings):
 
     # 2. Extract First Page Text
     try:
-        extractor = NativePdfExtractor()
+        parser = NativePdfParser()
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(
                 f"Arquivo PDF não encontrado: {pdf_path}"
@@ -329,7 +329,7 @@ def run_test_mode(settings):
                 else f"PDF file not found: {pdf_path}"
             )
 
-        pages = list(extractor.extract_pages(pdf_path))
+        pages = [text for _, _, text in parser.process_file(pdf_path, pages_per_unit=1)]
         if not pages:
             raise ValueError(
                 "O arquivo PDF não contém páginas."

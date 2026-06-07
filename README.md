@@ -96,7 +96,7 @@ Gaia/
 You can import and use the components of Gaia directly within Python without needing the CLI or a console wrapper.
 
 ```python
-from gaia import DefaultOcrParser, NativeRegexEngine, NativePdfExtractor
+from gaia import NativePdfParser, NativeRegexEngine
 
 # 1. Setup the Regex engine with rules already in-memory (dictionary)
 regex_rules = {
@@ -115,7 +115,7 @@ engine = NativeRegexEngine(regex_rules)
 # engine = NativeRegexEngine.from_file("path/to/rules.json")
 
 # 2. Setup the parser
-parser = DefaultOcrParser(extractor=NativePdfExtractor())
+parser = NativePdfParser()
 
 # 3. Process files programmatically
 # The parser yields raw text segments for each page/unit.

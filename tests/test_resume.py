@@ -23,8 +23,8 @@ class TestResume(unittest.TestCase):
         self.dummy_dir = "/dummy/dir"
         self.state_file_input = os.path.join(self.dummy_dir, ".gaia_resume.json")
 
-        # Patch DefaultOcrParser
-        self.parser_patcher = patch("gaia.cli.app_controller.DefaultOcrParser")
+        # Patch NativePdfParser
+        self.parser_patcher = patch("gaia.cli.app_controller.NativePdfParser")
         self.mock_parser_class = self.parser_patcher.start()
         self.mock_parser = MagicMock()
         self.mock_parser_class.return_value = self.mock_parser
