@@ -26,5 +26,14 @@ gaia = "gaia.main:main"
 where = ["."]
 include = ["gaia*"]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
 [tool.setuptools.package-data]
 gaia = ["locale/**/*.po", "locale/**/*.mo"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

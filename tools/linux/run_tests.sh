@@ -15,5 +15,11 @@ else
     echo "⚠️  Aviso: Ambiente virtual (.venv) não localizado na raiz. Utilizando o python3 global."
 fi
 
+if [ -f "./.venv/bin/pytest" ]; then
+    TEST_BIN="./.venv/bin/pytest"
+else
+    TEST_BIN="$PYTHON_BIN -m pytest"
+fi
+
 echo "🧪 Executando suíte de testes unitários (Gaia)..."
-$PYTHON_BIN -m unittest discover -s tests -v
+$TEST_BIN -v
