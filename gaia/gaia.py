@@ -158,6 +158,10 @@ class Gaia:
             for unit_index, total_units, unit_text in self.pdf_parser.process_file(
                 full_file_path, session, pages_per_unit=self.settings.PAGES_PER_UNIT
             ):
+                # Verify blank pages
+                if not unit_text.strip():
+                    continue
+
                 session.start_page(unit_index, total_units)
                 self._process_page(unit_text, unit_index, total_units, session)
         except Exception as e:

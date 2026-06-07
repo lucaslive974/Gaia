@@ -277,6 +277,36 @@ class TestResume(unittest.TestCase):
         # Check that CWD state file was NOT deleted (still exists)
         self.assertTrue(os.path.isfile(self.state_file_cwd))
 
+    @patch("gaia.gaia.os.listdir")
+    @patch("gaia.gaia.os.path.exists")
+    @patch("gaia.gaia.os.path.isdir")
+    def test_skip_blank_pages(
+        self, mock_isdir, mock_exists, mock_listdir
+    ):
+        mock_isdir.return_value = True
+        mock_listdir.return_value = ["file1.pdf"]
+        mock_exists.return_value = True
+
+        # process_file yields a blank page first, then a non-blank page
+        def mock_process_file(file_path, session, pages_per_unit=1):
+            yield (1, 2, "   ")        # Blank page!
+            yield (2, 2, "raw text")   # Valid page!
+
+        self.mock_parser.process_file.side_effect = mock_process_file
+        self.mock_regex.parse.return_value = {"field": "value"}
+
+        mock_observer = MagicMock()
+        mock_observer.is_cancelled = False
+        controller = Gaia(self.settings, observer=mock_observer)
+
+        success = controller.run(self.settings)
+        self.assertTrue(success)
+
+        # The mock_observer should have on_page_start called ONLY for the non-blank page (page 2)
+        mock_observer.on_page_start.assert_called_once_with(2, 2)
+        # Parse should only have been called with the valid page text
+        self.mock_regex.parse.assert_called_once_with("raw text")
+
 
 if __name__ == "__main__":
     unittest.main()
