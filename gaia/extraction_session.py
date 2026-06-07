@@ -1,4 +1,6 @@
 import time
+import json
+import os
 from gaia.observer import ExtractionObserver, DefaultExtractionObserver
 
 
@@ -13,6 +15,9 @@ class ExtractionSession:
         self.failed_pages: int = 0
         self.total_pages: int = 0
         self.processed_files: list[str] = []
+        self.input_dir: str | None = None
+        self.output_file: str | None = None
+        self.regex_file: str | None = None
 
         self.estimative_acc: float = 1200.0
         self.estimative_cnt: int = 1
@@ -71,6 +76,74 @@ class ExtractionSession:
     @is_cancelled.setter
     def is_cancelled(self, value: bool):
         self._is_cancelled = value
+
+    @classmethod
+    def get_state_file_paths(cls, input_dir: str | None = None) -> list[str]:
+        paths = [os.path.join(os.getcwd(), ".gaia_resume.json")]
+        if input_dir:
+            paths.append(os.path.join(input_dir, ".gaia_resume.json"))
+        return list(set(paths))
+
+    @classmethod
+    def load_state(cls, input_dir: str | None = None) -> dict | None:
+        state_paths = cls.get_state_file_paths(input_dir)
+        for sf_path in state_paths:
+            if os.path.exists(sf_path):
+                try:
+                    with open(sf_path, "r", encoding="utf-8") as sf:
+                        state_data = json.load(sf)
+                        if input_dir:
+                            if state_data.get("input_dir") == input_dir:
+                                return state_data
+                        else:
+                            return state_data
+                except Exception:
+                    pass
+        return None
+
+    @classmethod
+    def restore_or_create(
+        cls, options, observer: ExtractionObserver | None = None
+    ) -> "ExtractionSession":
+        state = cls.load_state(options.BASE_PATH)
+        session = cls(observer)
+        session.input_dir = options.BASE_PATH
+        session.output_file = options.OUTPUT_CSV
+        session.regex_file = options.REGEX_FILE
+
+        if state and options.RESUME:
+            session.processed_files = state.get("processed_files", [])
+            session.successful_pages = state.get("successful_pages", 0)
+            session.failed_pages = state.get("failed_pages", 0)
+            session.total_pages = state.get("total_pages", 0)
+        return session
+
+    def save_state(self) -> None:
+        state_paths = self.get_state_file_paths(self.input_dir)
+        state_data = {
+            "input_dir": self.input_dir,
+            "output_file": self.output_file,
+            "regex_file": self.regex_file,
+            "processed_files": self.processed_files,
+            "successful_pages": self.successful_pages,
+            "failed_pages": self.failed_pages,
+            "total_pages": self.total_pages,
+        }
+        for sf_path in state_paths:
+            try:
+                with open(sf_path, "w", encoding="utf-8") as sf:
+                    json.dump(state_data, sf, indent=4)
+            except Exception:
+                pass
+
+    def clear_state(self) -> None:
+        state_paths = self.get_state_file_paths(self.input_dir)
+        for sf_path in state_paths:
+            if os.path.exists(sf_path):
+                try:
+                    os.remove(sf_path)
+                except Exception:
+                    pass
 
 
 class NoOpExtractionSession(ExtractionSession):
