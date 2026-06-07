@@ -1,17 +1,6 @@
 import os
 from gaia.i18n import _
 
-input_attr = [
-    ["input_dir", "BASE_PATH"],
-    ["output", "OUTPUT_CSV"],
-    ["resume", "RESUME"],
-    ["regex", "REGEX_FILE"],
-    ["test", "TEST_FILE"],
-    ["recursive", "RECURSIVE"],
-    ["pages_per_unit", "PAGES_PER_UNIT"],
-    ["lang", "LANG"],
-]
-
 
 class Options:
     BASE_PATH: str = ""
@@ -49,3 +38,19 @@ class Options:
             if value not in ("en", "pt"):
                 raise ValueError(_("err_lang_invalid"))
         super().__setattr__(name, value)
+
+    @classmethod
+    def list_attr(cls) -> list[tuple[str, str]]:
+        return [
+            ("input_dir", "BASE_PATH"),
+            ("output", "OUTPUT_CSV"),
+            ("resume", "RESUME"),
+            ("regex", "REGEX_FILE"),
+            ("test", "TEST_FILE"),
+            ("recursive", "RECURSIVE"),
+            ("pages_per_unit", "PAGES_PER_UNIT"),
+            ("lang", "LANG"),
+        ]
+
+
+options = Options()

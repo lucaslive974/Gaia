@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from gaia.main import main
 from gaia.gaia import Gaia
-from gaia.config.options import Options
+from gaia.options import Options
 
 
 class TestCli(unittest.TestCase):

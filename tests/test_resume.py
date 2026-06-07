@@ -3,12 +3,12 @@ from unittest.mock import MagicMock, patch
 import os
 import json
 from gaia.gaia import Gaia
-from gaia.config.options import Options
+from gaia.options import Options
 
 
 class TestResume(unittest.TestCase):
     def setUp(self):
-        from gaia.config import options as global_options
+        from gaia.options import options as global_options
 
         global_options.BASE_PATH = ""
         global_options.OUTPUT_CSV = os.path.join(os.getcwd(), "output.csv")

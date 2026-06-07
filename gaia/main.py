@@ -1,6 +1,6 @@
 import sys
 import argparse
-from gaia.config.options import Options
+from gaia.options import Options
 from gaia.cli.cli_helper import CliHelper
 from gaia.cli.terminal_ui import run_with_ui
 from gaia.i18n import _, set_lang

@@ -1,7 +1,7 @@
 import csv
 from os import path
 from abc import ABC, abstractmethod
-from gaia.config import options
+from gaia.options import options
 
 
 class OutputStream(ABC):

@@ -1,5 +1,5 @@
 import os
-from gaia.config.options import Options
+from gaia.options import Options
 from gaia import (
     NativePdfParser,
     PdfParser,
