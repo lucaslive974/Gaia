@@ -84,7 +84,7 @@ class Gaia:
             )
             return False
 
-        if not os.path.isdir(self.settings.BASE_PATH):
+        if not os.path.isdir(self.settings.BASE_PATH) and not os.path.isfile(self.settings.BASE_PATH):
             self.observer.on_error(
                 _("err_not_a_dir", base_path=self.settings.BASE_PATH)
             )
@@ -104,6 +104,11 @@ class Gaia:
                 pass
 
     def _find_pdf_files(self) -> list[str] | None:
+        if os.path.isfile(self.settings.BASE_PATH):
+            if self.settings.BASE_PATH.lower().endswith(".pdf"):
+                return [os.path.basename(self.settings.BASE_PATH)]
+            return []
+
         files = []
         if self.settings.RECURSIVE:
             for root, dirs, filenames in os.walk(self.settings.BASE_PATH):
@@ -151,7 +156,10 @@ class Gaia:
     def _process_single_file(
         self, session: ExtractionSession, file_index: int, rel_file_path: str
     ) -> None:
-        full_file_path = os.path.join(self.settings.BASE_PATH, rel_file_path)
+        if os.path.isdir(self.settings.BASE_PATH):
+            full_file_path = os.path.join(self.settings.BASE_PATH, rel_file_path)
+        else:
+            full_file_path = self.settings.BASE_PATH
         session.start_file(file_index, full_file_path)
 
         try:

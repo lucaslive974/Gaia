@@ -140,6 +140,45 @@ class TestCli(unittest.TestCase):
             controller.run(settings)
         mock_remove.assert_not_called()
 
+    @patch("gaia.gaia.os.makedirs")
+    @patch("gaia.gaia.os.path.exists")
+    @patch("gaia.gaia.os.path.isfile")
+    @patch("gaia.gaia.os.path.isdir")
+    @patch("gaia.gaia.NativeRegexEngine")
+    @patch("gaia.gaia.NativePdfParser")
+    @patch("gaia.gaia.DefaultOutputStream")
+    def test_gaia_run_with_direct_file(
+        self, mock_output_stream, mock_parser_class, mock_regex_engine, mock_isdir, mock_isfile, mock_exists, mock_makedirs
+    ):
+        mock_exists.return_value = True
+        mock_isdir.return_value = False
+        mock_isfile.return_value = True
+
+        mock_parser_instance = MagicMock()
+        mock_parser_class.return_value = mock_parser_instance
+        mock_parser_instance.process_file.return_value = [
+            (1, 1, "page text")
+        ]
+
+        settings = Settings()
+        settings.BASE_PATH = "/dummy/input/file.pdf"
+        settings.OUTPUT_CSV = "/dummy/output.csv"
+        settings.RESUME = False
+        settings.REGEX_FILE = "/dummy/regex.json"
+
+        mock_observer = MagicMock()
+        mock_observer.is_cancelled = False
+        controller = Gaia(settings, observer=mock_observer)
+
+        success = controller.run(settings)
+        self.assertTrue(success)
+
+        # Verify that process_file was called with the direct file path
+        mock_parser_instance.process_file.assert_called_once()
+        call_args = mock_parser_instance.process_file.call_args[0]
+        self.assertEqual(call_args[0], "/dummy/input/file.pdf")
+        self.assertEqual(call_args[1].observer, mock_observer)
+
 
 class TestOutputStream(unittest.TestCase):
     def test_default_output_stream_generator(self):
