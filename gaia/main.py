@@ -1,6 +1,7 @@
 import sys
 import argparse
-from gaia.config import settings
+from gaia.options import Options
+from gaia.cli.cli_helper import CliHelper
 from gaia.cli.terminal_ui import run_with_ui
 from gaia.i18n import _, set_lang
 
@@ -30,8 +31,8 @@ def main():
         "-o",
         "--output",
         type=str,
-        default=settings["OUTPUT_CSV"],
-        help=_("cli_output_help", default_csv=settings["OUTPUT_CSV"]),
+        default=Options.OUTPUT_CSV,
+        help=_("cli_output_help", default_csv=Options.OUTPUT_CSV),
     )
     parser.add_argument(
         "--resume",
@@ -78,15 +79,15 @@ def main():
     args = parser.parse_args()
 
     try:
-        settings.parse_cmd_args(args)
+        options = CliHelper.parse_and_build_options(args)
     except ValueError as e:
         parser.error(str(e))
 
-    if settings.TEST_FILE:
+    if options.TEST_FILE:
         from gaia.cli.terminal_ui import run_test_mode
-        run_test_mode(settings)
+        run_test_mode(options)
     else:
-        run_with_ui(settings)
+        run_with_ui(options)
 
 
 if __name__ == "__main__":

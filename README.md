@@ -33,26 +33,26 @@ Gaia uses a modular architecture using fast native text extraction to ensure hig
 
 ```text
 Gaia/
-├── cli/
-│   ├── __init__.py          # CLI subpackage initialization
-│   ├── app_controller.py    # Main orchestration of CLI execution
-│   └── terminal_ui.py       # Rich TUI display and keyboard input handling
-├── config/
-│   ├── __init__.py
-│   └── settings.py          # Global settings, arguments parsing, state persistence
 ├── gaia/
 │   ├── __init__.py          # Main entry points exposing library API classes
-│   ├── csv_writer.py        # Streamlined thread-safe CSV writing
-│   ├── extraction_session.py# Session progress tracking & No-Op placeholders
-│   ├── extractor.py         # Native PDF text extraction engine
+│   ├── __main__.py          # Main entry point for python -m gaia
+│   ├── cli/
+│   │   ├── __init__.py      # CLI subpackage initialization
+│   │   ├── cli_helper.py    # CLI arguments parser and prevalidation helper
+│   │   └── terminal_ui.py   # Rich TUI display and keyboard input handling
+│   ├── gaia.py              # Main global program class (Gaia)
+│   ├── extraction_session.py# Session progress tracking & state serialization
+│   ├── options.py           # Config options container class & parameter validations
 │   ├── i18n.py              # Internationalization & gettext wrapper
 │   ├── locale/              # Compiled translations directory
 │   │   ├── en/LC_MESSAGES/messages.mo
 │   │   └── pt/LC_MESSAGES/messages.mo
 │   ├── observer.py          # Progress notification interface (observer pattern)
-│   ├── ocr_parser.py        # Key-Value Pair regex matcher and verification
-│   └── regex_engine.py      # Abstracted matching engine
-├── main.py                  # CLI binary / entry point
+│   ├── output_stream.py     # Output stream interfaces (OutputStream, CsvWriteStream, DefaultOutputStream)
+│   ├── pdf_parser.py        # Unified PDF parser and extraction engine (PdfParser, NativePdfParser)
+│   ├── regex_engine.py      # Abstracted matching engine
+│   └── main.py              # CLI entry point implementation
+├── main.py                  # CLI binary / entry point redirect
 ├── pyproject.toml           # Setuptools PEP 621 packaging definitions
 ├── requirements.txt         # Package requirements
 ├── tests/                   # Extensive test suites
@@ -93,12 +93,35 @@ Gaia/
 
 ### 1. As a Python Library
 
-You can import and use the components of Gaia directly within Python without needing the CLI or a console wrapper.
+You can integrate Gaia directly into your Python scripts.
+
+#### Orchestrating the Full Pipeline Programmatically
+
+To execute the entire extraction pipeline on a file or directory:
 
 ```python
-from gaia import DefaultOcrParser, NativeRegexEngine, NativePdfExtractor, pos_processing_text
+from gaia import Gaia, Options
 
-# 1. Setup the Regex engine with rules already in-memory (dictionary)
+# 1. Configure options programmatically
+options = Options()
+options.BASE_PATH = "path/to/pdfs"
+options.REGEX_FILE = "path/to/rules.json"
+options.OUTPUT_CSV = "custom_output.csv"
+options.PAGES_PER_UNIT = 1
+
+# 2. Run the orchestrator
+controller = Gaia(options)
+success = controller.run()
+```
+
+#### Using Parser and Engine Components Directly
+
+To parse files manually and match patterns page-by-page:
+
+```python
+from gaia import NativePdfParser, NativeRegexEngine
+
+# 1. Setup the Regex engine with rules in-memory (dictionary)
 regex_rules = {
     "infraction_id": {
         "regex": r"Código da Infração:\s*([A-Za-z0-9-]+)",
@@ -115,14 +138,13 @@ engine = NativeRegexEngine(regex_rules)
 # engine = NativeRegexEngine.from_file("path/to/rules.json")
 
 # 2. Setup the parser
-parser = DefaultOcrParser(extractor=NativePdfExtractor())
+parser = NativePdfParser()
 
 # 3. Process files programmatically
 # The parser yields raw text segments for each page/unit.
 # You then normalize the text and parse it using the RegexEngine.
 for unit_index, total_units, raw_text in parser.process_file("path/to/infraction.pdf", pages_per_unit=1):
-    text_normalized = pos_processing_text(raw_text)
-    record = engine.parse(text_normalized)
+    record = engine.parse(raw_text)
     print("Parsed Record:", record)
 ```
 

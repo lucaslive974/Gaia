@@ -30,7 +30,7 @@ class NativeRegexEngine(RegexEngine):
         self.load_and_validate(patterns_data)
 
     @classmethod
-    def from_file(cls, file_path: str) -> "NativeRegexEngine":
+    def from_file(cls, file_path: str | None) -> "NativeRegexEngine":
         """
         Loads regex patterns from a JSON file and instantiates the engine.
         """
@@ -55,7 +55,6 @@ class NativeRegexEngine(RegexEngine):
         if not isinstance(data, dict):
             raise ValueError("O JSON de regex deve ser um objeto no nível raiz.")
 
-
         patterns = {}
         for key, value in data.items():
             if not isinstance(value, dict):
@@ -78,7 +77,9 @@ class NativeRegexEngine(RegexEngine):
                     )
                 for flag_str in value["flags"]:
                     if not isinstance(flag_str, str):
-                        raise ValueError(f"As flags do campo '{key}' devem ser strings.")
+                        raise ValueError(
+                            f"As flags do campo '{key}' devem ser strings."
+                        )
                     flag_val = getattr(re, flag_str.upper(), None)
                     if flag_val is None:
                         raise ValueError(
@@ -89,9 +90,7 @@ class NativeRegexEngine(RegexEngine):
             try:
                 compiled = re.compile(value["regex"], flags)
             except re.error as e:
-                raise ValueError(
-                    f"Expressão regular inválida no campo '{key}': {e}"
-                )
+                raise ValueError(f"Expressão regular inválida no campo '{key}': {e}")
 
             patterns[key] = {
                 "regex_str": value["regex"],
@@ -112,9 +111,7 @@ class NativeRegexEngine(RegexEngine):
             match = pattern.search(text, pos=posicao_atual)
             if match:
                 val = (
-                    match.group(1).strip()
-                    if match.groups()
-                    else match.group(0).strip()
+                    match.group(1).strip() if match.groups() else match.group(0).strip()
                 )
                 results[key] = val
                 posicao_atual = match.end()
@@ -136,9 +133,7 @@ class NativeRegexEngine(RegexEngine):
             match = pattern.search(text, pos=posicao_atual)
             if match:
                 val = (
-                    match.group(1).strip()
-                    if match.groups()
-                    else match.group(0).strip()
+                    match.group(1).strip() if match.groups() else match.group(0).strip()
                 )
                 results[key] = val
                 matched_status[key] = True

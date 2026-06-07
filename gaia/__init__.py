@@ -1,6 +1,7 @@
-from gaia.ocr_parser import OcrParser, DefaultOcrParser, pos_processing_text
+from gaia.pdf_parser import PdfParser, NativePdfParser
 from gaia.regex_engine import RegexEngine, NativeRegexEngine
 from gaia.extraction_session import ExtractionSession, NoOpExtractionSession
-from gaia.extractor import BasePdfExtractor, NativePdfExtractor
-from gaia.csv_writer import CsvWriter, DefaultCsvWriter
+from gaia.output_stream import OutputStream, CsvWriteStream, DefaultOutputStream
 from gaia.observer import ExtractionObserver, QueueObserver, DefaultExtractionObserver
+from gaia.gaia import Gaia
+from gaia.options import Options, options
