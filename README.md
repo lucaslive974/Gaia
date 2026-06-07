@@ -52,7 +52,6 @@ Gaia/
 │   ├── pdf_parser.py        # Unified PDF parser and extraction engine (PdfParser, NativePdfParser)
 │   ├── regex_engine.py      # Abstracted matching engine
 │   └── main.py              # CLI entry point implementation
-├── main.py                  # CLI binary / entry point redirect
 ├── pyproject.toml           # Setuptools PEP 621 packaging definitions
 ├── requirements.txt         # Package requirements
 ├── tests/                   # Extensive test suites
@@ -158,11 +157,8 @@ Gaia can be executed directly as a global shell command, as a python module run,
 # 1. As a global command (after package installation)
 gaia <input_dir> [options]
 
-# 2. As a python module run
+# 2. As a python module run (from the repository root)
 python -m gaia <input_dir> [options]
-
-# 3. As a local script (from the repository root)
-python main.py <input_dir> [options]
 ```
 
 #### Positional Arguments
