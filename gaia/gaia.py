@@ -1,5 +1,5 @@
 import os
-from gaia.config.settings import Settings
+from gaia.config.options import Options
 from gaia import (
     NativePdfParser,
     PdfParser,
@@ -22,23 +22,23 @@ class Gaia:
 
     def __init__(
         self,
-        settings: Settings,
+        options: Options,
         observer: ExtractionObserver | None = None,
         output_stream: OutputStream | None = None,
         regex_engine: NativeRegexEngine | None = None,
         pdf_parser: PdfParser | None = None,
     ):
-        self.settings = settings
+        self.options = options
         self.observer = observer or DefaultExtractionObserver()
         self.output_stream = output_stream or DefaultOutputStream()
         self.regex_engine = regex_engine or NativeRegexEngine.from_file(
-            settings.REGEX_FILE
+            options.REGEX_FILE
         )
         self.pdf_parser = pdf_parser or NativePdfParser()
 
-    def run(self, settings: Settings | None = None) -> bool:
-        if settings is not None:
-            self.settings = settings
+    def run(self, options: Options | None = None) -> bool:
+        if options is not None:
+            self.options = options
 
         # 1. Validations
         if not self._validate_paths():
@@ -55,8 +55,7 @@ class Gaia:
         total_original_files = len(files)
 
         # 4. Initialize session
-        session = ExtractionSession(self.observer)
-        self._load_resume_state(session)
+        session = ExtractionSession.restore_or_create(self.options, self.observer)
 
         processed_files_set = set(session.processed_files)
         remaining_files = [f for f in files if f not in processed_files_set]
@@ -78,49 +77,49 @@ class Gaia:
         return True
 
     def _validate_paths(self) -> bool:
-        if not os.path.exists(self.settings.BASE_PATH):
+        if not os.path.exists(self.options.BASE_PATH):
             self.observer.on_error(
-                _("err_dir_not_exist", base_path=self.settings.BASE_PATH)
+                _("err_dir_not_exist", base_path=self.options.BASE_PATH)
             )
             return False
 
-        if not os.path.isdir(self.settings.BASE_PATH) and not os.path.isfile(self.settings.BASE_PATH):
+        if not os.path.isdir(self.options.BASE_PATH) and not os.path.isfile(self.options.BASE_PATH):
             self.observer.on_error(
-                _("err_not_a_dir", base_path=self.settings.BASE_PATH)
+                _("err_not_a_dir", base_path=self.options.BASE_PATH)
             )
             return False
         return True
 
     def _prepare_environment(self) -> None:
-        output_dir = os.path.dirname(self.settings.OUTPUT_CSV)
+        output_dir = os.path.dirname(self.options.OUTPUT_CSV)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
 
         log_path = os.path.join(os.getcwd(), "gaia_errors.log")
-        if not self.settings.RESUME and os.path.exists(log_path):
+        if not self.options.RESUME and os.path.exists(log_path):
             try:
                 os.remove(log_path)
             except Exception:
                 pass
 
     def _find_pdf_files(self) -> list[str] | None:
-        if os.path.isfile(self.settings.BASE_PATH):
-            if self.settings.BASE_PATH.lower().endswith(".pdf"):
-                return [os.path.basename(self.settings.BASE_PATH)]
+        if os.path.isfile(self.options.BASE_PATH):
+            if self.options.BASE_PATH.lower().endswith(".pdf"):
+                return [os.path.basename(self.options.BASE_PATH)]
             return []
 
         files = []
-        if self.settings.RECURSIVE:
-            for root, dirs, filenames in os.walk(self.settings.BASE_PATH):
+        if self.options.RECURSIVE:
+            for root, dirs, filenames in os.walk(self.options.BASE_PATH):
                 for f in filenames:
                     if f.lower().endswith(".pdf"):
                         rel_path = os.path.relpath(
-                            os.path.join(root, f), self.settings.BASE_PATH
+                            os.path.join(root, f), self.options.BASE_PATH
                         )
                         files.append(rel_path)
         else:
             try:
-                for f in os.listdir(self.settings.BASE_PATH):
+                for f in os.listdir(self.options.BASE_PATH):
                     if f.lower().endswith(".pdf"):
                         files.append(f)
             except Exception as e:
@@ -129,14 +128,6 @@ class Gaia:
 
         files.sort()
         return files
-
-    def _load_resume_state(self, session: ExtractionSession) -> None:
-        loaded_state = self.settings.load_resume_state(self.settings.BASE_PATH)
-        if loaded_state:
-            session.processed_files = loaded_state.get("processed_files", [])
-            session.successful_pages = loaded_state.get("successful_pages", 0)
-            session.failed_pages = loaded_state.get("failed_pages", 0)
-            session.total_pages = loaded_state.get("total_pages", 0)
 
     def _process_remaining_files(
         self,
@@ -156,15 +147,15 @@ class Gaia:
     def _process_single_file(
         self, session: ExtractionSession, file_index: int, rel_file_path: str
     ) -> None:
-        if os.path.isdir(self.settings.BASE_PATH):
-            full_file_path = os.path.join(self.settings.BASE_PATH, rel_file_path)
+        if os.path.isdir(self.options.BASE_PATH):
+            full_file_path = os.path.join(self.options.BASE_PATH, rel_file_path)
         else:
-            full_file_path = self.settings.BASE_PATH
+            full_file_path = self.options.BASE_PATH
         session.start_file(file_index, full_file_path)
 
         try:
             for unit_index, total_units, unit_text in self.pdf_parser.process_file(
-                full_file_path, session, pages_per_unit=self.settings.PAGES_PER_UNIT
+                full_file_path, session, pages_per_unit=self.options.PAGES_PER_UNIT
             ):
                 # Verify blank pages
                 if not unit_text.strip():
@@ -177,13 +168,7 @@ class Gaia:
             return
 
         session.processed_files.append(rel_file_path)
-        self.settings.save_resume_state(
-            self.settings.BASE_PATH,
-            session.processed_files,
-            session.successful_pages,
-            session.failed_pages,
-            session.total_pages,
-        )
+        session.save_state()
         session.complete_file(file_index)
 
     def _process_page(
@@ -206,7 +191,7 @@ class Gaia:
     def _finalize_session(self, session: ExtractionSession) -> None:
         # Delete resume state if finished successfully and not cancelled
         if not session.is_cancelled:
-            self.settings.clear_resume_state(self.settings.BASE_PATH)
+            session.clear_state()
         session.complete()
 
     def _log_failed_page(

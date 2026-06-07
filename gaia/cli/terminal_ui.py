@@ -230,7 +230,7 @@ def print_summary_dashboard(
     console.print(table)
 
 
-def run_with_ui(settings):
+def run_with_ui(options):
     from gaia import Gaia, CsvWriteStream
     import time
     from rich.progress import (
@@ -251,8 +251,8 @@ def run_with_ui(settings):
         console=console,
     )
     observer = ConsoleObserver(console, progress)
-    output_stream = CsvWriteStream(settings.OUTPUT_CSV)
-    controller = Gaia(settings, observer=observer, output_stream=output_stream)
+    output_stream = CsvWriteStream(options.OUTPUT_CSV)
+    controller = Gaia(options, observer=observer, output_stream=output_stream)
 
     start_time = time.perf_counter()
 
@@ -262,7 +262,7 @@ def run_with_ui(settings):
         ) as live:
             observer.set_live(live)
             try:
-                success = controller.run(settings)
+                success = controller.run(options)
             except KeyboardInterrupt:
                 observer.is_cancelled = True
                 success = False
@@ -297,7 +297,7 @@ def run_with_ui(settings):
         console.print(f"\n[bold green]{_('ui_completed_success')}[/bold green]\n")
 
 
-def run_test_mode(settings):
+def run_test_mode(options):
     import sys
     from rich.console import Console
     from rich.table import Table
@@ -307,8 +307,8 @@ def run_test_mode(settings):
     console = Console()
     console.print(Panel(f"[bold green]{_('test_title')}[/bold green]", expand=False))
 
-    pdf_path = settings.TEST_FILE
-    regex_path = settings.REGEX_FILE
+    pdf_path = options.TEST_FILE
+    regex_path = options.REGEX_FILE
 
     console.print(f"[bold cyan]{_('test_pdf_file')}[/bold cyan] {pdf_path}")
     console.print(f"[bold cyan]{_('test_regex_file')}[/bold cyan] {regex_path}")

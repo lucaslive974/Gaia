@@ -3,13 +3,14 @@ from unittest.mock import patch, MagicMock
 import sys
 import os
 import json
+from argparse import Namespace
 
 # Set working directory to Gaia root
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from gaia.main import main
 from gaia.gaia import Gaia
-from gaia.config.settings import Settings
+from gaia.config.options import Options
 
 
 class TestCli(unittest.TestCase):
@@ -17,13 +18,16 @@ class TestCli(unittest.TestCase):
     @patch("gaia.main.run_with_ui")
     def test_cli_execution_flow(self, mock_run_with_ui, mock_parse_args):
         # Setup mocks
-        mock_args = MagicMock()
-        mock_args.input_dir = "/dummy/input"
-        mock_args.output = "/dummy/output.csv"
-        mock_args.resume = False
-        mock_args.regex = "/dummy/regex.json"
-        mock_args.test = None
-        mock_args.recursive = False
+        mock_args = Namespace(
+            input_dir="/dummy/input",
+            output="/dummy/output.csv",
+            resume=False,
+            regex="/dummy/regex.json",
+            test=None,
+            recursive=False,
+            pages_per_unit=1,
+            lang="en",
+        )
         mock_parse_args.return_value = mock_args
 
         # Execute main
@@ -32,30 +36,33 @@ class TestCli(unittest.TestCase):
         # Assertions
         mock_parse_args.assert_called_once()
         mock_run_with_ui.assert_called_once()
-        settings_passed = mock_run_with_ui.call_args[0][0]
-        self.assertEqual(settings_passed.BASE_PATH, "/dummy/input")
-        self.assertEqual(settings_passed.OUTPUT_CSV, "/dummy/output.csv")
-        self.assertFalse(settings_passed.RESUME)
-        self.assertEqual(settings_passed.REGEX_FILE, "/dummy/regex.json")
+        options_passed = mock_run_with_ui.call_args[0][0]
+        self.assertEqual(options_passed.BASE_PATH, "/dummy/input")
+        self.assertEqual(options_passed.OUTPUT_CSV, "/dummy/output.csv")
+        self.assertFalse(options_passed.RESUME)
+        self.assertEqual(options_passed.REGEX_FILE, "/dummy/regex.json")
 
     @patch("gaia.main.argparse.ArgumentParser.parse_args")
     @patch("gaia.main.run_with_ui")
-    @patch("gaia.config.settings.Settings.load_resume_state")
+    @patch("gaia.extraction_session.ExtractionSession.load_state")
     def test_cli_parameterless_resume_success(
-        self, mock_load_resume_state, mock_run_with_ui, mock_parse_args
+        self, mock_load_state, mock_run_with_ui, mock_parse_args
     ):
         # Setup mock arguments with input_dir = None and resume = True
-        mock_args = MagicMock()
-        mock_args.input_dir = None
-        mock_args.output = "/dummy/output.csv"
-        mock_args.resume = True
-        mock_args.regex = None
-        mock_args.test = None
-        mock_args.recursive = False
+        mock_args = Namespace(
+            input_dir=None,
+            output="/dummy/output.csv",
+            resume=True,
+            regex=None,
+            test=None,
+            recursive=False,
+            pages_per_unit=1,
+            lang="en",
+        )
         mock_parse_args.return_value = mock_args
 
         # Mock CWD state file loading content
-        mock_load_resume_state.return_value = {
+        mock_load_state.return_value = {
             "input_dir": "/loaded/input/dir",
             "output_file": "/loaded/output.csv",
             "regex_file": "/loaded/regex.json",
@@ -65,13 +72,13 @@ class TestCli(unittest.TestCase):
         # Run main
         main()
 
-        # Assert settings contains the loaded paths from state file
+        # Assert options contains the loaded paths from state file
         mock_run_with_ui.assert_called_once()
-        settings_passed = mock_run_with_ui.call_args[0][0]
-        self.assertEqual(settings_passed.BASE_PATH, "/loaded/input/dir")
-        self.assertEqual(settings_passed.OUTPUT_CSV, "/loaded/output.csv")
-        self.assertTrue(settings_passed.RESUME)
-        self.assertEqual(settings_passed.REGEX_FILE, "/loaded/regex.json")
+        options_passed = mock_run_with_ui.call_args[0][0]
+        self.assertEqual(options_passed.BASE_PATH, "/loaded/input/dir")
+        self.assertEqual(options_passed.OUTPUT_CSV, "/loaded/output.csv")
+        self.assertTrue(options_passed.RESUME)
+        self.assertEqual(options_passed.REGEX_FILE, "/loaded/regex.json")
 
     @patch("gaia.gaia.os.path.exists")
     @patch("gaia.gaia.os.path.isdir")
@@ -87,18 +94,18 @@ class TestCli(unittest.TestCase):
         mock_parser_instance = MagicMock()
         mock_parser_class.return_value = mock_parser_instance
 
-        settings = Settings()
-        settings.BASE_PATH = "/dummy/input"
-        settings.OUTPUT_CSV = "/dummy/output.csv"
-        settings.RESUME = True
-        settings.REGEX_FILE = "/dummy/regex.json"
+        options = Options()
+        options.BASE_PATH = "/dummy/input"
+        options.OUTPUT_CSV = "/dummy/output.csv"
+        options.RESUME = True
+        options.REGEX_FILE = "/dummy/regex.json"
 
         mock_observer = MagicMock()
-        controller = Gaia(settings, observer=mock_observer)
+        controller = Gaia(options, observer=mock_observer)
 
         # mock os.listdir to return empty list so it finishes quickly
         with patch("gaia.gaia.os.listdir", return_value=[]):
-            success = controller.run(settings)
+            success = controller.run(options)
 
         self.assertTrue(success)
         mock_exists.assert_any_call("/dummy/input")
@@ -120,24 +127,24 @@ class TestCli(unittest.TestCase):
         )
         mock_isdir.return_value = True
 
-        settings = Settings()
-        settings.BASE_PATH = "/dummy/input"
-        settings.OUTPUT_CSV = "/dummy/output.csv"
-        settings.RESUME = False
-        settings.REGEX_FILE = "/dummy/regex.json"
+        options = Options()
+        options.BASE_PATH = "/dummy/input"
+        options.OUTPUT_CSV = "/dummy/output.csv"
+        options.RESUME = False
+        options.REGEX_FILE = "/dummy/regex.json"
 
         mock_observer = MagicMock()
-        controller = Gaia(settings, observer=mock_observer)
+        controller = Gaia(options, observer=mock_observer)
 
         with patch("gaia.gaia.os.listdir", return_value=[]):
-            controller.run(settings)
+            controller.run(options)
         mock_remove.assert_called_once()
 
         # Scenario 2: Resume is True -> Should NOT remove gaia_errors.log
         mock_remove.reset_mock()
-        settings.RESUME = True
+        options.RESUME = True
         with patch("gaia.gaia.os.listdir", return_value=[]):
-            controller.run(settings)
+            controller.run(options)
         mock_remove.assert_not_called()
 
     @patch("gaia.gaia.os.makedirs")
@@ -160,17 +167,17 @@ class TestCli(unittest.TestCase):
             (1, 1, "page text")
         ]
 
-        settings = Settings()
-        settings.BASE_PATH = "/dummy/input/file.pdf"
-        settings.OUTPUT_CSV = "/dummy/output.csv"
-        settings.RESUME = False
-        settings.REGEX_FILE = "/dummy/regex.json"
+        options = Options()
+        options.BASE_PATH = "/dummy/input/file.pdf"
+        options.OUTPUT_CSV = "/dummy/output.csv"
+        options.RESUME = False
+        options.REGEX_FILE = "/dummy/regex.json"
 
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
-        controller = Gaia(settings, observer=mock_observer)
+        controller = Gaia(options, observer=mock_observer)
 
-        success = controller.run(settings)
+        success = controller.run(options)
         self.assertTrue(success)
 
         # Verify that process_file was called with the direct file path

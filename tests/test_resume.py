@@ -3,22 +3,22 @@ from unittest.mock import MagicMock, patch
 import os
 import json
 from gaia.gaia import Gaia
-from gaia.config.settings import Settings
+from gaia.config.options import Options
 
 
 class TestResume(unittest.TestCase):
     def setUp(self):
-        from gaia.config import settings as global_settings
+        from gaia.config import options as global_options
 
-        global_settings.BASE_PATH = ""
-        global_settings.OUTPUT_CSV = os.path.join(os.getcwd(), "output.csv")
-        global_settings.RESUME = False
-        global_settings.REGEX_FILE = "/dummy/regex.json"
-        global_settings.RECURSIVE = False
+        global_options.BASE_PATH = ""
+        global_options.OUTPUT_CSV = os.path.join(os.getcwd(), "output.csv")
+        global_options.RESUME = False
+        global_options.REGEX_FILE = "/dummy/regex.json"
+        global_options.RECURSIVE = False
 
-        self.settings = Settings()
-        self.settings.REGEX_FILE = "/dummy/regex.json"
-        self.settings.BASE_PATH = "/dummy/dir"
+        self.options = Options()
+        self.options.REGEX_FILE = "/dummy/regex.json"
+        self.options.BASE_PATH = "/dummy/dir"
         self.state_file_cwd = os.path.join(os.getcwd(), ".gaia_resume.json")
         self.dummy_dir = "/dummy/dir"
         self.state_file_input = os.path.join(self.dummy_dir, ".gaia_resume.json")
@@ -74,7 +74,7 @@ class TestResume(unittest.TestCase):
         # Pre-create state file in CWD
         state_data = {
             "input_dir": "/dummy/dir",
-            "output_file": self.settings.OUTPUT_CSV,
+            "output_file": self.options.OUTPUT_CSV,
             "regex_file": "/dummy/regex.json",
             "processed_files": ["file1.pdf"],
             "successful_pages": 10,
@@ -87,8 +87,8 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = Gaia(self.settings, observer=mock_observer)
-        self.settings.RESUME = True
+        controller = Gaia(self.options, observer=mock_observer)
+        self.options.RESUME = True
 
         # Set parse side effect to verify it processes only file2.pdf
         processed_files = []
@@ -100,7 +100,7 @@ class TestResume(unittest.TestCase):
         self.mock_parser.process_file.side_effect = mock_process_file
         self.mock_regex.parse.return_value = {"field": "value"}
 
-        success = controller.run(self.settings)
+        success = controller.run(self.options)
         self.assertTrue(success)
 
         # file1.pdf should be skipped, only file2.pdf processed
@@ -119,7 +119,7 @@ class TestResume(unittest.TestCase):
         # Pre-create state file in CWD
         state_data = {
             "input_dir": "/dummy/dir",
-            "output_file": self.settings.OUTPUT_CSV,
+            "output_file": self.options.OUTPUT_CSV,
             "regex_file": "/dummy/regex.json",
             "processed_files": ["file1.pdf"],
             "successful_pages": 10,
@@ -142,10 +142,10 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = Gaia(self.settings, observer=mock_observer)
-        self.settings.RESUME = True
+        controller = Gaia(self.options, observer=mock_observer)
+        self.options.RESUME = True
 
-        success = controller.run(self.settings)
+        success = controller.run(self.options)
         self.assertTrue(success)
 
     @patch("gaia.gaia.os.listdir")
@@ -161,7 +161,7 @@ class TestResume(unittest.TestCase):
         # Pre-create state file in CWD
         state_data = {
             "input_dir": "/dummy/dir",
-            "output_file": self.settings.OUTPUT_CSV,
+            "output_file": self.options.OUTPUT_CSV,
             "regex_file": "/dummy/regex.json",
             "processed_files": ["file1.pdf"],
             "successful_pages": 10,
@@ -182,11 +182,11 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = Gaia(self.settings, observer=mock_observer)
-        self.settings.RESUME = True
+        controller = Gaia(self.options, observer=mock_observer)
+        self.options.RESUME = True
 
-        with patch("gaia.config.settings.open", create=True) as mock_open:
-            success = controller.run(self.settings)
+        with patch("gaia.extraction_session.open", create=True) as mock_open:
+            success = controller.run(self.options)
             self.assertTrue(success)
             mock_open.assert_any_call(self.state_file_cwd, "w", encoding="utf-8")
             mock_open.assert_any_call(self.state_file_input, "w", encoding="utf-8")
@@ -204,7 +204,7 @@ class TestResume(unittest.TestCase):
         # Pre-create state file in CWD
         state_data = {
             "input_dir": "/dummy/dir",
-            "output_file": self.settings.OUTPUT_CSV,
+            "output_file": self.options.OUTPUT_CSV,
             "regex_file": "/dummy/regex.json",
             "processed_files": [],
             "successful_pages": 10,
@@ -225,10 +225,10 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = Gaia(self.settings, observer=mock_observer)
-        self.settings.RESUME = True
+        controller = Gaia(self.options, observer=mock_observer)
+        self.options.RESUME = True
 
-        success = controller.run(self.settings)
+        success = controller.run(self.options)
         self.assertTrue(success)
 
         # Check that CWD state file was deleted
@@ -247,7 +247,7 @@ class TestResume(unittest.TestCase):
         # Pre-create state file in CWD
         state_data = {
             "input_dir": "/dummy/dir",
-            "output_file": self.settings.OUTPUT_CSV,
+            "output_file": self.options.OUTPUT_CSV,
             "regex_file": "/dummy/regex.json",
             "processed_files": ["file1.pdf"],
             "successful_pages": 10,
@@ -268,10 +268,10 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = True  # Cancelled!
 
-        controller = Gaia(self.settings, observer=mock_observer)
-        self.settings.RESUME = True
+        controller = Gaia(self.options, observer=mock_observer)
+        self.options.RESUME = True
 
-        success = controller.run(self.settings)
+        success = controller.run(self.options)
         self.assertTrue(success)
 
         # Check that CWD state file was NOT deleted (still exists)
@@ -297,9 +297,9 @@ class TestResume(unittest.TestCase):
 
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
-        controller = Gaia(self.settings, observer=mock_observer)
+        controller = Gaia(self.options, observer=mock_observer)
 
-        success = controller.run(self.settings)
+        success = controller.run(self.options)
         self.assertTrue(success)
 
         # The mock_observer should have on_page_start called ONLY for the non-blank page (page 2)
