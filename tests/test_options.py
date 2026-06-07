@@ -3,8 +3,8 @@ import os
 import json
 from unittest.mock import patch, MagicMock
 from argparse import Namespace
-from gaia.config.options import Options
-from gaia.config import options as global_options
+from gaia.options import Options
+from gaia.options import options as global_options
 from gaia.cli.cli_helper import CliHelper
 from gaia.extraction_session import ExtractionSession
 
@@ -78,6 +78,13 @@ class TestOptions(unittest.TestCase):
             self.options.LANG = "fr"
         self.options.LANG = "pt"
         self.assertEqual(self.options.LANG, "pt")
+
+    def test_list_attr(self):
+        attrs = self.options.list_attr()
+        self.assertIn(("input_dir", "BASE_PATH"), attrs)
+        self.assertIn(("output", "OUTPUT_CSV"), attrs)
+        self.assertIn(("resume", "RESUME"), attrs)
+        self.assertIn(("lang", "LANG"), attrs)
 
 
 class TestCliHelper(unittest.TestCase):

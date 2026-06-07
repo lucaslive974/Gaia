@@ -1,6 +1,6 @@
 import os
 from argparse import Namespace
-from gaia.config.options import Options, input_attr
+from gaia.options import Options
 from gaia.extraction_session import ExtractionSession
 from gaia.i18n import _, set_lang
 
@@ -57,7 +57,7 @@ class CliHelper:
                 raise ValueError(_("err_ppu_invalid"))
 
         # 4. Bind parsed properties
-        for attr in input_attr:
+        for attr in Options.list_attr():
             if hasattr(args, attr[0]):
                 val = getattr(args, attr[0])
                 if val is not None:
