@@ -6,7 +6,7 @@ from rich.progress import Progress
 from rich.table import Table
 from rich.panel import Panel
 from rich.live import Live
-from gaia import ExtractionObserver
+from gaia.observer import ExtractionObserver
 from gaia.i18n import _, get_lang
 
 try:

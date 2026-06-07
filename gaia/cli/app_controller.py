@@ -4,6 +4,7 @@ from gaia import (
     NativePdfExtractor,
     DefaultOcrParser,
     DefaultCsvWriter,
+    DefaultExtractionObserver,
     ExtractionObserver,
     ExtractionSession,
     NativeRegexEngine,
@@ -28,7 +29,7 @@ class AppController:
         ocr_parser: DefaultOcrParser | None = None,
     ):
         self.settings = settings
-        self.observer = observer
+        self.observer = observer or DefaultExtractionObserver()
         self.extractor = extractor or NativePdfExtractor()
         self.csv_writer = csv_writer or DefaultCsvWriter(
             path_output=settings.OUTPUT_CSV
@@ -81,17 +82,15 @@ class AppController:
 
     def _validate_paths(self) -> bool:
         if not os.path.exists(self.settings.BASE_PATH):
-            if self.observer:
-                self.observer.on_error(
-                    _("err_dir_not_exist", base_path=self.settings.BASE_PATH)
-                )
+            self.observer.on_error(
+                _("err_dir_not_exist", base_path=self.settings.BASE_PATH)
+            )
             return False
 
         if not os.path.isdir(self.settings.BASE_PATH):
-            if self.observer:
-                self.observer.on_error(
-                    _("err_not_a_dir", base_path=self.settings.BASE_PATH)
-                )
+            self.observer.on_error(
+                _("err_not_a_dir", base_path=self.settings.BASE_PATH)
+            )
             return False
         return True
 
@@ -123,8 +122,7 @@ class AppController:
                     if f.lower().endswith(".pdf"):
                         files.append(f)
             except Exception as e:
-                if self.observer:
-                    self.observer.on_error(_("err_list_dir", error=e))
+                self.observer.on_error(_("err_list_dir", error=e))
                 return None
 
         files.sort()
@@ -147,9 +145,7 @@ class AppController:
         for file_index, rel_file_path in enumerate(
             remaining_files, start=len(processed_files_set) + 1
         ):
-            if session.is_cancelled or (
-                self.observer and getattr(self.observer, "is_cancelled", False)
-            ):
+            if session.is_cancelled and getattr(self.observer, "is_cancelled", False):
                 session.is_cancelled = True
                 break
 
