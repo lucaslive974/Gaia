@@ -38,12 +38,11 @@ Gaia/
 │   ├── __main__.py          # Main entry point for python -m gaia
 │   ├── cli/
 │   │   ├── __init__.py      # CLI subpackage initialization
+│   │   ├── cli_helper.py    # CLI arguments parser and prevalidation helper
 │   │   └── terminal_ui.py   # Rich TUI display and keyboard input handling
-│   ├── config/
-│   │   ├── __init__.py
-│   │   └── settings.py      # Global settings, arguments parsing, state persistence
 │   ├── gaia.py              # Main global program class (Gaia)
-│   ├── extraction_session.py# Session progress tracking & No-Op placeholders
+│   ├── extraction_session.py# Session progress tracking & state serialization
+│   ├── options.py           # Config options container class & parameter validations
 │   ├── i18n.py              # Internationalization & gettext wrapper
 │   ├── locale/              # Compiled translations directory
 │   │   ├── en/LC_MESSAGES/messages.mo
@@ -94,12 +93,35 @@ Gaia/
 
 ### 1. As a Python Library
 
-You can import and use the components of Gaia directly within Python without needing the CLI or a console wrapper.
+You can integrate Gaia directly into your Python scripts.
+
+#### Orchestrating the Full Pipeline Programmatically
+
+To execute the entire extraction pipeline on a file or directory:
+
+```python
+from gaia import Gaia, Options
+
+# 1. Configure options programmatically
+options = Options()
+options.BASE_PATH = "path/to/pdfs"
+options.REGEX_FILE = "path/to/rules.json"
+options.OUTPUT_CSV = "custom_output.csv"
+options.PAGES_PER_UNIT = 1
+
+# 2. Run the orchestrator
+controller = Gaia(options)
+success = controller.run()
+```
+
+#### Using Parser and Engine Components Directly
+
+To parse files manually and match patterns page-by-page:
 
 ```python
 from gaia import NativePdfParser, NativeRegexEngine
 
-# 1. Setup the Regex engine with rules already in-memory (dictionary)
+# 1. Setup the Regex engine with rules in-memory (dictionary)
 regex_rules = {
     "infraction_id": {
         "regex": r"Código da Infração:\s*([A-Za-z0-9-]+)",
