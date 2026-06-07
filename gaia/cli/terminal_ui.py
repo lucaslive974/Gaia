@@ -231,7 +231,7 @@ def print_summary_dashboard(
 
 
 def run_with_ui(settings):
-    from gaia.cli.app_controller import AppController
+    from gaia import Gaia, CsvWriteStream
     import time
     from rich.progress import (
         SpinnerColumn,
@@ -251,7 +251,8 @@ def run_with_ui(settings):
         console=console,
     )
     observer = ConsoleObserver(console, progress)
-    controller = AppController(settings, observer=observer)
+    output_stream = CsvWriteStream(settings.OUTPUT_CSV)
+    controller = Gaia(settings, observer=observer, output_stream=output_stream)
 
     start_time = time.perf_counter()
 

@@ -33,26 +33,27 @@ Gaia uses a modular architecture using fast native text extraction to ensure hig
 
 ```text
 Gaia/
-├── cli/
-│   ├── __init__.py          # CLI subpackage initialization
-│   ├── app_controller.py    # Main orchestration of CLI execution
-│   └── terminal_ui.py       # Rich TUI display and keyboard input handling
-├── config/
-│   ├── __init__.py
-│   └── settings.py          # Global settings, arguments parsing, state persistence
 ├── gaia/
 │   ├── __init__.py          # Main entry points exposing library API classes
-│   ├── csv_writer.py        # Streamlined thread-safe CSV writing
+│   ├── __main__.py          # Main entry point for python -m gaia
+│   ├── cli/
+│   │   ├── __init__.py      # CLI subpackage initialization
+│   │   └── terminal_ui.py   # Rich TUI display and keyboard input handling
+│   ├── config/
+│   │   ├── __init__.py
+│   │   └── settings.py      # Global settings, arguments parsing, state persistence
+│   ├── gaia.py              # Main global program class (Gaia)
 │   ├── extraction_session.py# Session progress tracking & No-Op placeholders
-│   ├── extractor.py         # Native PDF text extraction engine
 │   ├── i18n.py              # Internationalization & gettext wrapper
 │   ├── locale/              # Compiled translations directory
 │   │   ├── en/LC_MESSAGES/messages.mo
 │   │   └── pt/LC_MESSAGES/messages.mo
 │   ├── observer.py          # Progress notification interface (observer pattern)
-│   ├── ocr_parser.py        # Key-Value Pair regex matcher and verification
-│   └── regex_engine.py      # Abstracted matching engine
-├── main.py                  # CLI binary / entry point
+│   ├── output_stream.py     # Output stream interfaces (OutputStream, CsvWriteStream, DefaultOutputStream)
+│   ├── pdf_parser.py        # Unified PDF parser and extraction engine (PdfParser, NativePdfParser)
+│   ├── regex_engine.py      # Abstracted matching engine
+│   └── main.py              # CLI entry point implementation
+├── main.py                  # CLI binary / entry point redirect
 ├── pyproject.toml           # Setuptools PEP 621 packaging definitions
 ├── requirements.txt         # Package requirements
 ├── tests/                   # Extensive test suites

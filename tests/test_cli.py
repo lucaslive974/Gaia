@@ -8,7 +8,7 @@ import json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from gaia.main import main
-from gaia.cli.app_controller import AppController
+from gaia.gaia import Gaia
 from gaia.config.settings import Settings
 
 
@@ -73,13 +73,13 @@ class TestCli(unittest.TestCase):
         self.assertTrue(settings_passed.RESUME)
         self.assertEqual(settings_passed.REGEX_FILE, "/loaded/regex.json")
 
-    @patch("gaia.cli.app_controller.os.path.exists")
-    @patch("gaia.cli.app_controller.os.path.isdir")
-    @patch("gaia.cli.app_controller.NativeRegexEngine")
-    @patch("gaia.cli.app_controller.NativePdfParser")
-    @patch("gaia.cli.app_controller.DefaultCsvWriter")
+    @patch("gaia.gaia.os.path.exists")
+    @patch("gaia.gaia.os.path.isdir")
+    @patch("gaia.gaia.NativeRegexEngine")
+    @patch("gaia.gaia.NativePdfParser")
+    @patch("gaia.gaia.DefaultOutputStream")
     def test_app_controller_validations_and_run(
-        self, mock_csv_writer, mock_parser_class, mock_regex_engine, mock_isdir, mock_exists
+        self, mock_output_stream, mock_parser_class, mock_regex_engine, mock_isdir, mock_exists
     ):
         mock_exists.return_value = True
         mock_isdir.return_value = True
@@ -94,21 +94,21 @@ class TestCli(unittest.TestCase):
         settings.REGEX_FILE = "/dummy/regex.json"
 
         mock_observer = MagicMock()
-        controller = AppController(settings, observer=mock_observer)
+        controller = Gaia(settings, observer=mock_observer)
 
         # mock os.listdir to return empty list so it finishes quickly
-        with patch("gaia.cli.app_controller.os.listdir", return_value=[]):
+        with patch("gaia.gaia.os.listdir", return_value=[]):
             success = controller.run(settings)
 
         self.assertTrue(success)
         mock_exists.assert_any_call("/dummy/input")
         mock_isdir.assert_any_call("/dummy/input")
 
-    @patch("gaia.cli.app_controller.os.path.exists")
-    @patch("gaia.cli.app_controller.os.path.isdir")
-    @patch("gaia.cli.app_controller.os.remove")
-    @patch("gaia.cli.app_controller.NativeRegexEngine")
-    @patch("gaia.cli.app_controller.NativePdfParser")
+    @patch("gaia.gaia.os.path.exists")
+    @patch("gaia.gaia.os.path.isdir")
+    @patch("gaia.gaia.os.remove")
+    @patch("gaia.gaia.NativeRegexEngine")
+    @patch("gaia.gaia.NativePdfParser")
     def test_app_controller_log_deletion(
         self, mock_parser_class, mock_regex_engine, mock_remove, mock_isdir, mock_exists
     ):
@@ -127,18 +127,30 @@ class TestCli(unittest.TestCase):
         settings.REGEX_FILE = "/dummy/regex.json"
 
         mock_observer = MagicMock()
-        controller = AppController(settings, observer=mock_observer)
+        controller = Gaia(settings, observer=mock_observer)
 
-        with patch("gaia.cli.app_controller.os.listdir", return_value=[]):
+        with patch("gaia.gaia.os.listdir", return_value=[]):
             controller.run(settings)
         mock_remove.assert_called_once()
 
         # Scenario 2: Resume is True -> Should NOT remove gaia_errors.log
         mock_remove.reset_mock()
         settings.RESUME = True
-        with patch("gaia.cli.app_controller.os.listdir", return_value=[]):
+        with patch("gaia.gaia.os.listdir", return_value=[]):
             controller.run(settings)
         mock_remove.assert_not_called()
+
+
+class TestOutputStream(unittest.TestCase):
+    def test_default_output_stream_generator(self):
+        from gaia.output_stream import DefaultOutputStream
+        stream = DefaultOutputStream()
+        stream.write({"field": "val1"})
+        stream.write({"field": "val2"})
+
+        # Test that iterating over it returns a generator yielding items
+        results = list(stream)
+        self.assertEqual(results, [{"field": "val1"}, {"field": "val2"}])
 
 
 if __name__ == "__main__":

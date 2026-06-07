@@ -3,7 +3,8 @@ from gaia.config.settings import Settings
 from gaia import (
     NativePdfParser,
     PdfParser,
-    DefaultCsvWriter,
+    OutputStream,
+    DefaultOutputStream,
     DefaultExtractionObserver,
     ExtractionObserver,
     ExtractionSession,
@@ -12,26 +13,24 @@ from gaia import (
 from gaia.i18n import _
 
 
-class AppController:
+class Gaia:
     """
-    Controller class responsible for orchestrating the CLI execution logic,
-    directory validations, PDF discovery (recursive or non-recursive),
-    parsing progress, CSV persistence, and execution resumption.
+    Main global class responsible for orchestrating the execution logic,
+    directory validations, PDF discovery, parsing progress, output persistence,
+    and execution resumption.
     """
 
     def __init__(
         self,
         settings: Settings,
         observer: ExtractionObserver | None = None,
-        csv_writer: DefaultCsvWriter | None = None,
+        output_stream: OutputStream | None = None,
         regex_engine: NativeRegexEngine | None = None,
         pdf_parser: PdfParser | None = None,
     ):
         self.settings = settings
         self.observer = observer or DefaultExtractionObserver()
-        self.csv_writer = csv_writer or DefaultCsvWriter(
-            path_output=settings.OUTPUT_CSV
-        )
+        self.output_stream = output_stream or DefaultOutputStream()
         self.regex_engine = regex_engine or NativeRegexEngine.from_file(
             settings.REGEX_FILE
         )
@@ -185,7 +184,7 @@ class AppController:
         try:
             page_dict = self.regex_engine.parse(unit_text)
             session.process_page_result(True, unit_index, total_units)
-            self.csv_writer.write(page_dict)
+            self.output_stream.write(page_dict)
         except ValueError as e:
             # Get partial results for error logging
             partial_results, _u = self.regex_engine.parse_test(unit_text)

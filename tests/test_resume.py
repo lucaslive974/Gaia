@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 import os
 import json
-from gaia.cli.app_controller import AppController
+from gaia.gaia import Gaia
 from gaia.config.settings import Settings
 
 
@@ -24,19 +24,19 @@ class TestResume(unittest.TestCase):
         self.state_file_input = os.path.join(self.dummy_dir, ".gaia_resume.json")
 
         # Patch NativePdfParser
-        self.parser_patcher = patch("gaia.cli.app_controller.NativePdfParser")
+        self.parser_patcher = patch("gaia.gaia.NativePdfParser")
         self.mock_parser_class = self.parser_patcher.start()
         self.mock_parser = MagicMock()
         self.mock_parser_class.return_value = self.mock_parser
 
-        # Patch DefaultCsvWriter
-        self.csv_patcher = patch("gaia.cli.app_controller.DefaultCsvWriter")
+        # Patch DefaultOutputStream
+        self.csv_patcher = patch("gaia.gaia.DefaultOutputStream")
         self.mock_csv_writer_class = self.csv_patcher.start()
         self.mock_csv_writer = MagicMock()
         self.mock_csv_writer_class.return_value = self.mock_csv_writer
 
         # Patch NativeRegexEngine
-        self.regex_patcher = patch("gaia.cli.app_controller.NativeRegexEngine")
+        self.regex_patcher = patch("gaia.gaia.NativeRegexEngine")
         self.mock_regex_class = self.regex_patcher.start()
         self.mock_regex = MagicMock()
         self.mock_regex_class.return_value = self.mock_regex
@@ -61,9 +61,9 @@ class TestResume(unittest.TestCase):
                 except Exception:
                     pass
 
-    @patch("gaia.cli.app_controller.os.listdir")
-    @patch("gaia.cli.app_controller.os.path.exists")
-    @patch("gaia.cli.app_controller.os.path.isdir")
+    @patch("gaia.gaia.os.listdir")
+    @patch("gaia.gaia.os.path.exists")
+    @patch("gaia.gaia.os.path.isdir")
     def test_resume_skips_processed_files(
         self, mock_isdir, mock_exists, mock_listdir
     ):
@@ -87,7 +87,7 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = AppController(self.settings, observer=mock_observer)
+        controller = Gaia(self.settings, observer=mock_observer)
         self.settings.RESUME = True
 
         # Set parse side effect to verify it processes only file2.pdf
@@ -106,9 +106,9 @@ class TestResume(unittest.TestCase):
         # file1.pdf should be skipped, only file2.pdf processed
         self.assertEqual(processed_files, ["file2.pdf"])
 
-    @patch("gaia.cli.app_controller.os.listdir")
-    @patch("gaia.cli.app_controller.os.path.exists")
-    @patch("gaia.cli.app_controller.os.path.isdir")
+    @patch("gaia.gaia.os.listdir")
+    @patch("gaia.gaia.os.path.exists")
+    @patch("gaia.gaia.os.path.isdir")
     def test_resume_loads_correct_state_counters(
         self, mock_isdir, mock_exists, mock_listdir
     ):
@@ -142,15 +142,15 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = AppController(self.settings, observer=mock_observer)
+        controller = Gaia(self.settings, observer=mock_observer)
         self.settings.RESUME = True
 
         success = controller.run(self.settings)
         self.assertTrue(success)
 
-    @patch("gaia.cli.app_controller.os.listdir")
-    @patch("gaia.cli.app_controller.os.path.exists")
-    @patch("gaia.cli.app_controller.os.path.isdir")
+    @patch("gaia.gaia.os.listdir")
+    @patch("gaia.gaia.os.path.exists")
+    @patch("gaia.gaia.os.path.isdir")
     def test_resume_saves_updated_state_after_each_file(
         self, mock_isdir, mock_exists, mock_listdir
     ):
@@ -182,7 +182,7 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = AppController(self.settings, observer=mock_observer)
+        controller = Gaia(self.settings, observer=mock_observer)
         self.settings.RESUME = True
 
         with patch("gaia.config.settings.open", create=True) as mock_open:
@@ -191,9 +191,9 @@ class TestResume(unittest.TestCase):
             mock_open.assert_any_call(self.state_file_cwd, "w", encoding="utf-8")
             mock_open.assert_any_call(self.state_file_input, "w", encoding="utf-8")
 
-    @patch("gaia.cli.app_controller.os.listdir")
-    @patch("gaia.cli.app_controller.os.path.exists")
-    @patch("gaia.cli.app_controller.os.path.isdir")
+    @patch("gaia.gaia.os.listdir")
+    @patch("gaia.gaia.os.path.exists")
+    @patch("gaia.gaia.os.path.isdir")
     def test_resume_deletes_state_on_success(
         self, mock_isdir, mock_exists, mock_listdir
     ):
@@ -225,7 +225,7 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = AppController(self.settings, observer=mock_observer)
+        controller = Gaia(self.settings, observer=mock_observer)
         self.settings.RESUME = True
 
         success = controller.run(self.settings)
@@ -234,9 +234,9 @@ class TestResume(unittest.TestCase):
         # Check that CWD state file was deleted
         self.assertFalse(os.path.isfile(self.state_file_cwd))
 
-    @patch("gaia.cli.app_controller.os.listdir")
-    @patch("gaia.cli.app_controller.os.path.exists")
-    @patch("gaia.cli.app_controller.os.path.isdir")
+    @patch("gaia.gaia.os.listdir")
+    @patch("gaia.gaia.os.path.exists")
+    @patch("gaia.gaia.os.path.isdir")
     def test_resume_preserves_state_on_cancel(
         self, mock_isdir, mock_exists, mock_listdir
     ):
@@ -268,7 +268,7 @@ class TestResume(unittest.TestCase):
         mock_observer = MagicMock()
         mock_observer.is_cancelled = True  # Cancelled!
 
-        controller = AppController(self.settings, observer=mock_observer)
+        controller = Gaia(self.settings, observer=mock_observer)
         self.settings.RESUME = True
 
         success = controller.run(self.settings)
