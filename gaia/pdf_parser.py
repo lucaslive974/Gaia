@@ -1,37 +1,21 @@
-from abc import ABC, abstractmethod
 from typing import Generator
 from pypdf import PdfReader
 from gaia.extraction_session import ExtractionSession
+from gaia.parser import Parser
 
 
-class PdfParser(ABC):
-    @abstractmethod
+class PdfParser(Parser):
+    """
+    PDF parser using layout-based text extraction from pypdf.
+    """
+
+    def accepts(self, file_path: str) -> bool:
+        return file_path.lower().endswith(".pdf")
+
     def get_page_count(self, pdf_path: str) -> int:
         """
         Returns the total number of pages in the PDF file.
         """
-        pass
-
-    @abstractmethod
-    def process_file(
-        self,
-        file_path: str,
-        session: ExtractionSession | None = None,
-        pages_per_unit: int = 1,
-    ) -> Generator[tuple[int, int, str], None, None]:
-        """
-        Processes the PDF file page-by-page or in chunks, yielding
-        (unit_index, total_units, unit_text).
-        """
-        pass
-
-
-class NativePdfParser(PdfParser):
-    """
-    Native PDF parser using layout-based text extraction from pypdf.
-    """
-
-    def get_page_count(self, pdf_path: str) -> int:
         reader = PdfReader(pdf_path)
         return len(reader.pages)
 
@@ -47,6 +31,10 @@ class NativePdfParser(PdfParser):
         session: ExtractionSession | None = None,
         pages_per_unit: int = 1,
     ) -> Generator[tuple[int, int, str], None, None]:
+        """
+        Processes the PDF file page-by-page or in chunks, yielding
+        (unit_index, total_units, unit_text).
+        """
         from gaia.extraction_session import NoOpExtractionSession
 
         session = session or NoOpExtractionSession()
@@ -74,3 +62,4 @@ class NativePdfParser(PdfParser):
 
         if unit_pages and not session.is_cancelled:
             yield unit_index, total_units, "\n".join(unit_pages)
+
