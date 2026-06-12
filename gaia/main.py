@@ -75,6 +75,13 @@ def main():
         default="en",
         help=_("cli_lang_help"),
     )
+    parser.add_argument(
+        "--type",
+        type=str,
+        choices=["pdf"],
+        default="pdf",
+        help=_("cli_type_help"),
+    )
 
     args = parser.parse_args()
 

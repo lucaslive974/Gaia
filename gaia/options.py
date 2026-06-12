@@ -11,6 +11,7 @@ class Options:
     RECURSIVE: bool = False
     PAGES_PER_UNIT: int = 1
     LANG: str = "en"
+    PARSER_TYPE: str = "pdf"
 
     def __getitem__(self, attr):
         try:
@@ -37,6 +38,11 @@ class Options:
         elif name == "LANG":
             if value not in ("en", "pt"):
                 raise ValueError(_("err_lang_invalid"))
+        elif name == "PARSER_TYPE":
+            from gaia.parser import ParserType
+            valid_types = [item.value for item in ParserType]
+            if value not in valid_types:
+                raise ValueError(_("err_type_invalid"))
         super().__setattr__(name, value)
 
     @classmethod
@@ -50,6 +56,7 @@ class Options:
             ("recursive", "RECURSIVE"),
             ("pages_per_unit", "PAGES_PER_UNIT"),
             ("lang", "LANG"),
+            ("type", "PARSER_TYPE"),
         ]
 
 

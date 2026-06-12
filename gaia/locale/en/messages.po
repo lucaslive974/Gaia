@@ -201,3 +201,9 @@ msgstr "of"
 
 msgid "ui_error"
 msgstr "🚨 ERROR"
+
+msgid "cli_type_help"
+msgstr "Set the built-in parser type to use (choices: pdf) (Default: pdf)."
+
+msgid "err_type_invalid"
+msgstr "the '--type' argument must be 'pdf'."

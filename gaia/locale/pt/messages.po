@@ -201,3 +201,9 @@ msgstr "de"
 
 msgid "ui_error"
 msgstr "🚨 ERRO"
+
+msgid "cli_type_help"
+msgstr "Define o tipo de parser embutido a ser usado (opções: pdf) (Padrão: pdf)."
+
+msgid "err_type_invalid"
+msgstr "o argumento '--type' deve ser 'pdf'."
