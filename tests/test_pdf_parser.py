@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 import pytest
-from gaia import NativePdfParser, ExtractionSession
+from gaia import PdfParser, ExtractionSession
 
 
 @patch("gaia.pdf_parser.PdfReader")
@@ -9,7 +9,7 @@ def test_native_parser_page_count(mock_pdf_reader):
     mock_reader_instance.pages = [MagicMock(), MagicMock()]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = NativePdfParser()
+    parser = PdfParser()
     assert parser.get_page_count("dummy.pdf") == 2
 
 
@@ -23,7 +23,7 @@ def test_native_parser_orchestration(mock_pdf_reader):
     mock_reader_instance.pages = [page1, page2]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = NativePdfParser()
+    parser = PdfParser()
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
     session = ExtractionSession(mock_observer)
@@ -46,7 +46,7 @@ def test_native_parser_orchestration_multi_page_units(mock_pdf_reader):
     mock_reader_instance.pages = [page1, page2]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = NativePdfParser()
+    parser = PdfParser()
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
     session = ExtractionSession(mock_observer)
@@ -70,7 +70,7 @@ def test_parser_cancellation_mid_file(mock_pdf_reader):
     mock_reader_instance.pages = [page1, page2, page3]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = NativePdfParser()
+    parser = PdfParser()
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
     session = ExtractionSession(mock_observer)
@@ -93,8 +93,16 @@ def test_parser_parameterless_session(mock_pdf_reader):
     mock_reader_instance.pages = [page1]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = NativePdfParser()
+    parser = PdfParser()
     pages = list(parser.process_file("dummy.pdf"))
 
     assert len(pages) == 1
     assert pages[0][2] == "valid text page"
+
+
+def test_native_parser_accepts():
+    parser = PdfParser()
+    assert parser.accepts("test.pdf") is True
+    assert parser.accepts("test.PDF") is True
+    assert parser.accepts("test.txt") is False
+    assert parser.accepts("test.pdf.docx") is False

@@ -24,6 +24,7 @@ def test_default_values(fresh_options):
     assert fresh_options.RECURSIVE is False
     assert fresh_options.PAGES_PER_UNIT == 1
     assert fresh_options.LANG == "en"
+    assert fresh_options.PARSER_TYPE == "pdf"
 
 
 def test_getitem_success(fresh_options):
@@ -89,6 +90,7 @@ def test_list_attr(fresh_options):
     assert ("output", "OUTPUT_CSV") in attrs
     assert ("resume", "RESUME") in attrs
     assert ("lang", "LANG") in attrs
+    assert ("type", "PARSER_TYPE") in attrs
 
 
 def test_parse_and_build_options_all_fields():
@@ -277,3 +279,46 @@ def test_load_save_clear_resume_state():
         session.clear_state()
         mock_remove.assert_any_call(state_file_cwd)
         mock_remove.assert_any_call(state_file_input)
+
+
+def test_setattr_validation_parser_type(fresh_options):
+    with pytest.raises(ValueError):
+        fresh_options.PARSER_TYPE = "docx"
+    with pytest.raises(ValueError):
+        fresh_options.PARSER_TYPE = "invalid"
+    fresh_options.PARSER_TYPE = "pdf"
+    assert fresh_options.PARSER_TYPE == "pdf"
+
+
+def test_parse_and_build_options_parser_type():
+    args = Namespace(
+        input_dir="/my/input",
+        output="/my/output.csv",
+        resume=False,
+        regex="/my/regex.json",
+        test=None,
+        recursive=False,
+        pages_per_unit=1,
+        lang="en",
+        type="pdf",
+    )
+    options = CliHelper.parse_and_build_options(args)
+    assert options.PARSER_TYPE == "pdf"
+
+
+def test_parser_factory():
+    from gaia.parser import ParserFactory, ParserType
+    from gaia.pdf_parser import PdfParser
+
+    # String input
+    parser_str = ParserFactory.create("pdf")
+    assert isinstance(parser_str, PdfParser)
+
+    # Enum input
+    parser_enum = ParserFactory.create(ParserType.PDF)
+    assert isinstance(parser_enum, PdfParser)
+
+    # Invalid input
+    with pytest.raises(ValueError):
+        ParserFactory.create("invalid")
+

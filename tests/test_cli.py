@@ -81,7 +81,7 @@ def test_cli_parameterless_resume_success(
 @patch("gaia.gaia.os.path.exists")
 @patch("gaia.gaia.os.path.isdir")
 @patch("gaia.gaia.NativeRegexEngine")
-@patch("gaia.gaia.NativePdfParser")
+@patch("gaia.pdf_parser.PdfParser")
 @patch("gaia.gaia.DefaultOutputStream")
 def test_app_controller_validations_and_run(
     mock_output_stream, mock_parser_class, mock_regex_engine, mock_isdir, mock_exists
@@ -114,7 +114,7 @@ def test_app_controller_validations_and_run(
 @patch("gaia.gaia.os.path.isdir")
 @patch("gaia.gaia.os.remove")
 @patch("gaia.gaia.NativeRegexEngine")
-@patch("gaia.gaia.NativePdfParser")
+@patch("gaia.pdf_parser.PdfParser")
 def test_app_controller_log_deletion(
     mock_parser_class, mock_regex_engine, mock_remove, mock_isdir, mock_exists
 ):
@@ -152,7 +152,7 @@ def test_app_controller_log_deletion(
 @patch("gaia.gaia.os.path.isfile")
 @patch("gaia.gaia.os.path.isdir")
 @patch("gaia.gaia.NativeRegexEngine")
-@patch("gaia.gaia.NativePdfParser")
+@patch("gaia.pdf_parser.PdfParser")
 @patch("gaia.gaia.DefaultOutputStream")
 def test_gaia_run_with_direct_file(
     mock_output_stream, mock_parser_class, mock_regex_engine, mock_isdir, mock_isfile, mock_exists, mock_makedirs

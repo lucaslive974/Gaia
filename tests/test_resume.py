@@ -23,8 +23,8 @@ def resume_setup():
     dummy_dir = "/dummy/dir"
     state_file_input = os.path.join(dummy_dir, ".gaia_resume.json")
 
-    # Patch NativePdfParser
-    parser_patcher = patch("gaia.gaia.NativePdfParser")
+    # Patch PdfParser
+    parser_patcher = patch("gaia.pdf_parser.PdfParser")
     mock_parser_class = parser_patcher.start()
     mock_parser = MagicMock()
     mock_parser_class.return_value = mock_parser
