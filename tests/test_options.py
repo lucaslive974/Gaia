@@ -21,6 +21,7 @@ def test_default_values(fresh_options):
     assert fresh_options.RESUME is False
     assert fresh_options.REGEX_FILE is None
     assert fresh_options.TEST_FILE is None
+    assert fresh_options.DUMP_FILE is None
     assert fresh_options.RECURSIVE is False
     assert fresh_options.PAGES_PER_UNIT == 1
     assert fresh_options.LANG == "en"
@@ -91,6 +92,7 @@ def test_list_attr(fresh_options):
     assert ("resume", "RESUME") in attrs
     assert ("lang", "LANG") in attrs
     assert ("type", "PARSER_TYPE") in attrs
+    assert ("dump", "DUMP_FILE") in attrs
 
 
 def test_parse_and_build_options_all_fields():
@@ -321,4 +323,23 @@ def test_parser_factory():
     # Invalid input
     with pytest.raises(ValueError):
         ParserFactory.create("invalid")
+
+
+def test_parse_and_build_options_dump():
+    # Dump mode should bypass input_dir and regex validations
+    args = Namespace(
+        input_dir=None,
+        resume=False,
+        output="/my/output.csv",
+        regex=None,
+        test=None,
+        dump="/my/dump.pdf",
+        pages_per_unit=1,
+        lang="en",
+    )
+    options = CliHelper.parse_and_build_options(args)
+    assert options.DUMP_FILE == "/my/dump.pdf"
+    assert options.REGEX_FILE is None
+    assert options.BASE_PATH == ""
+
 

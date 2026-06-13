@@ -196,3 +196,50 @@ def test_default_output_stream_generator():
     # Test that iterating over it returns a generator yielding items
     results = list(stream)
     assert results == [{"field": "val1"}, {"field": "val2"}]
+
+
+@patch("gaia.cli.terminal_ui.os.path.exists")
+@patch("gaia.parser.ParserFactory")
+@patch("gaia.cli.terminal_ui.Console")
+def test_run_dump_mode_success(mock_console_class, mock_factory, mock_exists):
+    mock_exists.return_value = True
+
+    mock_parser = MagicMock()
+    mock_factory.create.return_value = mock_parser
+    mock_parser.process_file.return_value = [
+        (1, 2, "Unit 1 Text"),
+        (2, 2, "Unit 2 Text")
+    ]
+
+    mock_console = MagicMock()
+    mock_console_class.return_value = mock_console
+
+    from gaia.cli.terminal_ui import run_dump_mode
+    options = Options()
+    options.DUMP_FILE = "/dummy/dump.pdf"
+    options.PAGES_PER_UNIT = 1
+    options.PARSER_TYPE = "pdf"
+
+    with pytest.raises(SystemExit) as excinfo:
+        run_dump_mode(options)
+
+    assert excinfo.value.code == 0
+    mock_parser.process_file.assert_called_once_with(
+        "/dummy/dump.pdf", session=None, pages_per_unit=1
+    )
+
+
+@patch("gaia.cli.terminal_ui.os.path.exists")
+@patch("gaia.cli.terminal_ui.Console")
+def test_run_dump_mode_file_not_found(mock_console_class, mock_exists):
+    mock_exists.return_value = False
+
+    from gaia.cli.terminal_ui import run_dump_mode
+    options = Options()
+    options.DUMP_FILE = "/nonexistent/file.pdf"
+
+    with pytest.raises(SystemExit) as excinfo:
+        run_dump_mode(options)
+
+    assert excinfo.value.code == 1
+
