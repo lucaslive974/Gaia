@@ -162,3 +162,54 @@ def test_parse_test_does_not_raise():
     assert matched["key1"] is False
     assert results["key2"] == "value2"
     assert matched["key2"] is True
+
+
+def test_detect_file_format():
+    assert NativeRegexEngine._detect_file_format("rules.json") == "json"
+    assert NativeRegexEngine._detect_file_format("rules.toml") == "toml"
+    assert NativeRegexEngine._detect_file_format("rules.TOML") == "toml"
+    assert NativeRegexEngine._detect_file_format("rules.txt") == "json"
+
+
+def test_load_and_validate_valid_toml_config_from_file(tmp_path):
+    # Write valid TOML config
+    toml_content = """
+    [infraction_id]
+    regex = 'Código da Infração:\\s*([A-Za-z0-9-]+)'
+    required = true
+    default = 'N/A'
+
+    [plate]
+    regex = 'Placa:\\s*([A-Z]{3}-\\d[A-Z0-9]\\d{2})'
+    required = true
+    """
+    file_path = os.path.join(tmp_path, "rules.toml")
+    with open(file_path, "w", encoding="utf-8") as tf:
+        tf.write(toml_content)
+
+    engine = NativeRegexEngine.from_file(file_path)
+    assert engine.regex_file_path == file_path
+    assert "infraction_id" in engine.patterns
+    assert "plate" in engine.patterns
+    assert engine.patterns["infraction_id"]["required"] is True
+    assert engine.patterns["infraction_id"]["default"] == "N/A"
+
+    text = "Código da Infração: ABC-123\nPlaca: XYZ-9876"
+    results = engine.parse(text)
+    assert results["infraction_id"] == "ABC-123"
+    assert results["plate"] == "XYZ-9876"
+
+
+def test_load_and_validate_invalid_toml(tmp_path):
+    # Write invalid TOML (missing closing bracket/quote)
+    toml_content = """
+    [infraction_id
+    regex = 'unclosed
+    """
+    file_path = os.path.join(tmp_path, "invalid.toml")
+    with open(file_path, "w", encoding="utf-8") as tf:
+        tf.write(toml_content)
+
+    with pytest.raises(ValueError) as excinfo:
+        NativeRegexEngine.from_file(file_path)
+    assert "Erro ao parsear o arquivo TOML de regex" in str(excinfo.value)

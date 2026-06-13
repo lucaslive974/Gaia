@@ -29,23 +29,49 @@ class NativeRegexEngine(RegexEngine):
         self.patterns: dict[str, dict[str, Any]] = {}
         self.load_and_validate(patterns_data)
 
+    @staticmethod
+    def _detect_file_format(file_path: str) -> str:
+        ext = os.path.splitext(file_path)[1].lower()
+        if ext == ".toml":
+            return "toml"
+        return "json"
+
+    @staticmethod
+    def _load_json(file_path: str) -> dict[str, Any]:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Erro ao parsear o arquivo JSON de regex: {e}")
+        except Exception as e:
+            raise ValueError(f"Erro ao ler o arquivo JSON de regex: {e}")
+
+    @staticmethod
+    def _load_toml(file_path: str) -> dict[str, Any]:
+        import tomllib
+        try:
+            with open(file_path, "rb") as f:
+                return tomllib.load(f)
+        except tomllib.TOMLDecodeError as e:
+            raise ValueError(f"Erro ao parsear o arquivo TOML de regex: {e}")
+        except Exception as e:
+            raise ValueError(f"Erro ao ler o arquivo TOML de regex: {e}")
+
     @classmethod
     def from_file(cls, file_path: str | None) -> "NativeRegexEngine":
         """
-        Loads regex patterns from a JSON file and instantiates the engine.
+        Loads regex patterns from a JSON or TOML file and instantiates the engine.
         """
         if not file_path:
             raise ValueError("O caminho do arquivo de regex deve ser fornecido.")
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Arquivo de regex não encontrado: {file_path}")
 
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Erro ao parsear o arquivo JSON de regex: {e}")
-        except Exception as e:
-            raise ValueError(f"Erro ao ler o arquivo de regex: {e}")
+        fmt = cls._detect_file_format(file_path)
+        if fmt == "toml":
+            data = cls._load_toml(file_path)
+        else:
+            data = cls._load_json(file_path)
 
         engine = cls(data)
         engine.regex_file_path = file_path
