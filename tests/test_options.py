@@ -286,6 +286,8 @@ def test_load_save_clear_resume_state():
 def test_setattr_validation_parser_type(fresh_options):
     fresh_options.PARSER_TYPE = "docx"
     assert fresh_options.PARSER_TYPE == "docx"
+    fresh_options.PARSER_TYPE = "ocr"
+    assert fresh_options.PARSER_TYPE == "ocr"
     with pytest.raises(ValueError):
         fresh_options.PARSER_TYPE = "invalid"
     fresh_options.PARSER_TYPE = "pdf"

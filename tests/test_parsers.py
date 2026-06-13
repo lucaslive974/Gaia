@@ -166,3 +166,75 @@ def test_docx_parser_accepts():
     assert parser.accepts("test.DOCX") is True
     assert parser.accepts("test.pdf") is False
     assert parser.accepts("test.txt") is False
+
+
+from pydocstructurer import OcrParser
+
+def test_ocr_parser_accepts():
+    parser = OcrParser()
+    assert parser.accepts("test.png") is True
+    assert parser.accepts("test.JPG") is True
+    assert parser.accepts("test.pdf") is True
+    assert parser.accepts("test.docx") is False
+    assert parser.accepts("test.txt") is False
+
+
+@patch("shutil.which")
+def test_ocr_parser_missing_tesseract(mock_which):
+    mock_which.return_value = None  # tesseract not found
+    parser = OcrParser()
+    with pytest.raises(RuntimeError) as excinfo:
+        list(parser.process_file("test.png"))
+    assert "Tesseract OCR is not installed" in str(excinfo.value)
+
+
+@patch("shutil.which")
+def test_ocr_parser_missing_poppler_on_pdf(mock_which):
+    # Tesseract is found, but poppler is not
+    mock_which.side_effect = lambda cmd: "/usr/bin/tesseract" if cmd == "tesseract" else None
+    parser = OcrParser()
+    with pytest.raises(RuntimeError) as excinfo:
+        parser.get_page_count("test.pdf")
+    assert "Poppler (pdftoppm/pdfinfo) is not installed" in str(excinfo.value)
+
+
+@patch("shutil.which")
+@patch("PIL.Image.open")
+@patch("pytesseract.image_to_string")
+def test_ocr_parser_image_process(mock_ocr, mock_image_open, mock_which):
+    mock_which.return_value = "/usr/bin/tesseract"
+    mock_image_open.return_value.__enter__.return_value = MagicMock()
+    mock_ocr.return_value = "extracted image text"
+
+    parser = OcrParser()
+    session = ExtractionSession()
+    results = list(parser.process_file("test.jpg", session=session))
+
+    assert len(results) == 1
+    assert results[0] == (1, 1, "extracted image text")
+    assert session.total_pages == 1
+
+
+@patch("shutil.which")
+@patch("pdf2image.pdfinfo_from_path")
+@patch("pdf2image.convert_from_path")
+@patch("pytesseract.image_to_string")
+def test_ocr_parser_pdf_process_lazy(mock_ocr, mock_convert, mock_pdfinfo, mock_which):
+    mock_which.return_value = "/usr/bin/some_bin"
+    mock_pdfinfo.return_value = {"Pages": 2}
+    mock_convert.return_value = [MagicMock()]
+    mock_ocr.side_effect = ["page 1 text", "page 2 text"]
+
+    parser = OcrParser()
+    session = ExtractionSession()
+    results = list(parser.process_file("test.pdf", session=session, pages_per_unit=1))
+
+    assert len(results) == 2
+    assert results[0] == (1, 2, "page 1 text")
+    assert results[1] == (2, 2, "page 2 text")
+    assert session.total_pages == 2
+
+    # Check lazy page-by-page calls
+    assert mock_convert.call_count == 2
+    mock_convert.assert_any_call("test.pdf", first_page=1, last_page=1, dpi=150)
+    mock_convert.assert_any_call("test.pdf", first_page=2, last_page=2, dpi=150)

@@ -163,3 +163,121 @@ class DocxParser(Parser):
             yield unit_index, total_units, "\n".join(unit_pages)
 
 
+class OcrParser(Parser):
+    """
+    OCR parser using pytesseract for text extraction from images and PDFs.
+    """
+
+    def accepts(self, file_path: str) -> bool:
+        import os
+        ext = os.path.splitext(file_path)[1].lower()
+        return ext in (".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".bmp")
+
+    def _check_tesseract(self):
+        import shutil
+        if not shutil.which("tesseract"):
+            raise RuntimeError(
+                "Tesseract OCR is not installed or not in system PATH. "
+                "Please install tesseract-ocr to use the OCR parser."
+            )
+
+    def _check_poppler(self):
+        import shutil
+        if not shutil.which("pdftoppm") or not shutil.which("pdfinfo"):
+            raise RuntimeError(
+                "Poppler (pdftoppm/pdfinfo) is not installed or not in system PATH. "
+                "Please install poppler-utils to parse PDF files using the OCR parser."
+            )
+
+    def get_page_count(self, file_path: str) -> int:
+        """
+        Returns the number of pages in the PDF file, or 1 for images.
+        """
+        if file_path.lower().endswith(".pdf"):
+            self._check_poppler()
+            import pdf2image
+            try:
+                info = pdf2image.pdfinfo_from_path(file_path)
+                return info["Pages"]
+            except Exception as e:
+                raise RuntimeError(f"Error reading PDF info: {e}")
+        return 1
+
+    def process_file(
+        self,
+        file_path: str,
+        session: ExtractionSession | None = None,
+        pages_per_unit: int = 1,
+    ) -> Generator[tuple[int, int, str], None, None]:
+        """
+        Processes the image or PDF file page-by-page, running OCR and yielding
+        (unit_index, total_units, unit_text).
+        """
+        from pydocstructurer.extraction_session import NoOpExtractionSession
+
+        session = session or NoOpExtractionSession()
+        self._check_tesseract()
+
+        is_pdf = file_path.lower().endswith(".pdf")
+        if is_pdf:
+            self._check_poppler()
+            import pdf2image
+            import pytesseract
+
+            total_pages = self.get_page_count(file_path)
+            session.total_pages += total_pages
+
+            total_units = (total_pages + pages_per_unit - 1) // pages_per_unit
+            unit_pages = []
+            unit_index = 1
+
+            for page_num in range(1, total_pages + 1):
+                if session.is_cancelled:
+                    break
+
+                try:
+                    # Convert single page to PIL image to save memory (lazy extraction)
+                    images = pdf2image.convert_from_path(
+                        file_path,
+                        first_page=page_num,
+                        last_page=page_num,
+                        dpi=150,
+                    )
+                    if not images:
+                        raise ValueError(f"Failed to convert page {page_num}")
+                    page_text = pytesseract.image_to_string(images[0])
+                except Exception as e:
+                    page_text = ""
+                    session.observer.on_error(
+                        f"Error running OCR on PDF page {page_num}: {e}"
+                    )
+
+                unit_pages.append(page_text)
+
+                if len(unit_pages) == pages_per_unit:
+                    yield unit_index, total_units, "\n".join(unit_pages)
+                    unit_pages = []
+                    unit_index += 1
+
+            if unit_pages and not session.is_cancelled:
+                yield unit_index, total_units, "\n".join(unit_pages)
+
+        else:
+            # It's a single image file
+            import pytesseract
+            from PIL import Image
+
+            session.total_pages += 1
+            if not session.is_cancelled:
+                try:
+                    with Image.open(file_path) as img:
+                        text = pytesseract.image_to_string(img)
+                    yield 1, 1, text
+                except Exception as e:
+                    session.observer.on_error(
+                        f"Error running OCR on image file: {e}"
+                    )
+                    yield 1, 1, ""
+
+
+

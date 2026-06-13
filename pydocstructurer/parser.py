@@ -34,6 +34,7 @@ class Parser(ABC):
 class ParserType(Enum):
     PDF = "pdf"
     DOCX = "docx"
+    OCR = "ocr"
 
 
 class ParserFactory:
@@ -47,9 +48,15 @@ class ParserFactory:
         from pydocstructurer.parsers import DocxParser
         return DocxParser()
 
+    @staticmethod
+    def _create_ocr_parser() -> Parser:
+        from pydocstructurer.parsers import OcrParser
+        return OcrParser()
+
     _CREATORS = {
         "pdf": _create_pdf_parser,
         "docx": _create_docx_parser,
+        "ocr": _create_ocr_parser,
     }
 
     @staticmethod
