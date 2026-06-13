@@ -1,7 +1,7 @@
 import json
 import os
 import pytest
-from pydocstruct import NativeRegexEngine
+from pydocstructurer import NativeRegexEngine
 
 
 @pytest.fixture

@@ -1,8 +1,8 @@
-# PyDocStruct (Codename: Gaia) — Generalized Document Data Extractor
+# PyDocStructurer (Codename: Gaia) — Generalized Document Data Extractor
 
-**PyDocStruct** (project codename **Gaia**) is a versatile and robust document data extraction system designed to retrieve structured key-value pair (KVP) records from text and files. It is packaged both as a **programmatic Python library** (`pydocstruct`) and a feature-rich **command-line tool (CLI)**.
+**PyDocStructurer** (project codename **Gaia**) is a versatile and robust document data extraction system designed to retrieve structured key-value pair (KVP) records from text and files. It is packaged both as a **programmatic Python library** (`pydocstructurer`) and a feature-rich **command-line tool (CLI)**.
 
-PyDocStruct uses a modular architecture using fast native text extraction and an extensible parser interface to ensure high speed, fidelity, and future adaptability to new file formats.
+PyDocStructurer uses a modular architecture using fast native text extraction and an extensible parser interface to ensure high speed, fidelity, and future adaptability to new file formats.
 
 ---
 
@@ -35,14 +35,14 @@ PyDocStruct uses a modular architecture using fast native text extraction and an
 
 ```text
 Gaia/
-├── pydocstruct/
+├── pydocstructurer/
 │   ├── __init__.py          # Main entry points exposing library API classes
-│   ├── __main__.py          # Main entry point for python -m pydocstruct
+│   ├── __main__.py          # Main entry point for python -m pydocstructurer
 │   ├── cli/
 │   │   ├── __init__.py      # CLI subpackage initialization
 │   │   ├── cli_helper.py    # CLI arguments parser and prevalidation helper
 │   │   └── terminal_ui.py   # Rich TUI display and keyboard input handling
-│   ├── pydocstruct.py       # Main global program class (PyDocStruct, codename: Gaia)
+│   ├── pydocstructurer.py       # Main global program class (PyDocStructurer, codename: Gaia)
 │   ├── extraction_session.py# Session progress tracking & state serialization
 │   ├── options.py           # Config options container class & parameter validations
 │   ├── parser.py            # Abstract Parser base, ParserType Enum, and ParserFactory
@@ -95,14 +95,14 @@ Gaia/
 
 ### 1. As a Python Library
 
-You can integrate PyDocStruct directly into your Python scripts.
+You can integrate PyDocStructurer directly into your Python scripts.
 
 #### Orchestrating the Full Pipeline Programmatically
 
 To execute the entire extraction pipeline on a file or directory:
 
 ```python
-from pydocstruct import PyDocStruct, Options
+from pydocstructurer import PyDocStructurer, Options
 
 # 1. Configure options programmatically
 options = Options()
@@ -112,7 +112,7 @@ options.OUTPUT_CSV = "custom_output.csv"
 options.PAGES_PER_UNIT = 1
 
 # 2. Run the orchestrator
-controller = PyDocStruct(options)
+controller = PyDocStructurer(options)
 success = controller.run()
 ```
 
@@ -122,7 +122,7 @@ You can supply your own extraction parser format by subclassing the abstract bas
 
 ```python
 from typing import Generator
-from pydocstruct import PyDocStruct, Options, Parser, ExtractionSession
+from pydocstructurer import PyDocStructurer, Options, Parser, ExtractionSession
 
 class CustomTxtParser(Parser):
     def accepts(self, file_path: str) -> bool:
@@ -140,12 +140,12 @@ class CustomTxtParser(Parser):
             content = f.read()
         yield 1, 1, content
 
-# Inject it into PyDocStruct orchestrator
+# Inject it into PyDocStructurer orchestrator
 options = Options()
 options.BASE_PATH = "path/to/text/files"
 options.REGEX_FILE = "rules.json"
 
-controller = PyDocStruct(options, parser=CustomTxtParser())
+controller = PyDocStructurer(options, parser=CustomTxtParser())
 controller.run()
 ```
 
@@ -154,7 +154,7 @@ controller.run()
 To parse files manually and match patterns page-by-page:
 
 ```python
-from pydocstruct import PdfParser, NativeRegexEngine
+from pydocstructurer import PdfParser, NativeRegexEngine
 
 # 1. Setup the Regex engine with rules in-memory (dictionary)
 regex_rules = {
@@ -187,14 +187,14 @@ for unit_index, total_units, raw_text in parser.process_file("path/to/infraction
 
 ### 2. Command-Line Interface (CLI)
 
-PyDocStruct can be executed directly as a global shell command, as a python module run, or as a local script.
+PyDocStructurer can be executed directly as a global shell command, as a python module run, or as a local script.
 
 ```bash
 # 1. As a global command (after package installation)
-pydocstruct <input_dir> [options]
+pydocstructurer <input_dir> [options]
 
 # 2. As a python module run (from the repository root)
-python -m pydocstruct <input_dir> [options]
+python -m pydocstructurer <input_dir> [options]
 ```
 
 #### Positional Arguments
@@ -214,17 +214,17 @@ python -m pydocstruct <input_dir> [options]
 
 * **Basic processing run**:
   ```bash
-  pydocstruct /path/to/pdfs -g rules.json
+  pydocstructurer /path/to/pdfs -g rules.json
   ```
 
 * **Resume an interrupted run**:
   ```bash
-  pydocstruct /path/to/pdfs --resume
+  pydocstructurer /path/to/pdfs --resume
   ```
 
 * **Test matching logic on a single file**:
   ```bash
-  pydocstruct -t sample.pdf -g rules.json
+  pydocstructurer -t sample.pdf -g rules.json
   ```
 
 ---

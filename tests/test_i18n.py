@@ -1,5 +1,5 @@
 import pytest
-from pydocstruct.i18n import _, set_lang, get_lang
+from pydocstructurer.i18n import _, set_lang, get_lang
 
 
 @pytest.fixture(autouse=True)

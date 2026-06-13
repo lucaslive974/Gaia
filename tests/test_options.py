@@ -3,10 +3,10 @@ import json
 from unittest.mock import patch, MagicMock
 from argparse import Namespace
 import pytest
-from pydocstruct.options import Options
-from pydocstruct.options import options as global_options
-from pydocstruct.cli.cli_helper import CliHelper
-from pydocstruct.extraction_session import ExtractionSession
+from pydocstructurer.options import Options
+from pydocstructurer.options import options as global_options
+from pydocstructurer.cli.cli_helper import CliHelper
+from pydocstructurer.extraction_session import ExtractionSession
 
 
 @pytest.fixture
@@ -161,7 +161,7 @@ def test_parse_and_build_options_value_errors():
         CliHelper.parse_and_build_options(args)
 
     # Scenario 2: missing input_dir, resume = True but no state file -> should raise ValueError
-    with patch("pydocstruct.extraction_session.ExtractionSession.load_state", return_value=None):
+    with patch("pydocstructurer.extraction_session.ExtractionSession.load_state", return_value=None):
         args = Namespace(
             input_dir=None, resume=True, output="/my/output.csv", regex="/my/regex.json"
         )
@@ -246,13 +246,13 @@ def test_load_save_clear_resume_state():
     session.failed_pages = 2
     session.total_pages = 12
 
-    with patch("pydocstruct.extraction_session.open", create=True) as mock_open:
+    with patch("pydocstructurer.extraction_session.open", create=True) as mock_open:
         session.save_state()
         mock_open.assert_any_call(state_file_cwd, "w", encoding="utf-8")
         mock_open.assert_any_call(state_file_input, "w", encoding="utf-8")
 
-    with patch("pydocstruct.extraction_session.os.path.exists") as mock_exists, patch(
-        "pydocstruct.extraction_session.open", create=True
+    with patch("pydocstructurer.extraction_session.os.path.exists") as mock_exists, patch(
+        "pydocstructurer.extraction_session.open", create=True
     ) as mock_open:
         mock_exists.return_value = True
         mock_file = MagicMock()
@@ -274,8 +274,8 @@ def test_load_save_clear_resume_state():
         assert state["processed_files"] == ["file1.pdf"]
         assert state["regex_file"] == "/my/regex.json"
 
-    with patch("pydocstruct.extraction_session.os.path.exists") as mock_exists, patch(
-        "pydocstruct.extraction_session.os.remove"
+    with patch("pydocstructurer.extraction_session.os.path.exists") as mock_exists, patch(
+        "pydocstructurer.extraction_session.os.remove"
     ) as mock_remove:
         mock_exists.return_value = True
         session.clear_state()
@@ -309,8 +309,8 @@ def test_parse_and_build_options_parser_type():
 
 
 def test_parser_factory():
-    from pydocstruct.parser import ParserFactory, ParserType
-    from pydocstruct.pdf_parser import PdfParser
+    from pydocstructurer.parser import ParserFactory, ParserType
+    from pydocstructurer.pdf_parser import PdfParser
 
     # String input
     parser_str = ParserFactory.create("pdf")

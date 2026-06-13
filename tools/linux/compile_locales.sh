@@ -10,10 +10,10 @@ cd "$PROJECT_ROOT"
 
 echo "Compiling locales..."
 
-mkdir -p pydocstruct/locale/en/LC_MESSAGES
-mkdir -p pydocstruct/locale/pt/LC_MESSAGES
+mkdir -p pydocstructurer/locale/en/LC_MESSAGES
+mkdir -p pydocstructurer/locale/pt/LC_MESSAGES
 
-msgfmt -o pydocstruct/locale/en/LC_MESSAGES/messages.mo pydocstruct/locale/en/messages.po
-msgfmt -o pydocstruct/locale/pt/LC_MESSAGES/messages.mo pydocstruct/locale/pt/messages.po
+msgfmt -o pydocstructurer/locale/en/LC_MESSAGES/messages.mo pydocstructurer/locale/en/messages.po
+msgfmt -o pydocstructurer/locale/pt/LC_MESSAGES/messages.mo pydocstructurer/locale/pt/messages.po
 
 echo "Locales compiled successfully!"

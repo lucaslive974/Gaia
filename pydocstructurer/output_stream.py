@@ -1,7 +1,7 @@
 import csv
 from os import path
 from abc import ABC, abstractmethod
-from pydocstruct.options import options
+from pydocstructurer.options import options
 
 
 class OutputStream(ABC):

@@ -1,5 +1,5 @@
 import queue
-from pydocstruct import QueueObserver
+from pydocstructurer import QueueObserver
 
 
 def test_queue_observer_puts_events():

@@ -1,1 +1,0 @@
-# PyDocStruct CLI Subpackage

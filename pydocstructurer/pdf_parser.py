@@ -1,7 +1,7 @@
 from typing import Generator
 from pypdf import PdfReader
-from pydocstruct.extraction_session import ExtractionSession
-from pydocstruct.parser import Parser
+from pydocstructurer.extraction_session import ExtractionSession
+from pydocstructurer.parser import Parser
 
 
 class PdfParser(Parser):
@@ -35,7 +35,7 @@ class PdfParser(Parser):
         Processes the PDF file page-by-page or in chunks, yielding
         (unit_index, total_units, unit_text).
         """
-        from pydocstruct.extraction_session import NoOpExtractionSession
+        from pydocstructurer.extraction_session import NoOpExtractionSession
 
         session = session or NoOpExtractionSession()
 

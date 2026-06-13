@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Generator
-from pydocstruct.extraction_session import ExtractionSession
+from pydocstructurer.extraction_session import ExtractionSession
 
 
 class Parser(ABC):
@@ -38,7 +38,7 @@ class ParserType(Enum):
 class ParserFactory:
     @staticmethod
     def _create_pdf_parser() -> Parser:
-        from pydocstruct.pdf_parser import PdfParser
+        from pydocstructurer.pdf_parser import PdfParser
         return PdfParser()
 
     _CREATORS = {

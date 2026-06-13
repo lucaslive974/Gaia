@@ -1,7 +1,7 @@
 import time
 import json
 import os
-from pydocstruct.observer import ExtractionObserver, DefaultExtractionObserver
+from pydocstructurer.observer import ExtractionObserver, DefaultExtractionObserver
 
 
 class ExtractionSession:

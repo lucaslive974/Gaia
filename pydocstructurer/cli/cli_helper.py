@@ -1,8 +1,8 @@
 import os
 from argparse import Namespace
-from pydocstruct.options import Options
-from pydocstruct.extraction_session import ExtractionSession
-from pydocstruct.i18n import _, set_lang
+from pydocstructurer.options import Options
+from pydocstructurer.extraction_session import ExtractionSession
+from pydocstructurer.i18n import _, set_lang
 
 
 class CliHelper:
