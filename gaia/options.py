@@ -8,6 +8,7 @@ class Options:
     RESUME: bool = False
     REGEX_FILE: str | None = None
     TEST_FILE: str | None = None
+    DUMP_FILE: str | None = None
     RECURSIVE: bool = False
     PAGES_PER_UNIT: int = 1
     LANG: str = "en"
@@ -53,6 +54,7 @@ class Options:
             ("resume", "RESUME"),
             ("regex", "REGEX_FILE"),
             ("test", "TEST_FILE"),
+            ("dump", "DUMP_FILE"),
             ("recursive", "RECURSIVE"),
             ("pages_per_unit", "PAGES_PER_UNIT"),
             ("lang", "LANG"),

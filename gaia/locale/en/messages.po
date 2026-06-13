@@ -207,3 +207,16 @@ msgstr "Set the built-in parser type to use (choices: pdf) (Default: pdf)."
 
 msgid "err_type_invalid"
 msgstr "the '--type' argument must be 'pdf'."
+
+msgid "cli_dump_help"
+msgstr "Dump raw extracted text from a file (separated by page/unit blocks) to console."
+
+msgid "dump_title"
+msgstr "🔍 PARSER DUMP MODE"
+
+msgid "err_dump_file_not_found"
+msgstr "Error: Dump target file not found: {file_path}"
+
+msgid "err_dump_read"
+msgstr "Error: Failed to extract text from target file: {error}"
+

@@ -207,3 +207,16 @@ msgstr "Define o tipo de parser embutido a ser usado (opções: pdf) (Padrão: p
 
 msgid "err_type_invalid"
 msgstr "o argumento '--type' deve ser 'pdf'."
+
+msgid "cli_dump_help"
+msgstr "Exporta o texto bruto extraído de um arquivo (separado por blocos de página/unidade) para o console."
+
+msgid "dump_title"
+msgstr "🔍 MODO DUMP DO PARSER"
+
+msgid "err_dump_file_not_found"
+msgstr "Erro: Arquivo alvo do dump não encontrado: {file_path}"
+
+msgid "err_dump_read"
+msgstr "Erro: Falha ao extrair texto do arquivo alvo: {error}"
+

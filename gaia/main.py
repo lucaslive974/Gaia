@@ -61,6 +61,14 @@ def main():
         help=_("cli_test_help"),
     )
     parser.add_argument(
+        "-d",
+        "--dump",
+        type=str,
+        default=None,
+        metavar="FILE_PATH",
+        help=_("cli_dump_help"),
+    )
+    parser.add_argument(
         "-p",
         "--pages-per-unit",
         type=int,
@@ -90,7 +98,10 @@ def main():
     except ValueError as e:
         parser.error(str(e))
 
-    if options.TEST_FILE:
+    if options.DUMP_FILE:
+        from gaia.cli.terminal_ui import run_dump_mode
+        run_dump_mode(options)
+    elif options.TEST_FILE:
         from gaia.cli.terminal_ui import run_test_mode
         run_test_mode(options)
     else:
