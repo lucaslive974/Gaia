@@ -5,13 +5,13 @@ import json
 from argparse import Namespace
 import pytest
 
-from gaia.main import main
-from gaia.gaia import Gaia
-from gaia.options import Options
+from pydocstruct.main import main
+from pydocstruct.pydocstruct import PyDocStruct as Gaia
+from pydocstruct.options import Options
 
 
-@patch("gaia.main.argparse.ArgumentParser.parse_args")
-@patch("gaia.main.run_with_ui")
+@patch("pydocstruct.main.argparse.ArgumentParser.parse_args")
+@patch("pydocstruct.main.run_with_ui")
 def test_cli_execution_flow(mock_run_with_ui, mock_parse_args):
     # Setup mocks
     mock_args = Namespace(
@@ -39,9 +39,9 @@ def test_cli_execution_flow(mock_run_with_ui, mock_parse_args):
     assert options_passed.REGEX_FILE == "/dummy/regex.json"
 
 
-@patch("gaia.main.argparse.ArgumentParser.parse_args")
-@patch("gaia.main.run_with_ui")
-@patch("gaia.extraction_session.ExtractionSession.load_state")
+@patch("pydocstruct.main.argparse.ArgumentParser.parse_args")
+@patch("pydocstruct.main.run_with_ui")
+@patch("pydocstruct.extraction_session.ExtractionSession.load_state")
 def test_cli_parameterless_resume_success(
     mock_load_state, mock_run_with_ui, mock_parse_args
 ):
@@ -78,11 +78,11 @@ def test_cli_parameterless_resume_success(
     assert options_passed.REGEX_FILE == "/loaded/regex.json"
 
 
-@patch("gaia.gaia.os.path.exists")
-@patch("gaia.gaia.os.path.isdir")
-@patch("gaia.gaia.NativeRegexEngine")
-@patch("gaia.pdf_parser.PdfParser")
-@patch("gaia.gaia.DefaultOutputStream")
+@patch("pydocstruct.pydocstruct.os.path.exists")
+@patch("pydocstruct.pydocstruct.os.path.isdir")
+@patch("pydocstruct.pydocstruct.NativeRegexEngine")
+@patch("pydocstruct.pdf_parser.PdfParser")
+@patch("pydocstruct.pydocstruct.DefaultOutputStream")
 def test_app_controller_validations_and_run(
     mock_output_stream, mock_parser_class, mock_regex_engine, mock_isdir, mock_exists
 ):
@@ -102,7 +102,7 @@ def test_app_controller_validations_and_run(
     controller = Gaia(options, observer=mock_observer)
 
     # mock os.listdir to return empty list so it finishes quickly
-    with patch("gaia.gaia.os.listdir", return_value=[]):
+    with patch("pydocstruct.pydocstruct.os.listdir", return_value=[]):
         success = controller.run(options)
 
     assert success is True
@@ -110,11 +110,11 @@ def test_app_controller_validations_and_run(
     mock_isdir.assert_any_call("/dummy/input")
 
 
-@patch("gaia.gaia.os.path.exists")
-@patch("gaia.gaia.os.path.isdir")
-@patch("gaia.gaia.os.remove")
-@patch("gaia.gaia.NativeRegexEngine")
-@patch("gaia.pdf_parser.PdfParser")
+@patch("pydocstruct.pydocstruct.os.path.exists")
+@patch("pydocstruct.pydocstruct.os.path.isdir")
+@patch("pydocstruct.pydocstruct.os.remove")
+@patch("pydocstruct.pydocstruct.NativeRegexEngine")
+@patch("pydocstruct.pdf_parser.PdfParser")
 def test_app_controller_log_deletion(
     mock_parser_class, mock_regex_engine, mock_remove, mock_isdir, mock_exists
 ):
@@ -135,25 +135,25 @@ def test_app_controller_log_deletion(
     mock_observer = MagicMock()
     controller = Gaia(options, observer=mock_observer)
 
-    with patch("gaia.gaia.os.listdir", return_value=[]):
+    with patch("pydocstruct.pydocstruct.os.listdir", return_value=[]):
         controller.run(options)
     mock_remove.assert_called_once()
 
     # Scenario 2: Resume is True -> Should NOT remove gaia_errors.log
     mock_remove.reset_mock()
     options.RESUME = True
-    with patch("gaia.gaia.os.listdir", return_value=[]):
+    with patch("pydocstruct.pydocstruct.os.listdir", return_value=[]):
         controller.run(options)
     mock_remove.assert_not_called()
 
 
-@patch("gaia.gaia.os.makedirs")
-@patch("gaia.gaia.os.path.exists")
-@patch("gaia.gaia.os.path.isfile")
-@patch("gaia.gaia.os.path.isdir")
-@patch("gaia.gaia.NativeRegexEngine")
-@patch("gaia.pdf_parser.PdfParser")
-@patch("gaia.gaia.DefaultOutputStream")
+@patch("pydocstruct.pydocstruct.os.makedirs")
+@patch("pydocstruct.pydocstruct.os.path.exists")
+@patch("pydocstruct.pydocstruct.os.path.isfile")
+@patch("pydocstruct.pydocstruct.os.path.isdir")
+@patch("pydocstruct.pydocstruct.NativeRegexEngine")
+@patch("pydocstruct.pdf_parser.PdfParser")
+@patch("pydocstruct.pydocstruct.DefaultOutputStream")
 def test_gaia_run_with_direct_file(
     mock_output_stream, mock_parser_class, mock_regex_engine, mock_isdir, mock_isfile, mock_exists, mock_makedirs
 ):
@@ -188,7 +188,7 @@ def test_gaia_run_with_direct_file(
 
 
 def test_default_output_stream_generator():
-    from gaia.output_stream import DefaultOutputStream
+    from pydocstruct.output_stream import DefaultOutputStream
     stream = DefaultOutputStream()
     stream.write({"field": "val1"})
     stream.write({"field": "val2"})
@@ -198,9 +198,9 @@ def test_default_output_stream_generator():
     assert results == [{"field": "val1"}, {"field": "val2"}]
 
 
-@patch("gaia.cli.terminal_ui.os.path.exists")
-@patch("gaia.parser.ParserFactory")
-@patch("gaia.cli.terminal_ui.Console")
+@patch("pydocstruct.cli.terminal_ui.os.path.exists")
+@patch("pydocstruct.parser.ParserFactory")
+@patch("pydocstruct.cli.terminal_ui.Console")
 def test_run_dump_mode_success(mock_console_class, mock_factory, mock_exists):
     mock_exists.return_value = True
 
@@ -214,7 +214,7 @@ def test_run_dump_mode_success(mock_console_class, mock_factory, mock_exists):
     mock_console = MagicMock()
     mock_console_class.return_value = mock_console
 
-    from gaia.cli.terminal_ui import run_dump_mode
+    from pydocstruct.cli.terminal_ui import run_dump_mode
     options = Options()
     options.DUMP_FILE = "/dummy/dump.pdf"
     options.PAGES_PER_UNIT = 1
@@ -229,12 +229,12 @@ def test_run_dump_mode_success(mock_console_class, mock_factory, mock_exists):
     )
 
 
-@patch("gaia.cli.terminal_ui.os.path.exists")
-@patch("gaia.cli.terminal_ui.Console")
+@patch("pydocstruct.cli.terminal_ui.os.path.exists")
+@patch("pydocstruct.cli.terminal_ui.Console")
 def test_run_dump_mode_file_not_found(mock_console_class, mock_exists):
     mock_exists.return_value = False
 
-    from gaia.cli.terminal_ui import run_dump_mode
+    from pydocstruct.cli.terminal_ui import run_dump_mode
     options = Options()
     options.DUMP_FILE = "/nonexistent/file.pdf"
 

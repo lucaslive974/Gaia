@@ -1,5 +1,5 @@
 import pytest
-from gaia.i18n import _, set_lang, get_lang
+from pydocstruct.i18n import _, set_lang, get_lang
 
 
 @pytest.fixture(autouse=True)

@@ -1,7 +1,7 @@
 import time
 import json
 import os
-from gaia.observer import ExtractionObserver, DefaultExtractionObserver
+from pydocstruct.observer import ExtractionObserver, DefaultExtractionObserver
 
 
 class ExtractionSession:

@@ -1,7 +1,7 @@
 import json
 import os
 import pytest
-from gaia import NativeRegexEngine
+from pydocstruct import NativeRegexEngine
 
 
 @pytest.fixture

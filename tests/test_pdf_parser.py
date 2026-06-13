@@ -1,9 +1,9 @@
 from unittest.mock import MagicMock, patch
 import pytest
-from gaia import PdfParser, ExtractionSession
+from pydocstruct import PdfParser, ExtractionSession
 
 
-@patch("gaia.pdf_parser.PdfReader")
+@patch("pydocstruct.pdf_parser.PdfReader")
 def test_native_parser_page_count(mock_pdf_reader):
     mock_reader_instance = MagicMock()
     mock_reader_instance.pages = [MagicMock(), MagicMock()]
@@ -13,7 +13,7 @@ def test_native_parser_page_count(mock_pdf_reader):
     assert parser.get_page_count("dummy.pdf") == 2
 
 
-@patch("gaia.pdf_parser.PdfReader")
+@patch("pydocstruct.pdf_parser.PdfReader")
 def test_native_parser_orchestration(mock_pdf_reader):
     mock_reader_instance = MagicMock()
     page1 = MagicMock()
@@ -36,7 +36,7 @@ def test_native_parser_orchestration(mock_pdf_reader):
     assert session.total_pages == 2
 
 
-@patch("gaia.pdf_parser.PdfReader")
+@patch("pydocstruct.pdf_parser.PdfReader")
 def test_native_parser_orchestration_multi_page_units(mock_pdf_reader):
     mock_reader_instance = MagicMock()
     page1 = MagicMock()
@@ -58,7 +58,7 @@ def test_native_parser_orchestration_multi_page_units(mock_pdf_reader):
     assert session.total_pages == 2
 
 
-@patch("gaia.pdf_parser.PdfReader")
+@patch("pydocstruct.pdf_parser.PdfReader")
 def test_parser_cancellation_mid_file(mock_pdf_reader):
     mock_reader_instance = MagicMock()
     page1 = MagicMock()
@@ -85,7 +85,7 @@ def test_parser_cancellation_mid_file(mock_pdf_reader):
     assert len(pages_after_cancel) == 0
 
 
-@patch("gaia.pdf_parser.PdfReader")
+@patch("pydocstruct.pdf_parser.PdfReader")
 def test_parser_parameterless_session(mock_pdf_reader):
     mock_reader_instance = MagicMock()
     page1 = MagicMock()

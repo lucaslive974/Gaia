@@ -1,6 +1,6 @@
 import os
-from gaia.options import Options
-from gaia import (
+from pydocstruct.options import Options
+from pydocstruct import (
     OutputStream,
     DefaultOutputStream,
     DefaultExtractionObserver,
@@ -8,14 +8,14 @@ from gaia import (
     ExtractionSession,
     NativeRegexEngine,
 )
-from gaia.parser import Parser, ParserFactory
-from gaia.i18n import _
+from pydocstruct.parser import Parser, ParserFactory
+from pydocstruct.i18n import _
 
 
-class Gaia:
+class PyDocStruct:
     """
-    Main global class responsible for orchestrating the execution logic,
-    directory validations, PDF discovery, parsing progress, output persistence,
+    Main global class (Codename: Gaia) responsible for orchestrating the execution logic,
+    directory validations, file discovery, parsing progress, output persistence,
     and execution resumption.
     """
 

@@ -1,5 +1,5 @@
 import os
-from gaia.i18n import _
+from pydocstruct.i18n import _
 
 
 class Options:
@@ -40,7 +40,7 @@ class Options:
             if value not in ("en", "pt"):
                 raise ValueError(_("err_lang_invalid"))
         elif name == "PARSER_TYPE":
-            from gaia.parser import ParserType
+            from pydocstruct.parser import ParserType
             valid_types = [item.value for item in ParserType]
             if value not in valid_types:
                 raise ValueError(_("err_type_invalid"))

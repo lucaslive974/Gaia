@@ -10,10 +10,10 @@ cd "$PROJECT_ROOT"
 
 echo "Compiling locales..."
 
-mkdir -p gaia/locale/en/LC_MESSAGES
-mkdir -p gaia/locale/pt/LC_MESSAGES
+mkdir -p pydocstruct/locale/en/LC_MESSAGES
+mkdir -p pydocstruct/locale/pt/LC_MESSAGES
 
-msgfmt -o gaia/locale/en/LC_MESSAGES/messages.mo gaia/locale/en/messages.po
-msgfmt -o gaia/locale/pt/LC_MESSAGES/messages.mo gaia/locale/pt/messages.po
+msgfmt -o pydocstruct/locale/en/LC_MESSAGES/messages.mo pydocstruct/locale/en/messages.po
+msgfmt -o pydocstruct/locale/pt/LC_MESSAGES/messages.mo pydocstruct/locale/pt/messages.po
 
 echo "Locales compiled successfully!"

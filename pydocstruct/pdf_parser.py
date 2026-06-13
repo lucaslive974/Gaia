@@ -1,7 +1,7 @@
 from typing import Generator
 from pypdf import PdfReader
-from gaia.extraction_session import ExtractionSession
-from gaia.parser import Parser
+from pydocstruct.extraction_session import ExtractionSession
+from pydocstruct.parser import Parser
 
 
 class PdfParser(Parser):
@@ -35,7 +35,7 @@ class PdfParser(Parser):
         Processes the PDF file page-by-page or in chunks, yielding
         (unit_index, total_units, unit_text).
         """
-        from gaia.extraction_session import NoOpExtractionSession
+        from pydocstruct.extraction_session import NoOpExtractionSession
 
         session = session or NoOpExtractionSession()
 

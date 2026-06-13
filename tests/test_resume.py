@@ -2,13 +2,13 @@ from unittest.mock import MagicMock, patch
 import os
 import json
 import pytest
-from gaia.gaia import Gaia
-from gaia.options import Options
+from pydocstruct.pydocstruct import PyDocStruct
+from pydocstruct.options import Options
 
 
 @pytest.fixture
 def resume_setup():
-    from gaia.options import options as global_options
+    from pydocstruct.options import options as global_options
 
     global_options.BASE_PATH = ""
     global_options.OUTPUT_CSV = os.path.join(os.getcwd(), "output.csv")
@@ -24,19 +24,19 @@ def resume_setup():
     state_file_input = os.path.join(dummy_dir, ".gaia_resume.json")
 
     # Patch PdfParser
-    parser_patcher = patch("gaia.pdf_parser.PdfParser")
+    parser_patcher = patch("pydocstruct.pdf_parser.PdfParser")
     mock_parser_class = parser_patcher.start()
     mock_parser = MagicMock()
     mock_parser_class.return_value = mock_parser
 
     # Patch DefaultOutputStream
-    csv_patcher = patch("gaia.gaia.DefaultOutputStream")
+    csv_patcher = patch("pydocstruct.pydocstruct.DefaultOutputStream")
     mock_csv_writer_class = csv_patcher.start()
     mock_csv_writer = MagicMock()
     mock_csv_writer_class.return_value = mock_csv_writer
 
     # Patch NativeRegexEngine
-    regex_patcher = patch("gaia.gaia.NativeRegexEngine")
+    regex_patcher = patch("pydocstruct.pydocstruct.NativeRegexEngine")
     mock_regex_class = regex_patcher.start()
     mock_regex = MagicMock()
     mock_regex_class.return_value = mock_regex
@@ -74,9 +74,9 @@ def resume_setup():
                 pass
 
 
-@patch("gaia.gaia.os.listdir")
-@patch("gaia.gaia.os.path.exists")
-@patch("gaia.gaia.os.path.isdir")
+@patch("pydocstruct.pydocstruct.os.listdir")
+@patch("pydocstruct.pydocstruct.os.path.exists")
+@patch("pydocstruct.pydocstruct.os.path.isdir")
 def test_resume_skips_processed_files(
     mock_isdir, mock_exists, mock_listdir, resume_setup
 ):
@@ -100,7 +100,7 @@ def test_resume_skips_processed_files(
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
 
-    controller = Gaia(resume_setup.options, observer=mock_observer)
+    controller = PyDocStruct(resume_setup.options, observer=mock_observer)
     resume_setup.options.RESUME = True
 
     # Set parse side effect to verify it processes only file2.pdf
@@ -120,9 +120,9 @@ def test_resume_skips_processed_files(
     assert processed_files == ["file2.pdf"]
 
 
-@patch("gaia.gaia.os.listdir")
-@patch("gaia.gaia.os.path.exists")
-@patch("gaia.gaia.os.path.isdir")
+@patch("pydocstruct.pydocstruct.os.listdir")
+@patch("pydocstruct.pydocstruct.os.path.exists")
+@patch("pydocstruct.pydocstruct.os.path.isdir")
 def test_resume_loads_correct_state_counters(
     mock_isdir, mock_exists, mock_listdir, resume_setup
 ):
@@ -156,16 +156,16 @@ def test_resume_loads_correct_state_counters(
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
 
-    controller = Gaia(resume_setup.options, observer=mock_observer)
+    controller = PyDocStruct(resume_setup.options, observer=mock_observer)
     resume_setup.options.RESUME = True
 
     success = controller.run(resume_setup.options)
     assert success is True
 
 
-@patch("gaia.gaia.os.listdir")
-@patch("gaia.gaia.os.path.exists")
-@patch("gaia.gaia.os.path.isdir")
+@patch("pydocstruct.pydocstruct.os.listdir")
+@patch("pydocstruct.pydocstruct.os.path.exists")
+@patch("pydocstruct.pydocstruct.os.path.isdir")
 def test_resume_saves_updated_state_after_each_file(
     mock_isdir, mock_exists, mock_listdir, resume_setup
 ):
@@ -197,19 +197,19 @@ def test_resume_saves_updated_state_after_each_file(
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
 
-    controller = Gaia(resume_setup.options, observer=mock_observer)
+    controller = PyDocStruct(resume_setup.options, observer=mock_observer)
     resume_setup.options.RESUME = True
 
-    with patch("gaia.extraction_session.open", create=True) as mock_open:
+    with patch("pydocstruct.extraction_session.open", create=True) as mock_open:
         success = controller.run(resume_setup.options)
         assert success is True
         mock_open.assert_any_call(resume_setup.state_file_cwd, "w", encoding="utf-8")
         mock_open.assert_any_call(resume_setup.state_file_input, "w", encoding="utf-8")
 
 
-@patch("gaia.gaia.os.listdir")
-@patch("gaia.gaia.os.path.exists")
-@patch("gaia.gaia.os.path.isdir")
+@patch("pydocstruct.pydocstruct.os.listdir")
+@patch("pydocstruct.pydocstruct.os.path.exists")
+@patch("pydocstruct.pydocstruct.os.path.isdir")
 def test_resume_deletes_state_on_success(
     mock_isdir, mock_exists, mock_listdir, resume_setup
 ):
@@ -241,7 +241,7 @@ def test_resume_deletes_state_on_success(
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
 
-    controller = Gaia(resume_setup.options, observer=mock_observer)
+    controller = PyDocStruct(resume_setup.options, observer=mock_observer)
     resume_setup.options.RESUME = True
 
     success = controller.run(resume_setup.options)
@@ -251,9 +251,9 @@ def test_resume_deletes_state_on_success(
     assert os.path.isfile(resume_setup.state_file_cwd) is False
 
 
-@patch("gaia.gaia.os.listdir")
-@patch("gaia.gaia.os.path.exists")
-@patch("gaia.gaia.os.path.isdir")
+@patch("pydocstruct.pydocstruct.os.listdir")
+@patch("pydocstruct.pydocstruct.os.path.exists")
+@patch("pydocstruct.pydocstruct.os.path.isdir")
 def test_resume_preserves_state_on_cancel(
     mock_isdir, mock_exists, mock_listdir, resume_setup
 ):
@@ -285,7 +285,7 @@ def test_resume_preserves_state_on_cancel(
     mock_observer = MagicMock()
     mock_observer.is_cancelled = True  # Cancelled!
 
-    controller = Gaia(resume_setup.options, observer=mock_observer)
+    controller = PyDocStruct(resume_setup.options, observer=mock_observer)
     resume_setup.options.RESUME = True
 
     success = controller.run(resume_setup.options)
@@ -295,9 +295,9 @@ def test_resume_preserves_state_on_cancel(
     assert os.path.isfile(resume_setup.state_file_cwd) is True
 
 
-@patch("gaia.gaia.os.listdir")
-@patch("gaia.gaia.os.path.exists")
-@patch("gaia.gaia.os.path.isdir")
+@patch("pydocstruct.pydocstruct.os.listdir")
+@patch("pydocstruct.pydocstruct.os.path.exists")
+@patch("pydocstruct.pydocstruct.os.path.isdir")
 def test_skip_blank_pages(
     mock_isdir, mock_exists, mock_listdir, resume_setup
 ):
@@ -315,7 +315,7 @@ def test_skip_blank_pages(
 
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
-    controller = Gaia(resume_setup.options, observer=mock_observer)
+    controller = PyDocStruct(resume_setup.options, observer=mock_observer)
 
     success = controller.run(resume_setup.options)
     assert success is True

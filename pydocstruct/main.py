@@ -1,9 +1,9 @@
 import sys
 import argparse
-from gaia.options import Options
-from gaia.cli.cli_helper import CliHelper
-from gaia.cli.terminal_ui import run_with_ui
-from gaia.i18n import _, set_lang
+from pydocstruct.options import Options
+from pydocstruct.cli.cli_helper import CliHelper
+from pydocstruct.cli.terminal_ui import run_with_ui
+from pydocstruct.i18n import _, set_lang
 
 
 def main():
@@ -99,10 +99,10 @@ def main():
         parser.error(str(e))
 
     if options.DUMP_FILE:
-        from gaia.cli.terminal_ui import run_dump_mode
+        from pydocstruct.cli.terminal_ui import run_dump_mode
         run_dump_mode(options)
     elif options.TEST_FILE:
-        from gaia.cli.terminal_ui import run_test_mode
+        from pydocstruct.cli.terminal_ui import run_test_mode
         run_test_mode(options)
     else:
         run_with_ui(options)

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Generator
-from gaia.extraction_session import ExtractionSession
+from pydocstruct.extraction_session import ExtractionSession
 
 
 class Parser(ABC):
@@ -38,7 +38,7 @@ class ParserType(Enum):
 class ParserFactory:
     @staticmethod
     def _create_pdf_parser() -> Parser:
-        from gaia.pdf_parser import PdfParser
+        from pydocstruct.pdf_parser import PdfParser
         return PdfParser()
 
     _CREATORS = {

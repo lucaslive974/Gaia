@@ -6,8 +6,8 @@ from rich.progress import Progress
 from rich.table import Table
 from rich.panel import Panel
 from rich.live import Live
-from gaia.observer import ExtractionObserver
-from gaia.i18n import _, get_lang
+from pydocstruct.observer import ExtractionObserver
+from pydocstruct.i18n import _, get_lang
 
 try:
     import termios
@@ -231,7 +231,7 @@ def print_summary_dashboard(
 
 
 def run_with_ui(options):
-    from gaia import Gaia, CsvWriteStream
+    from pydocstruct import PyDocStruct, CsvWriteStream
     import time
     from rich.progress import (
         SpinnerColumn,
@@ -252,7 +252,7 @@ def run_with_ui(options):
     )
     observer = ConsoleObserver(console, progress)
     output_stream = CsvWriteStream(options.OUTPUT_CSV)
-    controller = Gaia(options, observer=observer, output_stream=output_stream)
+    controller = PyDocStruct(options, observer=observer, output_stream=output_stream)
 
     start_time = time.perf_counter()
 
@@ -302,7 +302,7 @@ def run_test_mode(options):
     from rich.console import Console
     from rich.table import Table
     from rich.panel import Panel
-    from gaia import NativeRegexEngine, PdfParser
+    from pydocstruct import NativeRegexEngine, PdfParser
 
     console = Console()
     console.print(Panel(f"[bold green]{_('test_title')}[/bold green]", expand=False))
@@ -409,8 +409,8 @@ def run_dump_mode(options):
     import sys
     from rich.console import Console
     from rich.panel import Panel
-    from gaia.parser import ParserFactory
-    from gaia.i18n import _
+    from pydocstruct.parser import ParserFactory
+    from pydocstruct.i18n import _
 
     console = Console()
     console.print(Panel(f"[bold green]{_('dump_title')}[/bold green]", expand=False))

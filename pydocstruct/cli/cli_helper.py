@@ -1,8 +1,8 @@
 import os
 from argparse import Namespace
-from gaia.options import Options
-from gaia.extraction_session import ExtractionSession
-from gaia.i18n import _, set_lang
+from pydocstruct.options import Options
+from pydocstruct.extraction_session import ExtractionSession
+from pydocstruct.i18n import _, set_lang
 
 
 class CliHelper:
