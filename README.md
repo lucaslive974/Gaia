@@ -1,8 +1,8 @@
-# Gaia — Generalized Document Data Extractor (CLI & Programmatic Library)
+# PyDocStruct (Codename: Gaia) — Generalized Document Data Extractor
 
-**Gaia** (packaged as `pydocstruct`) is a versatile and robust document data extraction system designed to retrieve structured key-value pair (KVP) records from text and files. It is packaged both as a **programmatic Python library** (`pydocstruct`) and a feature-rich **command-line tool (CLI)**.
+**PyDocStruct** (project codename **Gaia**) is a versatile and robust document data extraction system designed to retrieve structured key-value pair (KVP) records from text and files. It is packaged both as a **programmatic Python library** (`pydocstruct`) and a feature-rich **command-line tool (CLI)**.
 
-Gaia uses a modular architecture using fast native text extraction and an extensible parser interface to ensure high speed, fidelity, and future adaptability to new file formats.
+PyDocStruct uses a modular architecture using fast native text extraction and an extensible parser interface to ensure high speed, fidelity, and future adaptability to new file formats.
 
 ---
 
@@ -95,7 +95,7 @@ Gaia/
 
 ### 1. As a Python Library
 
-You can integrate Gaia directly into your Python scripts.
+You can integrate PyDocStruct directly into your Python scripts.
 
 #### Orchestrating the Full Pipeline Programmatically
 
@@ -187,7 +187,7 @@ for unit_index, total_units, raw_text in parser.process_file("path/to/infraction
 
 ### 2. Command-Line Interface (CLI)
 
-Gaia can be executed directly as a global shell command, as a python module run, or as a local script.
+PyDocStruct can be executed directly as a global shell command, as a python module run, or as a local script.
 
 ```bash
 # 1. As a global command (after package installation)
