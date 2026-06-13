@@ -203,10 +203,10 @@ msgid "ui_error"
 msgstr "🚨 ERRO"
 
 msgid "cli_type_help"
-msgstr "Define o tipo de parser embutido a ser usado (opções: pdf) (Padrão: pdf)."
+msgstr "Define o tipo de parser embutido a ser usado (opções: pdf, docx, ocr) (Padrão: pdf)."
 
 msgid "err_type_invalid"
-msgstr "o argumento '--type' deve ser 'pdf'."
+msgstr "o argumento '--type' deve ser 'pdf', 'docx' ou 'ocr'."
 
 msgid "cli_dump_help"
 msgstr "Exporta o texto bruto extraído de um arquivo (separado por blocos de página/unidade) para o console."
@@ -219,4 +219,20 @@ msgstr "Erro: Arquivo alvo do dump não encontrado: {file_path}"
 
 msgid "err_dump_read"
 msgstr "Erro: Falha ao extrair texto do arquivo alvo: {error}"
+
+msgid "cli_config_help"
+msgstr "Caminho para um arquivo de configuração TOML ou JSON com as configurações do programa."
+
+msgid "err_config_toml_parse"
+msgstr "Erro ao analisar o arquivo de configuração TOML: {error}"
+
+msgid "err_config_json_parse"
+msgstr "Erro ao analisar o arquivo de configuração JSON: {error}"
+
+msgid "err_config_read"
+msgstr "Erro ao ler o arquivo de configuração: {error}"
+
+msgid "err_config_not_found"
+msgstr "Arquivo de configuração não encontrado: {file_path}"
+
 

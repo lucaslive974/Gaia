@@ -345,3 +345,159 @@ def test_parse_and_build_options_dump():
     assert options.BASE_PATH == ""
 
 
+def test_detect_config_format():
+    assert CliHelper._detect_config_format("settings.toml") == "toml"
+    assert CliHelper._detect_config_format("settings.TOML") == "toml"
+    assert CliHelper._detect_config_format("settings.json") == "json"
+    assert CliHelper._detect_config_format("settings.txt") == "json"
+
+
+def test_load_valid_toml_config_file(tmp_path):
+    toml_content = """
+    input_dir = "/toml/input"
+    output = "/toml/output.csv"
+    resume = true
+    recursive = true
+    regex = "/toml/regex.toml"
+    pages_per_unit = 3
+    lang = "pt"
+    type = "docx"
+    """
+    config_file = os.path.join(tmp_path, "config.toml")
+    with open(config_file, "w", encoding="utf-8") as f:
+        f.write(toml_content)
+
+    args = Namespace(
+        config=config_file,
+        input_dir=None,
+        output=None,
+        resume=None,
+        recursive=None,
+        regex=None,
+        test=None,
+        dump=None,
+        pages_per_unit=None,
+        lang=None,
+        type=None,
+    )
+    options = CliHelper.parse_and_build_options(args)
+    assert options.BASE_PATH == "/toml/input"
+    assert options.OUTPUT_CSV == "/toml/output.csv"
+    assert options.RESUME is True
+    assert options.RECURSIVE is True
+    assert options.REGEX_FILE == "/toml/regex.toml"
+    assert options.PAGES_PER_UNIT == 3
+    assert options.LANG == "pt"
+    assert options.PARSER_TYPE == "docx"
+
+
+def test_load_valid_json_config_file(tmp_path):
+    json_data = {
+        "input_dir": "/json/input",
+        "output": "/json/output.csv",
+        "resume": False,
+        "recursive": False,
+        "regex": "/json/regex.json",
+        "pages_per_unit": 2,
+        "lang": "en",
+        "type": "pdf",
+    }
+    config_file = os.path.join(tmp_path, "config.json")
+    with open(config_file, "w", encoding="utf-8") as f:
+        json.dump(json_data, f)
+
+    args = Namespace(
+        config=config_file,
+        input_dir=None,
+        output=None,
+        resume=None,
+        recursive=None,
+        regex=None,
+        test=None,
+        dump=None,
+        pages_per_unit=None,
+        lang=None,
+        type=None,
+    )
+    options = CliHelper.parse_and_build_options(args)
+    assert options.BASE_PATH == "/json/input"
+    assert options.OUTPUT_CSV == "/json/output.csv"
+    assert options.RESUME is False
+    assert options.RECURSIVE is False
+    assert options.REGEX_FILE == "/json/regex.json"
+    assert options.PAGES_PER_UNIT == 2
+    assert options.LANG == "en"
+    assert options.PARSER_TYPE == "pdf"
+
+
+def test_config_precedence(tmp_path):
+    toml_content = """
+    input_dir = "/toml/input"
+    output = "/toml/output.csv"
+    resume = true
+    recursive = true
+    pages_per_unit = 3
+    lang = "pt"
+    type = "docx"
+    """
+    config_file = os.path.join(tmp_path, "config.toml")
+    with open(config_file, "w", encoding="utf-8") as f:
+        f.write(toml_content)
+
+    # CLI explicitly overrides input_dir, output, and recursive,
+    # but leaves resume, pages_per_unit, and type as None (retaining config values)
+    args = Namespace(
+        config=config_file,
+        input_dir="/cli/override/input",
+        output="/cli/override/output.csv",
+        resume=None,
+        recursive=False,
+        regex="/dummy/regex.json",
+        test=None,
+        dump=None,
+        pages_per_unit=None,
+        lang=None,
+        type=None,
+    )
+    options = CliHelper.parse_and_build_options(args)
+    assert options.BASE_PATH == "/cli/override/input"  # CLI Wins
+    assert options.OUTPUT_CSV == "/cli/override/output.csv"  # CLI Wins
+    assert options.RECURSIVE is False  # CLI Wins
+    assert options.RESUME is True  # Config Wins
+    assert options.PAGES_PER_UNIT == 3  # Config Wins
+    assert options.LANG == "pt"  # Config Wins
+    assert options.PARSER_TYPE == "docx"  # Config Wins
+
+
+def test_config_file_errors(tmp_path):
+    # 1. Non-existent file
+    args = Namespace(
+        config="/nonexistent/path.toml",
+    )
+    with pytest.raises(FileNotFoundError):
+        CliHelper.parse_and_build_options(args)
+
+    # 2. Malformed TOML file
+    bad_toml = os.path.join(tmp_path, "bad.toml")
+    with open(bad_toml, "w", encoding="utf-8") as f:
+        f.write("invalid = [toml")
+    args = Namespace(
+        config=bad_toml,
+    )
+    with pytest.raises(ValueError) as exc:
+        CliHelper.parse_and_build_options(args)
+    assert "toml" in str(exc.value).lower()
+
+    # 3. Malformed JSON file
+    bad_json = os.path.join(tmp_path, "bad.json")
+    with open(bad_json, "w", encoding="utf-8") as f:
+        f.write("invalid json")
+    args = Namespace(
+        config=bad_json,
+    )
+    with pytest.raises(ValueError) as exc:
+        CliHelper.parse_and_build_options(args)
+    assert "json" in str(exc.value).lower()
+
+
+

@@ -203,10 +203,10 @@ msgid "ui_error"
 msgstr "🚨 ERROR"
 
 msgid "cli_type_help"
-msgstr "Set the built-in parser type to use (choices: pdf) (Default: pdf)."
+msgstr "Set the built-in parser type to use (choices: pdf, docx, ocr) (Default: pdf)."
 
 msgid "err_type_invalid"
-msgstr "the '--type' argument must be 'pdf'."
+msgstr "the '--type' argument must be 'pdf', 'docx', or 'ocr'."
 
 msgid "cli_dump_help"
 msgstr "Dump raw extracted text from a file (separated by page/unit blocks) to console."
@@ -219,4 +219,20 @@ msgstr "Error: Dump target file not found: {file_path}"
 
 msgid "err_dump_read"
 msgstr "Error: Failed to extract text from target file: {error}"
+
+msgid "cli_config_help"
+msgstr "Path to a TOML or JSON configuration file with program settings."
+
+msgid "err_config_toml_parse"
+msgstr "Error parsing TOML configuration file: {error}"
+
+msgid "err_config_json_parse"
+msgstr "Error parsing JSON configuration file: {error}"
+
+msgid "err_config_read"
+msgstr "Error reading configuration file: {error}"
+
+msgid "err_config_not_found"
+msgstr "Configuration file not found: {file_path}"
+
 

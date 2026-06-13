@@ -1,4 +1,6 @@
 import sys
+import os
+import json
 import argparse
 from pydocstructurer.options import Options
 from pydocstructurer.cli.cli_helper import CliHelper
@@ -7,18 +9,46 @@ from pydocstructurer.i18n import _, set_lang
 
 
 def main():
-    # Pre-parse lang flag from sys.argv
+    # Pre-parse lang or config flag from sys.argv
     lang = "en"
+    config_path = None
     for idx, arg in enumerate(sys.argv):
-        if arg in ("--lang", "-l"):
+        if arg in ("--config", "-c"):
+            if idx + 1 < len(sys.argv):
+                config_path = sys.argv[idx + 1]
+        elif arg in ("--lang", "-l"):
             if idx + 1 < len(sys.argv):
                 lang = sys.argv[idx + 1]
-            break
+
+    if config_path and os.path.exists(config_path):
+        try:
+            ext = os.path.splitext(config_path)[1].lower()
+            if ext == ".toml":
+                import tomllib
+                with open(config_path, "rb") as f:
+                    config_data = tomllib.load(f)
+            else:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config_data = json.load(f)
+
+            if "--lang" not in sys.argv and "-l" not in sys.argv:
+                if "lang" in config_data:
+                    lang = config_data["lang"]
+        except Exception:
+            pass
+
     if lang in ("en", "pt"):
         set_lang(lang)
 
     parser = argparse.ArgumentParser(
         description=_("cli_desc")
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        default=None,
+        help=_("cli_config_help"),
     )
     parser.add_argument(
         "input_dir",
@@ -31,18 +61,20 @@ def main():
         "-o",
         "--output",
         type=str,
-        default=Options.OUTPUT_CSV,
+        default=None,
         help=_("cli_output_help", default_csv=Options.OUTPUT_CSV),
     )
     parser.add_argument(
         "--resume",
         action="store_true",
+        default=None,
         help=_("cli_resume_help"),
     )
     parser.add_argument(
         "-r",
         "--recursive",
         action="store_true",
+        default=None,
         help=_("cli_recursive_help"),
     )
     parser.add_argument(
@@ -72,7 +104,7 @@ def main():
         "-p",
         "--pages-per-unit",
         type=int,
-        default=1,
+        default=None,
         help=_("cli_pages_per_unit_help"),
     )
     parser.add_argument(
@@ -80,16 +112,17 @@ def main():
         "--lang",
         type=str,
         choices=["en", "pt"],
-        default="en",
+        default=None,
         help=_("cli_lang_help"),
     )
     parser.add_argument(
         "--type",
         type=str,
         choices=["pdf", "docx", "ocr"],
-        default="pdf",
+        default=None,
         help=_("cli_type_help"),
     )
+
 
     args = parser.parse_args()
 
