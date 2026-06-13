@@ -1,6 +1,4 @@
 import sys
-import os
-import json
 import argparse
 from pydocstructurer.options import Options
 from pydocstructurer.cli.cli_helper import CliHelper
@@ -9,40 +7,18 @@ from pydocstructurer.i18n import _, set_lang
 
 
 def main():
-    # Pre-parse lang or config flag from sys.argv
+    # Pre-parse lang flag from sys.argv
     lang = "en"
-    config_path = None
     for idx, arg in enumerate(sys.argv):
-        if arg in ("--config", "-c"):
-            if idx + 1 < len(sys.argv):
-                config_path = sys.argv[idx + 1]
-        elif arg in ("--lang", "-l"):
+        if arg in ("--lang", "-l"):
             if idx + 1 < len(sys.argv):
                 lang = sys.argv[idx + 1]
-
-    if config_path and os.path.exists(config_path):
-        try:
-            ext = os.path.splitext(config_path)[1].lower()
-            if ext == ".toml":
-                import tomllib
-                with open(config_path, "rb") as f:
-                    config_data = tomllib.load(f)
-            else:
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config_data = json.load(f)
-
-            if "--lang" not in sys.argv and "-l" not in sys.argv:
-                if "lang" in config_data:
-                    lang = config_data["lang"]
-        except Exception:
-            pass
+            break
 
     if lang in ("en", "pt"):
         set_lang(lang)
 
-    parser = argparse.ArgumentParser(
-        description=_("cli_desc")
-    )
+    parser = argparse.ArgumentParser(description=_("cli_desc"))
     parser.add_argument(
         "-c",
         "--config",
@@ -123,7 +99,6 @@ def main():
         help=_("cli_type_help"),
     )
 
-
     args = parser.parse_args()
 
     try:
@@ -133,9 +108,11 @@ def main():
 
     if options.DUMP_FILE:
         from pydocstructurer.cli.terminal_ui import run_dump_mode
+
         run_dump_mode(options)
     elif options.TEST_FILE:
         from pydocstructurer.cli.terminal_ui import run_test_mode
+
         run_test_mode(options)
     else:
         run_with_ui(options)
@@ -143,5 +120,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

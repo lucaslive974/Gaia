@@ -360,7 +360,6 @@ def test_load_valid_toml_config_file(tmp_path):
     recursive = true
     regex = "/toml/regex.toml"
     pages_per_unit = 3
-    lang = "pt"
     type = "docx"
     """
     config_file = os.path.join(tmp_path, "config.toml")
@@ -387,7 +386,7 @@ def test_load_valid_toml_config_file(tmp_path):
     assert options.RECURSIVE is True
     assert options.REGEX_FILE == "/toml/regex.toml"
     assert options.PAGES_PER_UNIT == 3
-    assert options.LANG == "pt"
+    assert options.LANG == "en"
     assert options.PARSER_TYPE == "docx"
 
 
@@ -399,7 +398,6 @@ def test_load_valid_json_config_file(tmp_path):
         "recursive": False,
         "regex": "/json/regex.json",
         "pages_per_unit": 2,
-        "lang": "en",
         "type": "pdf",
     }
     config_file = os.path.join(tmp_path, "config.json")
@@ -437,7 +435,6 @@ def test_config_precedence(tmp_path):
     resume = true
     recursive = true
     pages_per_unit = 3
-    lang = "pt"
     type = "docx"
     """
     config_file = os.path.join(tmp_path, "config.toml")
@@ -456,7 +453,7 @@ def test_config_precedence(tmp_path):
         test=None,
         dump=None,
         pages_per_unit=None,
-        lang=None,
+        lang="pt",
         type=None,
     )
     options = CliHelper.parse_and_build_options(args)
@@ -465,8 +462,9 @@ def test_config_precedence(tmp_path):
     assert options.RECURSIVE is False  # CLI Wins
     assert options.RESUME is True  # Config Wins
     assert options.PAGES_PER_UNIT == 3  # Config Wins
-    assert options.LANG == "pt"  # Config Wins
+    assert options.LANG == "pt"  # CLI Wins (since it cannot be set in config)
     assert options.PARSER_TYPE == "docx"  # Config Wins
+
 
 
 def test_config_file_errors(tmp_path):

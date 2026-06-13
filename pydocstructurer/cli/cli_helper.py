@@ -56,7 +56,6 @@ class CliHelper:
             "recursive": "RECURSIVE",
             "regex": "REGEX_FILE",
             "pages_per_unit": "PAGES_PER_UNIT",
-            "lang": "LANG",
             "type": "PARSER_TYPE",
         }
 
@@ -70,10 +69,8 @@ class CliHelper:
                 if opt_attr and v is not None:
                     setattr(options, opt_attr, v)
 
-        # 2. Set and validate language. Precedence: CLI > Config File > Default
+        # 2. Set and validate language first so errors are translated
         lang = getattr(args, "lang", None)
-        if lang is None:
-            lang = config_data.get("lang")
         if isinstance(lang, str):
             if lang not in ("en", "pt"):
                 raise ValueError(_("err_lang_invalid"))
@@ -84,6 +81,7 @@ class CliHelper:
         for attr in Options.list_attr():
             if attr[0] == "lang":
                 continue
+
             if hasattr(args, attr[0]):
                 val = getattr(args, attr[0])
                 if val is not None:
