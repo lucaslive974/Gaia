@@ -284,8 +284,8 @@ def test_load_save_clear_resume_state():
 
 
 def test_setattr_validation_parser_type(fresh_options):
-    with pytest.raises(ValueError):
-        fresh_options.PARSER_TYPE = "docx"
+    fresh_options.PARSER_TYPE = "docx"
+    assert fresh_options.PARSER_TYPE == "docx"
     with pytest.raises(ValueError):
         fresh_options.PARSER_TYPE = "invalid"
     fresh_options.PARSER_TYPE = "pdf"
@@ -310,7 +310,7 @@ def test_parse_and_build_options_parser_type():
 
 def test_parser_factory():
     from pydocstructurer.parser import ParserFactory, ParserType
-    from pydocstructurer.pdf_parser import PdfParser
+    from pydocstructurer.parsers import PdfParser
 
     # String input
     parser_str = ParserFactory.create("pdf")

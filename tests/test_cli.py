@@ -81,7 +81,7 @@ def test_cli_parameterless_resume_success(
 @patch("pydocstructurer.pydocstructurer.os.path.exists")
 @patch("pydocstructurer.pydocstructurer.os.path.isdir")
 @patch("pydocstructurer.pydocstructurer.NativeRegexEngine")
-@patch("pydocstructurer.pdf_parser.PdfParser")
+@patch("pydocstructurer.parsers.PdfParser")
 @patch("pydocstructurer.pydocstructurer.DefaultOutputStream")
 def test_app_controller_validations_and_run(
     mock_output_stream, mock_parser_class, mock_regex_engine, mock_isdir, mock_exists
@@ -114,7 +114,7 @@ def test_app_controller_validations_and_run(
 @patch("pydocstructurer.pydocstructurer.os.path.isdir")
 @patch("pydocstructurer.pydocstructurer.os.remove")
 @patch("pydocstructurer.pydocstructurer.NativeRegexEngine")
-@patch("pydocstructurer.pdf_parser.PdfParser")
+@patch("pydocstructurer.parsers.PdfParser")
 def test_app_controller_log_deletion(
     mock_parser_class, mock_regex_engine, mock_remove, mock_isdir, mock_exists
 ):
@@ -152,7 +152,7 @@ def test_app_controller_log_deletion(
 @patch("pydocstructurer.pydocstructurer.os.path.isfile")
 @patch("pydocstructurer.pydocstructurer.os.path.isdir")
 @patch("pydocstructurer.pydocstructurer.NativeRegexEngine")
-@patch("pydocstructurer.pdf_parser.PdfParser")
+@patch("pydocstructurer.parsers.PdfParser")
 @patch("pydocstructurer.pydocstructurer.DefaultOutputStream")
 def test_gaia_run_with_direct_file(
     mock_output_stream, mock_parser_class, mock_regex_engine, mock_isdir, mock_isfile, mock_exists, mock_makedirs

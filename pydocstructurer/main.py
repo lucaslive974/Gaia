@@ -86,7 +86,7 @@ def main():
     parser.add_argument(
         "--type",
         type=str,
-        choices=["pdf"],
+        choices=["pdf", "docx"],
         default="pdf",
         help=_("cli_type_help"),
     )

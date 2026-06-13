@@ -33,16 +33,23 @@ class Parser(ABC):
 
 class ParserType(Enum):
     PDF = "pdf"
+    DOCX = "docx"
 
 
 class ParserFactory:
     @staticmethod
     def _create_pdf_parser() -> Parser:
-        from pydocstructurer.pdf_parser import PdfParser
+        from pydocstructurer.parsers import PdfParser
         return PdfParser()
+
+    @staticmethod
+    def _create_docx_parser() -> Parser:
+        from pydocstructurer.parsers import DocxParser
+        return DocxParser()
 
     _CREATORS = {
         "pdf": _create_pdf_parser,
+        "docx": _create_docx_parser,
     }
 
     @staticmethod
