@@ -1,9 +1,9 @@
 import sys
 import argparse
-from gaia.options import Options
-from gaia.cli.cli_helper import CliHelper
-from gaia.cli.terminal_ui import run_with_ui
-from gaia.i18n import _, set_lang
+from pydocstruct.options import Options
+from pydocstruct.cli.cli_helper import CliHelper
+from pydocstruct.cli.terminal_ui import run_with_ui
+from pydocstruct.i18n import _, set_lang
 
 
 def main():
@@ -61,6 +61,14 @@ def main():
         help=_("cli_test_help"),
     )
     parser.add_argument(
+        "-d",
+        "--dump",
+        type=str,
+        default=None,
+        metavar="FILE_PATH",
+        help=_("cli_dump_help"),
+    )
+    parser.add_argument(
         "-p",
         "--pages-per-unit",
         type=int,
@@ -75,6 +83,13 @@ def main():
         default="en",
         help=_("cli_lang_help"),
     )
+    parser.add_argument(
+        "--type",
+        type=str,
+        choices=["pdf"],
+        default="pdf",
+        help=_("cli_type_help"),
+    )
 
     args = parser.parse_args()
 
@@ -83,8 +98,11 @@ def main():
     except ValueError as e:
         parser.error(str(e))
 
-    if options.TEST_FILE:
-        from gaia.cli.terminal_ui import run_test_mode
+    if options.DUMP_FILE:
+        from pydocstruct.cli.terminal_ui import run_dump_mode
+        run_dump_mode(options)
+    elif options.TEST_FILE:
+        from pydocstruct.cli.terminal_ui import run_test_mode
         run_test_mode(options)
     else:
         run_with_ui(options)

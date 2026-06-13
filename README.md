@@ -1,18 +1,20 @@
-# Gaia — Intelligent PDF Data Extractor (CLI & Programmatic Library)
+# Gaia — Generalized Document Data Extractor (CLI & Programmatic Library)
 
-**Gaia** is a versatile and robust PDF data extraction system designed to retrieve structured key-value pair (KVP) records from PDF documents. It is packaged both as a **programmatic Python library** (`gaia`) and a feature-rich **command-line tool (CLI)**.
+**Gaia** (packaged as `pydocstruct`) is a versatile and robust document data extraction system designed to retrieve structured key-value pair (KVP) records from text and files. It is packaged both as a **programmatic Python library** (`pydocstruct`) and a feature-rich **command-line tool (CLI)**.
 
-Gaia uses a modular architecture using fast native text extraction to ensure high speed and fidelity.
+Gaia uses a modular architecture using fast native text extraction and an extensible parser interface to ensure high speed, fidelity, and future adaptability to new file formats.
 
 ---
 
 ## 🚀 Key Features
 
 * **Dual-Purpose Design**:
-  * **Programmatic Library**: Install `gaia-pdf-parser` and integrate `OcrParser`, `RegexEngine`, and other components directly into your own codebase.
+  * **Programmatic Library**: Integrate the `RegexEngine`, built-in or custom `Parser` components, and observers directly into your own codebase.
   * **Command-Line Interface**: Run parsing pipelines directly from your shell with dynamic dashboards, detailed progress tracking, and configurable execution.
+* **Extensible Parser Architecture**:
+  * Fully decoupled document discovery and data extraction. Programmatic users can write and inject custom parsers (e.g., Docx, OCR, XML) by subclassing the abstract `Parser` class.
 * **Fast Native PDF Processing**:
-  * Employs fast native layout-based text extraction (via `pypdf`).
+  * Employs fast native layout-based PDF text extraction (via `pypdf`) as a built-in default parser.
 * **Dynamic Terminal Interface (TUI)**:
   * Real-time metrics rendered via `rich.live`.
   * Live status dashboard featuring counters for processed files, pages, failures, and a progress bar with numerical Estimated Time of Arrival (**ETA**).
@@ -33,23 +35,24 @@ Gaia uses a modular architecture using fast native text extraction to ensure hig
 
 ```text
 Gaia/
-├── gaia/
+├── pydocstruct/
 │   ├── __init__.py          # Main entry points exposing library API classes
-│   ├── __main__.py          # Main entry point for python -m gaia
+│   ├── __main__.py          # Main entry point for python -m pydocstruct
 │   ├── cli/
 │   │   ├── __init__.py      # CLI subpackage initialization
 │   │   ├── cli_helper.py    # CLI arguments parser and prevalidation helper
 │   │   └── terminal_ui.py   # Rich TUI display and keyboard input handling
-│   ├── gaia.py              # Main global program class (Gaia)
+│   ├── pydocstruct.py       # Main global program class (PyDocStruct, codename: Gaia)
 │   ├── extraction_session.py# Session progress tracking & state serialization
 │   ├── options.py           # Config options container class & parameter validations
-│   ├── i18n.py              # Internationalization & gettext wrapper
+│   ├── parser.py            # Abstract Parser base, ParserType Enum, and ParserFactory
+│   ├── i18n.py              # Gettext wrappers and language initialization
 │   ├── locale/              # Compiled translations directory
 │   │   ├── en/LC_MESSAGES/messages.mo
 │   │   └── pt/LC_MESSAGES/messages.mo
 │   ├── observer.py          # Progress notification interface (observer pattern)
 │   ├── output_stream.py     # Output stream interfaces (OutputStream, CsvWriteStream, DefaultOutputStream)
-│   ├── pdf_parser.py        # Unified PDF parser and extraction engine (PdfParser, NativePdfParser)
+│   ├── pdf_parser.py        # Native PDF Parser implementation
 │   ├── regex_engine.py      # Abstracted matching engine
 │   └── main.py              # CLI entry point implementation
 ├── pyproject.toml           # Setuptools PEP 621 packaging definitions
@@ -99,7 +102,7 @@ You can integrate Gaia directly into your Python scripts.
 To execute the entire extraction pipeline on a file or directory:
 
 ```python
-from gaia import Gaia, Options
+from pydocstruct import PyDocStruct, Options
 
 # 1. Configure options programmatically
 options = Options()
@@ -109,8 +112,41 @@ options.OUTPUT_CSV = "custom_output.csv"
 options.PAGES_PER_UNIT = 1
 
 # 2. Run the orchestrator
-controller = Gaia(options)
+controller = PyDocStruct(options)
 success = controller.run()
+```
+
+#### Creating & Injecting a Custom Parser
+
+You can supply your own extraction parser format by subclassing the abstract base class `Parser`:
+
+```python
+from typing import Generator
+from pydocstruct import PyDocStruct, Options, Parser, ExtractionSession
+
+class CustomTxtParser(Parser):
+    def accepts(self, file_path: str) -> bool:
+        # Define what files this parser accepts
+        return file_path.lower().endswith(".txt")
+
+    def process_file(
+        self,
+        file_path: str,
+        session: ExtractionSession | None = None,
+        pages_per_unit: int = 1
+    ) -> Generator[tuple[int, int, str], None, None]:
+        # Process the file and yield: (unit_index, total_units, content_text)
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        yield 1, 1, content
+
+# Inject it into PyDocStruct orchestrator
+options = Options()
+options.BASE_PATH = "path/to/text/files"
+options.REGEX_FILE = "rules.json"
+
+controller = PyDocStruct(options, parser=CustomTxtParser())
+controller.run()
 ```
 
 #### Using Parser and Engine Components Directly
@@ -118,7 +154,7 @@ success = controller.run()
 To parse files manually and match patterns page-by-page:
 
 ```python
-from gaia import NativePdfParser, NativeRegexEngine
+from pydocstruct import PdfParser, NativeRegexEngine
 
 # 1. Setup the Regex engine with rules in-memory (dictionary)
 regex_rules = {
@@ -137,7 +173,7 @@ engine = NativeRegexEngine(regex_rules)
 # engine = NativeRegexEngine.from_file("path/to/rules.json")
 
 # 2. Setup the parser
-parser = NativePdfParser()
+parser = PdfParser()
 
 # 3. Process files programmatically
 # The parser yields raw text segments for each page/unit.
@@ -155,39 +191,40 @@ Gaia can be executed directly as a global shell command, as a python module run,
 
 ```bash
 # 1. As a global command (after package installation)
-gaia <input_dir> [options]
+pydocstruct <input_dir> [options]
 
 # 2. As a python module run (from the repository root)
-python -m gaia <input_dir> [options]
+python -m pydocstruct <input_dir> [options]
 ```
 
 #### Positional Arguments
-* `<input_dir>`: Path to the directory containing the PDF files to process.
+* `<input_dir>`: Path to the directory containing files to process.
 
 #### Options
 * `-o`, `--output` `<path>`: Custom output CSV file path (Default: `output.csv` in your working directory).
 * `-g`, `--regex` `<path>`: Path to a JSON file containing customized regex extraction rules.
-* `-r`, `--recursive`: Search for PDF files recursively within subdirectories.
+* `-r`, `--recursive`: Search for files recursively within subdirectories.
 * `--resume`: Resume processing using checkpoint data from `.gaia_resume.json`.
-* `-t`, `--test` `<file_path>`: Test your regex rules on the first page of the provided PDF.
-* `-p`, `--pages-per-unit` `<int>`: The number of pages grouped together as a single block for extraction matching (Default: `1`).
+* `-t`, `--test` `<file_path>`: Test your regex rules on the first page of the provided file.
+* `-p`, `--pages-per-unit` `<int>`: The number of pages/chunks grouped together as a single block for extraction matching (Default: `1`).
 * `-l`, `--lang` `{"en", "pt"}`: Force the interface language to English or Portuguese (Default: `en`).
+* `--type` `{"pdf"}`: Define the built-in parser type to use (Default: `pdf`).
 
 #### Examples
 
 * **Basic processing run**:
   ```bash
-  gaia /path/to/pdfs -g rules.json
+  pydocstruct /path/to/pdfs -g rules.json
   ```
 
 * **Resume an interrupted run**:
   ```bash
-  gaia /path/to/pdfs --resume
+  pydocstruct /path/to/pdfs --resume
   ```
 
 * **Test matching logic on a single file**:
   ```bash
-  gaia -t sample.pdf -g rules.json
+  pydocstruct -t sample.pdf -g rules.json
   ```
 
 ---

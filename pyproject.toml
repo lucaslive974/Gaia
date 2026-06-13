@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gaia-pdf-parser"
+name = "pydocstruct"
 version = "1.0.3"
-description = "General-purpose PDF to CSV data extraction library."
+description = "General-purpose document to CSV data extraction library."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -20,11 +20,11 @@ dependencies = [
 ]
 
 [project.scripts]
-gaia = "gaia.main:main"
+pydocstruct = "pydocstruct.main:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["gaia*"]
+include = ["pydocstruct*"]
 
 [project.optional-dependencies]
 dev = [
@@ -32,7 +32,7 @@ dev = [
 ]
 
 [tool.setuptools.package-data]
-gaia = ["locale/**/*.po", "locale/**/*.mo"]
+pydocstruct = ["locale/**/*.po", "locale/**/*.mo"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

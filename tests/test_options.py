@@ -3,10 +3,10 @@ import json
 from unittest.mock import patch, MagicMock
 from argparse import Namespace
 import pytest
-from gaia.options import Options
-from gaia.options import options as global_options
-from gaia.cli.cli_helper import CliHelper
-from gaia.extraction_session import ExtractionSession
+from pydocstruct.options import Options
+from pydocstruct.options import options as global_options
+from pydocstruct.cli.cli_helper import CliHelper
+from pydocstruct.extraction_session import ExtractionSession
 
 
 @pytest.fixture
@@ -21,9 +21,11 @@ def test_default_values(fresh_options):
     assert fresh_options.RESUME is False
     assert fresh_options.REGEX_FILE is None
     assert fresh_options.TEST_FILE is None
+    assert fresh_options.DUMP_FILE is None
     assert fresh_options.RECURSIVE is False
     assert fresh_options.PAGES_PER_UNIT == 1
     assert fresh_options.LANG == "en"
+    assert fresh_options.PARSER_TYPE == "pdf"
 
 
 def test_getitem_success(fresh_options):
@@ -89,6 +91,8 @@ def test_list_attr(fresh_options):
     assert ("output", "OUTPUT_CSV") in attrs
     assert ("resume", "RESUME") in attrs
     assert ("lang", "LANG") in attrs
+    assert ("type", "PARSER_TYPE") in attrs
+    assert ("dump", "DUMP_FILE") in attrs
 
 
 def test_parse_and_build_options_all_fields():
@@ -157,7 +161,7 @@ def test_parse_and_build_options_value_errors():
         CliHelper.parse_and_build_options(args)
 
     # Scenario 2: missing input_dir, resume = True but no state file -> should raise ValueError
-    with patch("gaia.extraction_session.ExtractionSession.load_state", return_value=None):
+    with patch("pydocstruct.extraction_session.ExtractionSession.load_state", return_value=None):
         args = Namespace(
             input_dir=None, resume=True, output="/my/output.csv", regex="/my/regex.json"
         )
@@ -242,13 +246,13 @@ def test_load_save_clear_resume_state():
     session.failed_pages = 2
     session.total_pages = 12
 
-    with patch("gaia.extraction_session.open", create=True) as mock_open:
+    with patch("pydocstruct.extraction_session.open", create=True) as mock_open:
         session.save_state()
         mock_open.assert_any_call(state_file_cwd, "w", encoding="utf-8")
         mock_open.assert_any_call(state_file_input, "w", encoding="utf-8")
 
-    with patch("gaia.extraction_session.os.path.exists") as mock_exists, patch(
-        "gaia.extraction_session.open", create=True
+    with patch("pydocstruct.extraction_session.os.path.exists") as mock_exists, patch(
+        "pydocstruct.extraction_session.open", create=True
     ) as mock_open:
         mock_exists.return_value = True
         mock_file = MagicMock()
@@ -270,10 +274,72 @@ def test_load_save_clear_resume_state():
         assert state["processed_files"] == ["file1.pdf"]
         assert state["regex_file"] == "/my/regex.json"
 
-    with patch("gaia.extraction_session.os.path.exists") as mock_exists, patch(
-        "gaia.extraction_session.os.remove"
+    with patch("pydocstruct.extraction_session.os.path.exists") as mock_exists, patch(
+        "pydocstruct.extraction_session.os.remove"
     ) as mock_remove:
         mock_exists.return_value = True
         session.clear_state()
         mock_remove.assert_any_call(state_file_cwd)
         mock_remove.assert_any_call(state_file_input)
+
+
+def test_setattr_validation_parser_type(fresh_options):
+    with pytest.raises(ValueError):
+        fresh_options.PARSER_TYPE = "docx"
+    with pytest.raises(ValueError):
+        fresh_options.PARSER_TYPE = "invalid"
+    fresh_options.PARSER_TYPE = "pdf"
+    assert fresh_options.PARSER_TYPE == "pdf"
+
+
+def test_parse_and_build_options_parser_type():
+    args = Namespace(
+        input_dir="/my/input",
+        output="/my/output.csv",
+        resume=False,
+        regex="/my/regex.json",
+        test=None,
+        recursive=False,
+        pages_per_unit=1,
+        lang="en",
+        type="pdf",
+    )
+    options = CliHelper.parse_and_build_options(args)
+    assert options.PARSER_TYPE == "pdf"
+
+
+def test_parser_factory():
+    from pydocstruct.parser import ParserFactory, ParserType
+    from pydocstruct.pdf_parser import PdfParser
+
+    # String input
+    parser_str = ParserFactory.create("pdf")
+    assert isinstance(parser_str, PdfParser)
+
+    # Enum input
+    parser_enum = ParserFactory.create(ParserType.PDF)
+    assert isinstance(parser_enum, PdfParser)
+
+    # Invalid input
+    with pytest.raises(ValueError):
+        ParserFactory.create("invalid")
+
+
+def test_parse_and_build_options_dump():
+    # Dump mode should bypass input_dir and regex validations
+    args = Namespace(
+        input_dir=None,
+        resume=False,
+        output="/my/output.csv",
+        regex=None,
+        test=None,
+        dump="/my/dump.pdf",
+        pages_per_unit=1,
+        lang="en",
+    )
+    options = CliHelper.parse_and_build_options(args)
+    assert options.DUMP_FILE == "/my/dump.pdf"
+    assert options.REGEX_FILE is None
+    assert options.BASE_PATH == ""
+
+

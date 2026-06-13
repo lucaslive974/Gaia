@@ -1,5 +1,5 @@
 import queue
-from gaia import QueueObserver
+from pydocstruct import QueueObserver
 
 
 def test_queue_observer_puts_events():

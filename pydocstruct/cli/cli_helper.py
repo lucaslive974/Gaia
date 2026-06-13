@@ -1,8 +1,8 @@
 import os
 from argparse import Namespace
-from gaia.options import Options
-from gaia.extraction_session import ExtractionSession
-from gaia.i18n import _, set_lang
+from pydocstruct.options import Options
+from pydocstruct.extraction_session import ExtractionSession
+from pydocstruct.i18n import _, set_lang
 
 
 class CliHelper:
@@ -19,8 +19,9 @@ class CliHelper:
             options.LANG = lang
 
         is_test = getattr(args, "test", None) is not None
+        is_dump = getattr(args, "dump", None) is not None
         # 1. Verify and autoload input_dir if resume is requested and it is missing
-        if not getattr(args, "input_dir", None) and not is_test:
+        if not getattr(args, "input_dir", None) and not is_test and not is_dump:
             if getattr(args, "resume", False):
                 state = ExtractionSession.load_state()
                 if state and state.get("input_dir"):
@@ -32,19 +33,20 @@ class CliHelper:
             else:
                 raise ValueError(_("err_input_dir_required"))
 
-        # 2. Check for required regex file if not resuming
-        if not getattr(args, "resume", False):
-            if not getattr(args, "regex", None):
-                raise ValueError(_("err_regex_required_normal"))
-        else:
-            # If resuming, load state to autoload regex if not explicitly passed
-            state = ExtractionSession.load_state(getattr(args, "input_dir", None))
-            if state and state.get("regex_file"):
-                args.regex = getattr(args, "regex", None) or state.get("regex_file")
+        # 2. Check for required regex file if not resuming and not in dump mode
+        if not is_dump:
+            if not getattr(args, "resume", False):
+                if not getattr(args, "regex", None):
+                    raise ValueError(_("err_regex_required_normal"))
+            else:
+                # If resuming, load state to autoload regex if not explicitly passed
+                state = ExtractionSession.load_state(getattr(args, "input_dir", None))
+                if state and state.get("regex_file"):
+                    args.regex = getattr(args, "regex", None) or state.get("regex_file")
 
-            # Still, we must have a regex file to resume
-            if not getattr(args, "regex", None):
-                raise ValueError(_("err_regex_required_resume"))
+                # Still, we must have a regex file to resume
+                if not getattr(args, "regex", None):
+                    raise ValueError(_("err_regex_required_resume"))
 
         # 3. Check pages_per_unit validation
         pages_per_unit = getattr(args, "pages_per_unit", None)

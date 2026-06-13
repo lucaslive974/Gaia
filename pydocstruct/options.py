@@ -1,5 +1,5 @@
 import os
-from gaia.i18n import _
+from pydocstruct.i18n import _
 
 
 class Options:
@@ -8,9 +8,11 @@ class Options:
     RESUME: bool = False
     REGEX_FILE: str | None = None
     TEST_FILE: str | None = None
+    DUMP_FILE: str | None = None
     RECURSIVE: bool = False
     PAGES_PER_UNIT: int = 1
     LANG: str = "en"
+    PARSER_TYPE: str = "pdf"
 
     def __getitem__(self, attr):
         try:
@@ -37,6 +39,11 @@ class Options:
         elif name == "LANG":
             if value not in ("en", "pt"):
                 raise ValueError(_("err_lang_invalid"))
+        elif name == "PARSER_TYPE":
+            from pydocstruct.parser import ParserType
+            valid_types = [item.value for item in ParserType]
+            if value not in valid_types:
+                raise ValueError(_("err_type_invalid"))
         super().__setattr__(name, value)
 
     @classmethod
@@ -47,9 +54,11 @@ class Options:
             ("resume", "RESUME"),
             ("regex", "REGEX_FILE"),
             ("test", "TEST_FILE"),
+            ("dump", "DUMP_FILE"),
             ("recursive", "RECURSIVE"),
             ("pages_per_unit", "PAGES_PER_UNIT"),
             ("lang", "LANG"),
+            ("type", "PARSER_TYPE"),
         ]
 
 

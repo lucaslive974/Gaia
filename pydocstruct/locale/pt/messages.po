@@ -5,7 +5,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 msgid "cli_desc"
-msgstr "Gaia/Atlas PDF Extractor - Ferramenta CLI de extração geral de dados de PDFs para CSV."
+msgstr "PyDocStruct (Codinome: Gaia) - Ferramenta CLI de extração geral de dados de documentos para CSV."
 
 msgid "cli_input_dir_help"
 msgstr "Caminho do diretório contendo os arquivos PDF a serem processados."
@@ -80,7 +80,7 @@ msgid "ui_pages_of"
 msgstr "Páginas de {filename}"
 
 msgid "ui_dashboard_title"
-msgstr "📊 Painel de Extração (Gaia)"
+msgstr "📊 Painel de Extração (PyDocStruct)"
 
 msgid "ui_processed_files"
 msgstr "📂 Arquivos Processados:"
@@ -137,7 +137,7 @@ msgid "ui_failed_log_saved"
 msgstr "O texto extraído das páginas com falha foi salvo em: {path}"
 
 msgid "test_title"
-msgstr "🧪 Gaia - Modo de Teste de Regex"
+msgstr "🧪 PyDocStruct - Modo de Teste de Regex"
 
 msgid "test_pdf_file"
 msgstr "Arquivo PDF:"
@@ -201,3 +201,22 @@ msgstr "de"
 
 msgid "ui_error"
 msgstr "🚨 ERRO"
+
+msgid "cli_type_help"
+msgstr "Define o tipo de parser embutido a ser usado (opções: pdf) (Padrão: pdf)."
+
+msgid "err_type_invalid"
+msgstr "o argumento '--type' deve ser 'pdf'."
+
+msgid "cli_dump_help"
+msgstr "Exporta o texto bruto extraído de um arquivo (separado por blocos de página/unidade) para o console."
+
+msgid "dump_title"
+msgstr "🔍 MODO DUMP DO PARSER"
+
+msgid "err_dump_file_not_found"
+msgstr "Erro: Arquivo alvo do dump não encontrado: {file_path}"
+
+msgid "err_dump_read"
+msgstr "Erro: Falha ao extrair texto do arquivo alvo: {error}"
+

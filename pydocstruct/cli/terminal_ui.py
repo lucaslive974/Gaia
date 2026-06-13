@@ -6,8 +6,8 @@ from rich.progress import Progress
 from rich.table import Table
 from rich.panel import Panel
 from rich.live import Live
-from gaia.observer import ExtractionObserver
-from gaia.i18n import _, get_lang
+from pydocstruct.observer import ExtractionObserver
+from pydocstruct.i18n import _, get_lang
 
 try:
     import termios
@@ -231,7 +231,7 @@ def print_summary_dashboard(
 
 
 def run_with_ui(options):
-    from gaia import Gaia, CsvWriteStream
+    from pydocstruct import PyDocStruct, CsvWriteStream
     import time
     from rich.progress import (
         SpinnerColumn,
@@ -252,7 +252,7 @@ def run_with_ui(options):
     )
     observer = ConsoleObserver(console, progress)
     output_stream = CsvWriteStream(options.OUTPUT_CSV)
-    controller = Gaia(options, observer=observer, output_stream=output_stream)
+    controller = PyDocStruct(options, observer=observer, output_stream=output_stream)
 
     start_time = time.perf_counter()
 
@@ -302,7 +302,7 @@ def run_test_mode(options):
     from rich.console import Console
     from rich.table import Table
     from rich.panel import Panel
-    from gaia import NativeRegexEngine, NativePdfParser
+    from pydocstruct import NativeRegexEngine, PdfParser
 
     console = Console()
     console.print(Panel(f"[bold green]{_('test_title')}[/bold green]", expand=False))
@@ -322,7 +322,7 @@ def run_test_mode(options):
 
     # 2. Extract First Page Text
     try:
-        parser = NativePdfParser()
+        parser = PdfParser()
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(
                 f"Arquivo PDF não encontrado: {pdf_path}"
@@ -402,3 +402,50 @@ def run_test_mode(options):
     else:
         console.print(f"\n[bold green]{_('test_all_matched')}[/bold green]")
         sys.exit(0)
+
+
+def run_dump_mode(options):
+    import os
+    import sys
+    from rich.console import Console
+    from rich.panel import Panel
+    from pydocstruct.parser import ParserFactory
+    from pydocstruct.i18n import _
+
+    console = Console()
+    console.print(Panel(f"[bold green]{_('dump_title')}[/bold green]", expand=False))
+
+    file_path = options.DUMP_FILE
+
+    if not os.path.exists(file_path):
+        console.print(f"\n[bold red]{_('err_dump_file_not_found', file_path=file_path)}[/bold red]")
+        sys.exit(1)
+
+    try:
+        parser = ParserFactory.create(options.PARSER_TYPE)
+    except Exception as e:
+        console.print(f"\n[bold red]Error instantiating parser: {e}[/bold red]")
+        sys.exit(1)
+
+    try:
+        has_units = False
+        for unit_index, total_units, unit_text in parser.process_file(
+            file_path, session=None, pages_per_unit=options.PAGES_PER_UNIT
+        ):
+            has_units = True
+            console.print(
+                f"\n[bold yellow]--- UNIT {unit_index} OF {total_units} ---[/bold yellow]\n"
+            )
+            console.print(unit_text)
+            break
+
+        if not has_units:
+            console.print(f"\n[bold red]No text extracted from file.[/bold red]")
+            sys.exit(1)
+
+    except Exception as e:
+        console.print(f"\n[bold red]{_('err_dump_read', error=e)}[/bold red]")
+        sys.exit(1)
+
+    sys.exit(0)
+
