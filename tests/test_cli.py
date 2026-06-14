@@ -24,6 +24,9 @@ class TestCliMainOrchestration:
         mock_options.TEST_FILE = None
         mock_cli_helper.parse_and_build_options.return_value = mock_options
 
+        mock_transform = MagicMock()
+        mock_cli_helper.build_transform.return_value = mock_transform
+
         main()
 
         mock_parse_lang.assert_called_once_with(["main.py", "--lang", "en"])
@@ -33,7 +36,10 @@ class TestCliMainOrchestration:
         mock_cli_helper.parse_and_build_options.assert_called_once_with(
             mock_parser.parse_args.return_value
         )
-        mock_run_with_ui.assert_called_once_with(mock_options)
+        mock_cli_helper.build_transform.assert_called_once_with(
+            mock_parser.parse_args.return_value, mock_options
+        )
+        mock_run_with_ui.assert_called_once_with(mock_options, mock_transform)
 
     @patch("pyingestion.cli.terminal_ui.run_dump_mode")
     @patch("pyingestion.main.CliHelper")
@@ -61,9 +67,12 @@ class TestCliMainOrchestration:
         mock_options.TEST_FILE = "/path/to/test.pdf"
         mock_cli_helper.parse_and_build_options.return_value = mock_options
 
+        mock_transform = MagicMock()
+        mock_cli_helper.build_transform.return_value = mock_transform
+
         main()
 
-        mock_run_test_mode.assert_called_once_with(mock_options)
+        mock_run_test_mode.assert_called_once_with(mock_options, mock_transform)
 
     @patch("pyingestion.main.CliHelper")
     def test_main_handles_value_error(self, mock_cli_helper):
@@ -83,26 +92,22 @@ class TestCliMainOrchestration:
 
 @patch("pyingestion.pyingestion.os.path.exists")
 @patch("pyingestion.pyingestion.os.path.isdir")
-@patch("pyingestion.pyingestion.NativeRegexEngine")
-@patch("pyingestion.parsers.PdfParser")
 @patch("pyingestion.pyingestion.DefaultOutputStream")
 def test_app_controller_validations_and_run(
-    mock_output_stream, mock_parser_class, mock_regex_engine, mock_isdir, mock_exists
+    mock_output_stream, mock_isdir, mock_exists
 ):
     mock_exists.return_value = True
     mock_isdir.return_value = True
-
-    mock_parser_instance = MagicMock()
-    mock_parser_class.return_value = mock_parser_instance
 
     options = Options()
     options.BASE_PATH = "/dummy/input"
     options.OUTPUT_CSV = "/dummy/output.csv"
     options.RESUME = True
-    options.REGEX_FILE = "/dummy/regex.json"
 
     mock_observer = MagicMock()
-    controller = Gaia(options, observer=mock_observer)
+    mock_transform = MagicMock()
+    mock_transform.config_file = "/dummy/regex.json"
+    controller = Gaia(options, transform_stream=mock_transform, observer=mock_observer)
 
     # mock os.listdir to return empty list so it finishes quickly
     with patch("pyingestion.pyingestion.os.listdir", return_value=[]):
@@ -116,10 +121,8 @@ def test_app_controller_validations_and_run(
 @patch("pyingestion.pyingestion.os.path.exists")
 @patch("pyingestion.pyingestion.os.path.isdir")
 @patch("pyingestion.pyingestion.os.remove")
-@patch("pyingestion.pyingestion.NativeRegexEngine")
-@patch("pyingestion.parsers.PdfParser")
 def test_app_controller_log_deletion(
-    mock_parser_class, mock_regex_engine, mock_remove, mock_isdir, mock_exists
+    mock_remove, mock_isdir, mock_exists
 ):
     # Scenario 1: Resume is False -> Should remove gaia_errors.log if it exists
     mock_exists.side_effect = lambda p: (
@@ -131,10 +134,10 @@ def test_app_controller_log_deletion(
     options.BASE_PATH = "/dummy/input"
     options.OUTPUT_CSV = "/dummy/output.csv"
     options.RESUME = False
-    options.REGEX_FILE = "/dummy/regex.json"
 
     mock_observer = MagicMock()
-    controller = Gaia(options, observer=mock_observer)
+    mock_transform = MagicMock()
+    controller = Gaia(options, transform_stream=mock_transform, observer=mock_observer)
 
     with patch("pyingestion.pyingestion.os.listdir", return_value=[]):
         controller.run(options)
@@ -152,13 +155,11 @@ def test_app_controller_log_deletion(
 @patch("pyingestion.pyingestion.os.path.exists")
 @patch("pyingestion.pyingestion.os.path.isfile")
 @patch("pyingestion.pyingestion.os.path.isdir")
-@patch("pyingestion.pyingestion.NativeRegexEngine")
 @patch("pyingestion.parsers.PdfParser")
 @patch("pyingestion.pyingestion.DefaultOutputStream")
 def test_gaia_run_with_direct_file(
     mock_output_stream,
     mock_parser_class,
-    mock_regex_engine,
     mock_isdir,
     mock_isfile,
     mock_exists,
@@ -176,11 +177,12 @@ def test_gaia_run_with_direct_file(
     options.BASE_PATH = "/dummy/input/file.pdf"
     options.OUTPUT_CSV = "/dummy/output.csv"
     options.RESUME = False
-    options.REGEX_FILE = "/dummy/regex.json"
 
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
-    controller = Gaia(options, observer=mock_observer)
+    mock_transform = MagicMock()
+    mock_transform.transform.return_value = {"field": "value"}
+    controller = Gaia(options, transform_stream=mock_transform, observer=mock_observer)
 
     success = controller.run(options)
     assert success is True

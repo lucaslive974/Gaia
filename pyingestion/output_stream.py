@@ -1,13 +1,9 @@
 import csv
 from os import path
-from abc import ABC, abstractmethod
 from pyingestion.options import options
+from pyingestion.stream import OutputStream
 
 
-class OutputStream(ABC):
-    @abstractmethod
-    def write(self, content: dict[str, str]):
-        pass
 
 
 class CsvWriteStream(OutputStream):

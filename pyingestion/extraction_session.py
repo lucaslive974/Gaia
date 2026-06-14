@@ -17,7 +17,7 @@ class ExtractionSession:
         self.processed_files: list[str] = []
         self.input_dir: str | None = None
         self.output_file: str | None = None
-        self.regex_file: str | None = None
+        self.config_file: str | None = None
 
         self.estimative_acc: float = 1200.0
         self.estimative_cnt: int = 1
@@ -92,6 +92,12 @@ class ExtractionSession:
                 try:
                     with open(sf_path, "r", encoding="utf-8") as sf:
                         state_data = json.load(sf)
+                        # Ensure compatibility keys are present in the returned state dictionary
+                        if "regex_file" in state_data and "config_file" not in state_data:
+                            state_data["config_file"] = state_data["regex_file"]
+                        elif "config_file" in state_data and "regex_file" not in state_data:
+                            state_data["regex_file"] = state_data["config_file"]
+
                         if input_dir:
                             if state_data.get("input_dir") == input_dir:
                                 return state_data
@@ -109,13 +115,13 @@ class ExtractionSession:
         session = cls(observer)
         session.input_dir = options.BASE_PATH
         session.output_file = options.OUTPUT_CSV
-        session.regex_file = options.REGEX_FILE
 
         if state and options.RESUME:
             session.processed_files = state.get("processed_files", [])
             session.successful_pages = state.get("successful_pages", 0)
             session.failed_pages = state.get("failed_pages", 0)
             session.total_pages = state.get("total_pages", 0)
+            session.config_file = state.get("config_file") or state.get("regex_file")
         return session
 
     def save_state(self) -> None:
@@ -123,12 +129,14 @@ class ExtractionSession:
         state_data = {
             "input_dir": self.input_dir,
             "output_file": self.output_file,
-            "regex_file": self.regex_file,
+            "config_file": self.config_file,
+            "regex_file": self.config_file,
             "processed_files": self.processed_files,
             "successful_pages": self.successful_pages,
             "failed_pages": self.failed_pages,
             "total_pages": self.total_pages,
         }
+
         for sf_path in state_paths:
             try:
                 with open(sf_path, "w", encoding="utf-8") as sf:

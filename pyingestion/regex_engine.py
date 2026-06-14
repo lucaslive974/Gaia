@@ -3,9 +3,10 @@ import os
 import json
 from abc import ABC, abstractmethod
 from typing import Any
+from pyingestion.stream import TransformStream
 
 
-class RegexEngine(ABC):
+class RegexEngine(TransformStream[str, dict[str, str]], ABC):
     @abstractmethod
     def parse(self, text: str) -> dict[str, str]:
         """
@@ -24,10 +25,22 @@ class RegexEngine(ABC):
 
 
 class NativeRegexEngine(RegexEngine):
+    input_type = str
+    output_type = dict
+
     def __init__(self, patterns_data: dict[str, Any]):
-        self.regex_file_path = None
+        self.config_file = None
         self.patterns: dict[str, dict[str, Any]] = {}
         self.load_and_validate(patterns_data)
+
+    @property
+    def regex_file_path(self):
+        return self.config_file
+
+    @regex_file_path.setter
+    def regex_file_path(self, value):
+        self.config_file = value
+
 
     @staticmethod
     def _detect_file_format(file_path: str) -> str:
@@ -129,6 +142,9 @@ class NativeRegexEngine(RegexEngine):
             }
 
         self.patterns = patterns
+
+    def transform(self, data: str) -> dict[str, str]:
+        return self.parse(data)
 
     def parse(self, text: str) -> dict[str, str]:
         results = {}

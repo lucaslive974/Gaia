@@ -230,7 +230,7 @@ def print_summary_dashboard(
     console.print(table)
 
 
-def run_with_ui(options):
+def run_with_ui(options, transform_stream):
     from pyingestion import PyIngestion, CsvWriteStream
     import time
     from rich.progress import (
@@ -252,7 +252,13 @@ def run_with_ui(options):
     )
     observer = ConsoleObserver(console, progress)
     output_stream = CsvWriteStream(options.OUTPUT_CSV)
-    controller = PyIngestion(options, observer=observer, output_stream=output_stream)
+    controller = PyIngestion(
+        options,
+        transform_stream=transform_stream,
+        observer=observer,
+        output_stream=output_stream,
+    )
+
 
     start_time = time.perf_counter()
 
@@ -297,28 +303,24 @@ def run_with_ui(options):
         console.print(f"\n[bold green]{_('ui_completed_success')}[/bold green]\n")
 
 
-def run_test_mode(options):
+def run_test_mode(options, transform_stream):
     import sys
     from rich.console import Console
     from rich.table import Table
     from rich.panel import Panel
-    from pyingestion import NativeRegexEngine, PdfParser
+    from pyingestion import PdfParser
 
     console = Console()
     console.print(Panel(f"[bold green]{_('test_title')}[/bold green]", expand=False))
 
     pdf_path = options.TEST_FILE
-    regex_path = options.REGEX_FILE
+    regex_path = getattr(transform_stream, "config_file", "In-Memory")
 
     console.print(f"[bold cyan]{_('test_pdf_file')}[/bold cyan] {pdf_path}")
     console.print(f"[bold cyan]{_('test_regex_file')}[/bold cyan] {regex_path}")
 
-    # 1. Load Regex Engine
-    try:
-        engine = NativeRegexEngine.from_file(regex_path)
-    except Exception as e:
-        console.print(f"\n[bold red]{_('test_err_load_regex')} {e}[/bold red]")
-        sys.exit(1)
+    engine = transform_stream
+
 
     # 2. Extract First Page Text
     try:

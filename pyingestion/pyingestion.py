@@ -6,7 +6,7 @@ from pyingestion import (
     DefaultExtractionObserver,
     ExtractionObserver,
     ExtractionSession,
-    NativeRegexEngine,
+    TransformStream,
 )
 from pyingestion.parser import Parser, ParserFactory
 
@@ -21,17 +21,15 @@ class PyIngestion:
     def __init__(
         self,
         options: Options,
+        transform_stream: TransformStream,
         observer: ExtractionObserver | None = None,
         output_stream: OutputStream | None = None,
-        regex_engine: NativeRegexEngine | None = None,
         parser: Parser | None = None,
     ):
         self.options = options
+        self.transform_stream = transform_stream
         self.observer = observer or DefaultExtractionObserver()
         self.output_stream = output_stream or DefaultOutputStream()
-        self.regex_engine = regex_engine or NativeRegexEngine.from_file(
-            options.REGEX_FILE
-        )
         self.parser = parser or ParserFactory.create(options.PARSER_TYPE)
 
     def run(self, options: Options | None = None) -> bool:
@@ -54,6 +52,8 @@ class PyIngestion:
 
         # 4. Initialize session
         session = ExtractionSession.restore_or_create(self.options, self.observer)
+        if hasattr(self.transform_stream, "config_file"):
+            session.config_file = self.transform_stream.config_file
 
         processed_files_set = set(session.processed_files)
         remaining_files = [f for f in files if f not in processed_files_set]
@@ -179,14 +179,21 @@ class PyIngestion:
         session: ExtractionSession,
     ) -> None:
         try:
-            page_dict = self.regex_engine.parse(unit_text)
+            page_dict = self.transform_stream.transform(unit_text)
             session.process_page_result(True, unit_index, total_units)
             self.output_stream.write(page_dict)
         except ValueError as e:
-            # Get partial results for error logging
-            partial_results, _u = self.regex_engine.parse_test(unit_text)
+            # Get partial results for error logging if supported by transform_stream
+            parse_test_fn = getattr(self.transform_stream, "parse_test", None)
+            partial_results = None
+            if parse_test_fn:
+                try:
+                    partial_results, _u = parse_test_fn(unit_text)
+                except Exception:
+                    pass
             self._log_failed_page(unit_text, unit_index, str(e), partial_results)
             session.process_page_result(False, unit_index, total_units)
+
 
     def _finalize_session(self, session: ExtractionSession) -> None:
         # Delete resume state if finished successfully and not cancelled

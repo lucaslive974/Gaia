@@ -5,7 +5,6 @@ class Options:
     BASE_PATH: str = ""
     OUTPUT_CSV: str = os.path.join(os.getcwd(), "output.csv")
     RESUME: bool = False
-    REGEX_FILE: str | None = None
     TEST_FILE: str | None = None
     DUMP_FILE: str | None = None
     RECURSIVE: bool = False
@@ -50,7 +49,6 @@ class Options:
             ("input_dir", "BASE_PATH"),
             ("output", "OUTPUT_CSV"),
             ("resume", "RESUME"),
-            ("regex", "REGEX_FILE"),
             ("test", "TEST_FILE"),
             ("dump", "DUMP_FILE"),
             ("recursive", "RECURSIVE"),

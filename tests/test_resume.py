@@ -13,12 +13,9 @@ class TestResumeSession:
 
         global_options.BASE_PATH = ""
         global_options.OUTPUT_CSV = os.path.join(tmp_path, "output.csv")
-        global_options.RESUME = False
-        global_options.REGEX_FILE = "/dummy/regex.json"
         global_options.RECURSIVE = False
 
         options = Options()
-        options.REGEX_FILE = "/dummy/regex.json"
         options.BASE_PATH = os.path.join(tmp_path, "dummy_dir")
         os.makedirs(options.BASE_PATH, exist_ok=True)
 
@@ -42,9 +39,10 @@ class TestResumeSession:
         mock_csv_writer_class.return_value = mock_csv_writer
 
         # Patch NativeRegexEngine
-        regex_patcher = patch("pyingestion.pyingestion.NativeRegexEngine")
+        regex_patcher = patch("pyingestion.regex_engine.NativeRegexEngine")
         mock_regex_class = regex_patcher.start()
         mock_regex = MagicMock()
+        mock_regex.config_file = "/dummy/regex.json"
         mock_regex_class.return_value = mock_regex
         mock_regex_class.from_file.return_value = mock_regex
 
@@ -65,6 +63,7 @@ class TestResumeSession:
         parser_patcher.stop()
         csv_patcher.stop()
         regex_patcher.stop()
+
 
     @patch("pyingestion.pyingestion.os.listdir")
     @patch("pyingestion.pyingestion.os.path.exists")
@@ -92,7 +91,9 @@ class TestResumeSession:
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = PyIngestion(resume_setup.options, observer=mock_observer)
+        controller = PyIngestion(
+            resume_setup.options, resume_setup.mock_regex, observer=mock_observer
+        )
         resume_setup.options.RESUME = True
 
         processed_files = []
@@ -102,7 +103,7 @@ class TestResumeSession:
             yield (1, 1, "raw text")
 
         resume_setup.mock_parser.process_file.side_effect = mock_process_file
-        resume_setup.mock_regex.parse.return_value = {"field": "value"}
+        resume_setup.mock_regex.transform.return_value = {"field": "value"}
 
         success = controller.run(resume_setup.options)
         assert success is True
@@ -141,12 +142,14 @@ class TestResumeSession:
             yield (1, 1, "raw text")
 
         resume_setup.mock_parser.process_file.side_effect = mock_process_file
-        resume_setup.mock_regex.parse.return_value = {"field": "value"}
+        resume_setup.mock_regex.transform.return_value = {"field": "value"}
 
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = PyIngestion(resume_setup.options, observer=mock_observer)
+        controller = PyIngestion(
+            resume_setup.options, resume_setup.mock_regex, observer=mock_observer
+        )
         resume_setup.options.RESUME = True
 
         success = controller.run(resume_setup.options)
@@ -181,12 +184,14 @@ class TestResumeSession:
             yield (1, 1, "raw text")
 
         resume_setup.mock_parser.process_file.side_effect = mock_process_file
-        resume_setup.mock_regex.parse.return_value = {"field": "value"}
+        resume_setup.mock_regex.transform.return_value = {"field": "value"}
 
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = PyIngestion(resume_setup.options, observer=mock_observer)
+        controller = PyIngestion(
+            resume_setup.options, resume_setup.mock_regex, observer=mock_observer
+        )
         resume_setup.options.RESUME = True
 
         with patch("pyingestion.extraction_session.open", create=True) as mock_open:
@@ -228,12 +233,14 @@ class TestResumeSession:
             yield (1, 1, "raw text")
 
         resume_setup.mock_parser.process_file.side_effect = mock_process_file
-        resume_setup.mock_regex.parse.return_value = {"field": "value"}
+        resume_setup.mock_regex.transform.return_value = {"field": "value"}
 
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = PyIngestion(resume_setup.options, observer=mock_observer)
+        controller = PyIngestion(
+            resume_setup.options, resume_setup.mock_regex, observer=mock_observer
+        )
         resume_setup.options.RESUME = True
 
         success = controller.run(resume_setup.options)
@@ -271,12 +278,14 @@ class TestResumeSession:
             yield (1, 1, "raw text")
 
         resume_setup.mock_parser.process_file.side_effect = mock_process_file
-        resume_setup.mock_regex.parse.return_value = {"field": "value"}
+        resume_setup.mock_regex.transform.return_value = {"field": "value"}
 
         mock_observer = MagicMock()
         mock_observer.is_cancelled = True  # Cancelled!
 
-        controller = PyIngestion(resume_setup.options, observer=mock_observer)
+        controller = PyIngestion(
+            resume_setup.options, resume_setup.mock_regex, observer=mock_observer
+        )
         resume_setup.options.RESUME = True
 
         success = controller.run(resume_setup.options)
@@ -301,16 +310,18 @@ class TestResumeSession:
             yield (2, 2, "raw text")  # Valid page!
 
         resume_setup.mock_parser.process_file.side_effect = mock_process_file
-        resume_setup.mock_regex.parse.return_value = {"field": "value"}
+        resume_setup.mock_regex.transform.return_value = {"field": "value"}
 
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
-        controller = PyIngestion(resume_setup.options, observer=mock_observer)
+        controller = PyIngestion(
+            resume_setup.options, resume_setup.mock_regex, observer=mock_observer
+        )
 
         success = controller.run(resume_setup.options)
         assert success is True
 
         # The mock_observer should have on_page_start called ONLY for the non-blank page (page 2)
         mock_observer.on_page_start.assert_called_once_with(2, 2)
-        # Parse should only have been called with the valid page text
-        resume_setup.mock_regex.parse.assert_called_once_with("raw text")
+        # Transform should only have been called with the valid page text
+        resume_setup.mock_regex.transform.assert_called_once_with("raw text")

@@ -97,7 +97,8 @@ class CliHelper:
             "output": "OUTPUT_CSV",
             "resume": "RESUME",
             "recursive": "RECURSIVE",
-            "regex": "REGEX_FILE",
+            "test": "TEST_FILE",
+            "dump": "DUMP_FILE",
             "pages_per_unit": "PAGES_PER_UNIT",
             "type": "PARSER_TYPE",
         }
@@ -142,29 +143,43 @@ class CliHelper:
                     options.BASE_PATH = state.get("input_dir")
                     if state.get("output_file"):
                         options.OUTPUT_CSV = state.get("output_file")
-                    if state.get("regex_file"):
-                        options.REGEX_FILE = state.get("regex_file")
                 else:
                     raise ValueError(_("err_resume_no_state"))
             else:
                 raise ValueError(_("err_input_dir_required"))
 
-        # 5. Check for required regex file if not resuming and not in dump mode
-        if not is_dump:
-            if not options.RESUME:
-                if not options.REGEX_FILE:
-                    raise ValueError(_("err_regex_required_normal"))
-            else:
-                # If resuming, load state to autoload regex
-                state = ExtractionSession.load_state(options.BASE_PATH)
-                if state:
-                    if state.get("output_file"):
-                        options.OUTPUT_CSV = state.get("output_file")
-                    if state.get("regex_file"):
-                        options.REGEX_FILE = state.get("regex_file")
-
-                # Still, we must have a regex file to resume
-                if not options.REGEX_FILE:
-                    raise ValueError(_("err_regex_required_resume"))
-
         return options
+
+    @classmethod
+    def build_transform(cls, args: Namespace, options: Options) -> Any:
+        from pyingestion.regex_engine import NativeRegexEngine
+
+        is_dump = options.DUMP_FILE is not None
+        if is_dump:
+            return None
+
+        # 1. Read regex path from CLI arguments, configuration file, or environment
+        regex_path = getattr(args, "regex", None)
+
+        # Or look in config file if provided
+        config_path = getattr(args, "config", None)
+        if not regex_path and config_path:
+            raw_data = cls._load_config_file(config_path)
+            if "config" in raw_data and isinstance(raw_data["config"], dict):
+                regex_path = raw_data["config"].get("regex")
+
+        # 2. Autoload from resume state if needed
+        if not regex_path and options.RESUME:
+            state = ExtractionSession.load_state(options.BASE_PATH)
+            if state:
+                # Support both new "config_file" and legacy "regex_file" key in state json
+                regex_path = state.get("config_file") or state.get("regex_file")
+
+        if not regex_path:
+            if options.RESUME:
+                raise ValueError(_("err_regex_required_resume"))
+            else:
+                raise ValueError(_("err_regex_required_normal"))
+
+        return NativeRegexEngine.from_file(regex_path)
+

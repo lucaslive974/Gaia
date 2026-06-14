@@ -15,7 +15,6 @@ class TestOptionsDefaultsAndAccess:
         assert fresh_options.BASE_PATH == ""
         assert fresh_options.OUTPUT_CSV == os.path.join(os.getcwd(), "output.csv")
         assert fresh_options.RESUME is False
-        assert fresh_options.REGEX_FILE is None
         assert fresh_options.TEST_FILE is None
         assert fresh_options.DUMP_FILE is None
         assert fresh_options.RECURSIVE is False
@@ -25,7 +24,6 @@ class TestOptionsDefaultsAndAccess:
     def test_dictionary_syntax_access(self, fresh_options):
         assert fresh_options["BASE_PATH"] == ""
         assert fresh_options["RESUME"] is False
-        assert fresh_options["REGEX_FILE"] is None
         assert fresh_options["RECURSIVE"] is False
 
     def test_dictionary_syntax_key_error(self, fresh_options):
@@ -35,14 +33,13 @@ class TestOptionsDefaultsAndAccess:
     def test_dictionary_syntax_modification(self, fresh_options):
         fresh_options["BASE_PATH"] = "/custom/path"
         fresh_options["RESUME"] = True
-        fresh_options["REGEX_FILE"] = "/my/regex.json"
         fresh_options["RECURSIVE"] = True
 
         assert fresh_options["BASE_PATH"] == "/custom/path"
         assert fresh_options.BASE_PATH == "/custom/path"
         assert fresh_options["RESUME"] is True
-        assert fresh_options["REGEX_FILE"] == "/my/regex.json"
         assert fresh_options["RECURSIVE"] is True
+
 
     def test_contains_operator(self, fresh_options):
         assert "BASE_PATH" in fresh_options
@@ -86,7 +83,6 @@ class TestCliHelperParsing:
             input_dir="/my/input",
             output="/my/output.csv",
             resume=True,
-            regex="/my/regex.json",
             test=None,
             recursive=True,
             pages_per_unit=5,
@@ -96,7 +92,6 @@ class TestCliHelperParsing:
         assert options.BASE_PATH == "/my/input"
         assert options.OUTPUT_CSV == "/my/output.csv"
         assert options.RESUME is True
-        assert options.REGEX_FILE == "/my/regex.json"
         assert options.RECURSIVE is True
         assert options.PAGES_PER_UNIT == 5
         assert get_lang() == Language.PT_BR
@@ -104,18 +99,15 @@ class TestCliHelperParsing:
     def test_parse_partial_fields(self):
         args = Namespace(
             input_dir="/my/input_only",
-            regex="/my/regex.json",
         )
         options = CliHelper.parse_and_build_options(args)
         assert options.BASE_PATH == "/my/input_only"
-        assert options.REGEX_FILE == "/my/regex.json"
         assert options.RESUME is False
         assert options.RECURSIVE is False
 
     def test_ignore_unmapped_fields(self):
         args = Namespace(
             input_dir="/my/input",
-            regex="/my/regex.json",
             extra_arg="some_value",
         )
         options = CliHelper.parse_and_build_options(args)
@@ -135,7 +127,6 @@ class TestCliHelperParsing:
         )
         options = CliHelper.parse_and_build_options(args)
         assert options.DUMP_FILE == "/my/dump.pdf"
-        assert options.REGEX_FILE is None
         assert options.BASE_PATH == ""
 
     def test_test_mode_bypasses_input_dir(self):
@@ -143,12 +134,10 @@ class TestCliHelperParsing:
             input_dir=None,
             resume=False,
             output="/my/output.csv",
-            regex="/my/regex.json",
             test="/my/test.pdf",
         )
         options = CliHelper.parse_and_build_options(args)
         assert options.TEST_FILE == "/my/test.pdf"
-        assert options.REGEX_FILE == "/my/regex.json"
         assert options.BASE_PATH == ""
 
     def test_parameterless_resume_success(self):
@@ -165,7 +154,6 @@ class TestCliHelperParsing:
                 input_dir=None,
                 output="/dummy/output.csv",
                 resume=True,
-                regex=None,
                 test=None,
                 recursive=False,
                 pages_per_unit=1,
@@ -175,13 +163,11 @@ class TestCliHelperParsing:
             assert options.BASE_PATH == "/loaded/input/dir"
             assert options.OUTPUT_CSV == "/loaded/output.csv"
             assert options.RESUME is True
-            assert options.REGEX_FILE == "/loaded/regex.json"
-
 
 
 class TestCliHelperValidationErrors:
     def test_missing_input_dir(self):
-        args = Namespace(input_dir=None, resume=False, regex="/my/regex.json")
+        args = Namespace(input_dir=None, resume=False)
         with pytest.raises(ValueError, match="positional argument"):
             CliHelper.parse_and_build_options(args)
 
@@ -190,25 +176,26 @@ class TestCliHelperValidationErrors:
             "pyingestion.extraction_session.ExtractionSession.load_state",
             return_value=None,
         ):
-            args = Namespace(input_dir=None, resume=True, regex="/my/regex.json")
+            args = Namespace(input_dir=None, resume=True)
             with pytest.raises(ValueError, match="resume state"):
                 CliHelper.parse_and_build_options(args)
 
     def test_missing_regex_file(self):
         args = Namespace(input_dir="/my/input", resume=False, regex=None)
-        with pytest.raises(ValueError, match="regex.*required"):
-            CliHelper.parse_and_build_options(args)
+        options = CliHelper.parse_and_build_options(args)
+        with pytest.raises(ValueError, match="(?i)regex"):
+            CliHelper.build_transform(args, options)
 
     @pytest.mark.parametrize("invalid_ppu", [0, -5, "abc"])
     def test_invalid_pages_per_unit(self, invalid_ppu):
         args = Namespace(
             input_dir="/my/input",
             resume=False,
-            regex="/my/regex.json",
             pages_per_unit=invalid_ppu,
         )
         with pytest.raises(ValueError):
             CliHelper.parse_and_build_options(args)
+
 
 
 class TestCliHelperConfig:
@@ -248,9 +235,13 @@ class TestCliHelperConfig:
         assert options.OUTPUT_CSV == "/toml/output.csv"
         assert options.RESUME is True
         assert options.RECURSIVE is True
-        assert options.REGEX_FILE == "/toml/regex.toml"
         assert options.PAGES_PER_UNIT == 3
         assert options.PARSER_TYPE == "docx"
+
+        # Check that build_transform parses regex path from config file
+        with patch("pyingestion.regex_engine.NativeRegexEngine.from_file") as mock_from_file:
+            CliHelper.build_transform(args, options)
+            mock_from_file.assert_called_once_with("/toml/regex.toml")
 
     def test_load_valid_json_config_file(self, temp_file_factory):
         json_data = {
@@ -283,9 +274,14 @@ class TestCliHelperConfig:
         assert options.OUTPUT_CSV == "/json/output.csv"
         assert options.RESUME is False
         assert options.RECURSIVE is False
-        assert options.REGEX_FILE == "/json/regex.json"
         assert options.PAGES_PER_UNIT == 2
         assert options.PARSER_TYPE == "pdf"
+
+        # Check that build_transform parses regex path from config file
+        with patch("pyingestion.regex_engine.NativeRegexEngine.from_file") as mock_from_file:
+            CliHelper.build_transform(args, options)
+            mock_from_file.assert_called_once_with("/json/regex.json")
+
 
     def test_config_precedence(self, temp_file_factory):
         toml_content = """
@@ -353,16 +349,16 @@ class TestResumeStateIntegration:
 
         options = Options()
         options.BASE_PATH = input_dir
-        options.REGEX_FILE = "/my/regex.json"
 
         session = ExtractionSession(None)
         session.input_dir = options.BASE_PATH
         session.output_file = options.OUTPUT_CSV
-        session.regex_file = options.REGEX_FILE
+        session.config_file = "/my/regex.json"
         session.processed_files = ["file1.pdf"]
         session.successful_pages = 10
         session.failed_pages = 2
         session.total_pages = 12
+
 
         with patch("pyingestion.extraction_session.open", create=True) as mock_open:
             session.save_state()
@@ -391,7 +387,7 @@ class TestResumeStateIntegration:
             state = ExtractionSession.load_state(input_dir)
             assert state is not None
             assert state["processed_files"] == ["file1.pdf"]
-            assert state["regex_file"] == "/my/regex.json"
+            assert state["config_file"] == "/my/regex.json"
 
         with (
             patch("pyingestion.extraction_session.os.path.exists") as mock_exists,
