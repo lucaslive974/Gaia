@@ -101,14 +101,14 @@ class DocxParser(Parser):
 
         body_elm = doc.element.body
         for child in body_elm.iterchildren():
-            if child.tag.endswith('p'):
+            if child.tag.endswith("p"):
                 p = Paragraph(child, doc)
                 p_text = p.text
                 if has_page_break(p) and current_page_text:
                     pages.append("\n".join(current_page_text))
                     current_page_text = []
                 current_page_text.append(p_text)
-            elif child.tag.endswith('tbl'):
+            elif child.tag.endswith("tbl"):
                 tbl = DocxTable(child, doc)
                 tbl_text = get_table_text(tbl)
                 current_page_text.append(tbl_text)
@@ -170,11 +170,13 @@ class OcrParser(Parser):
 
     def accepts(self, file_path: str) -> bool:
         import os
+
         ext = os.path.splitext(file_path)[1].lower()
         return ext in (".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".bmp")
 
     def _check_tesseract(self):
         import shutil
+
         if not shutil.which("tesseract"):
             raise RuntimeError(
                 "Tesseract OCR is not installed or not in system PATH. "
@@ -183,6 +185,7 @@ class OcrParser(Parser):
 
     def _check_poppler(self):
         import shutil
+
         if not shutil.which("pdftoppm") or not shutil.which("pdfinfo"):
             raise RuntimeError(
                 "Poppler (pdftoppm/pdfinfo) is not installed or not in system PATH. "
@@ -196,6 +199,7 @@ class OcrParser(Parser):
         if file_path.lower().endswith(".pdf"):
             self._check_poppler()
             import pdf2image
+
             try:
                 info = pdf2image.pdfinfo_from_path(file_path)
                 return info["Pages"]
@@ -274,10 +278,5 @@ class OcrParser(Parser):
                         text = pytesseract.image_to_string(img)
                     yield 1, 1, text
                 except Exception as e:
-                    session.observer.on_error(
-                        f"Error running OCR on image file: {e}"
-                    )
+                    session.observer.on_error(f"Error running OCR on image file: {e}")
                     yield 1, 1, ""
-
-
-

@@ -1,6 +1,7 @@
 import os
 from enum import Enum
 
+
 class Language(Enum):
     PT_BR = "pt_BR"
     EN_US = "en_US"
@@ -9,6 +10,7 @@ class Language(Enum):
 def get_system_lang() -> Language:
     import locale
     import os
+
     try:
         sys_lang, _ = locale.getlocale()
         if sys_lang:
@@ -39,18 +41,18 @@ def load_po_file(filepath: str) -> dict[str, str]:
     trans = {}
     if not os.path.exists(filepath):
         return trans
-        
+
     with open(filepath, "r", encoding="utf-8") as f:
         msgid = None
         msgstr = None
         in_msgid = False
         in_msgstr = False
-        
+
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            
+
             if line.startswith("msgid"):
                 if msgid is not None and msgstr is not None:
                     trans[msgid] = msgstr
@@ -69,7 +71,7 @@ def load_po_file(filepath: str) -> dict[str, str]:
                     msgid += val
                 elif in_msgstr:
                     msgstr += val
-                
+
         # Handle last key/value in file
         if msgid is not None and msgstr is not None:
             trans[msgid] = msgstr
@@ -79,16 +81,19 @@ def load_po_file(filepath: str) -> dict[str, str]:
 def init_i18n():
     global _translations
     import gettext
+
     locale_dir = os.path.join(os.path.dirname(__file__), "locale")
-    
+
     dir_mapping = {
         Language.PT_BR: "pt",
         Language.EN_US: "en",
     }
-    
+
     for lang_enum, dir_name in dir_mapping.items():
         try:
-            t = gettext.translation("messages", localedir=locale_dir, languages=[dir_name])
+            t = gettext.translation(
+                "messages", localedir=locale_dir, languages=[dir_name]
+            )
             _translations[lang_enum] = t
         except Exception:
             po_path = os.path.join(locale_dir, dir_name, "messages.po")
@@ -116,7 +121,7 @@ def get_lang() -> Language:
 def _(key: str, **kwargs) -> str:
     lang_enum = _current_lang
     trans_obj = _translations.get(lang_enum)
-    
+
     if trans_obj is not None:
         if hasattr(trans_obj, "gettext"):
             text = trans_obj.gettext(key)

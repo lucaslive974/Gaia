@@ -1,5 +1,5 @@
-from unittest.mock import MagicMock, patch
 import pytest
+from unittest.mock import MagicMock, patch
 from pydocstructurer import PdfParser, ExtractionSession
 
 
@@ -110,6 +110,7 @@ def test_native_parser_accepts():
 
 from pydocstructurer import DocxParser
 
+
 @patch("docx.Document")
 def test_docx_parser_page_count(mock_docx_document):
     mock_doc_instance = MagicMock()
@@ -119,10 +120,10 @@ def test_docx_parser_page_count(mock_docx_document):
     mock_p._element.xml = "<w:p></w:p>"
     mock_p.paragraph_format.page_break_before = False
     mock_p.text = "Hello world"
-    
+
     mock_doc_instance.element.body.iterchildren.return_value = [mock_p]
     mock_docx_document.return_value = mock_doc_instance
-    
+
     parser = DocxParser()
     assert parser.get_page_count("dummy.docx") == 1
 
@@ -130,29 +131,29 @@ def test_docx_parser_page_count(mock_docx_document):
 @patch("docx.Document")
 def test_docx_parser_orchestration(mock_docx_document):
     mock_doc_instance = MagicMock()
-    
+
     mock_p1 = MagicMock()
     mock_p1.tag = "p"
     mock_p1._element = MagicMock()
     mock_p1._element.xml = "<w:p></w:p>"
     mock_p1.paragraph_format.page_break_before = False
     mock_p1.text = "Paragraph 1 text"
-    
+
     mock_p2 = MagicMock()
     mock_p2.tag = "p"
     mock_p2._element = MagicMock()
     mock_p2._element.xml = '<w:p><w:r><w:br type="page"/></w:r></w:p>'
     mock_p2.paragraph_format.page_break_before = True
     mock_p2.text = "Paragraph 2 text"
-    
+
     mock_doc_instance.element.body.iterchildren.return_value = [mock_p1, mock_p2]
     mock_docx_document.return_value = mock_doc_instance
-    
+
     parser = DocxParser()
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
     session = ExtractionSession(mock_observer)
-    
+
     pages = list(parser.process_file("dummy.docx", session=session, pages_per_unit=1))
     assert len(pages) == 2
     assert pages[0][2] == "Paragraph 1 text"
@@ -169,6 +170,7 @@ def test_docx_parser_accepts():
 
 
 from pydocstructurer import OcrParser
+
 
 def test_ocr_parser_accepts():
     parser = OcrParser()
@@ -191,7 +193,9 @@ def test_ocr_parser_missing_tesseract(mock_which):
 @patch("shutil.which")
 def test_ocr_parser_missing_poppler_on_pdf(mock_which):
     # Tesseract is found, but poppler is not
-    mock_which.side_effect = lambda cmd: "/usr/bin/tesseract" if cmd == "tesseract" else None
+    mock_which.side_effect = lambda cmd: (
+        "/usr/bin/tesseract" if cmd == "tesseract" else None
+    )
     parser = OcrParser()
     with pytest.raises(RuntimeError) as excinfo:
         parser.get_page_count("test.pdf")

@@ -1,81 +1,84 @@
-from unittest.mock import patch, MagicMock
-import sys
-import os
-import json
-from argparse import Namespace
 import pytest
+from unittest.mock import patch, MagicMock
 
 from pydocstructurer.main import main
 from pydocstructurer.pydocstructurer import PyDocStructurer as Gaia
 from pydocstructurer.options import Options
 
 
-@patch("pydocstructurer.main.argparse.ArgumentParser.parse_args")
-@patch("pydocstructurer.main.run_with_ui")
-def test_cli_execution_flow(mock_run_with_ui, mock_parse_args):
-    # Setup mocks
-    mock_args = Namespace(
-        input_dir="/dummy/input",
-        output="/dummy/output.csv",
-        resume=False,
-        regex="/dummy/regex.json",
-        test=None,
-        recursive=False,
-        pages_per_unit=1,
-        lang="en",
-    )
-    mock_parse_args.return_value = mock_args
+class TestCliMainOrchestration:
+    @patch("sys.argv", ["main.py", "--lang", "en"])
+    @patch("pydocstructurer.main.run_with_ui")
+    @patch("pydocstructurer.main.CliHelper")
+    @patch("pydocstructurer.main.parse_lang_from_argv")
+    @patch("pydocstructurer.main.set_lang")
+    def test_main_execution_flow_to_ui(
+        self, mock_set_lang, mock_parse_lang, mock_cli_helper, mock_run_with_ui
+    ):
+        mock_parse_lang.return_value = "en"
+        mock_parser = MagicMock()
+        mock_cli_helper.get_argument_parser.return_value = mock_parser
 
-    # Execute main
-    main()
+        mock_options = Options()
+        mock_options.DUMP_FILE = None
+        mock_options.TEST_FILE = None
+        mock_cli_helper.parse_and_build_options.return_value = mock_options
 
-    # Assertions
-    mock_parse_args.assert_called_once()
-    mock_run_with_ui.assert_called_once()
-    options_passed = mock_run_with_ui.call_args[0][0]
-    assert options_passed.BASE_PATH == "/dummy/input"
-    assert options_passed.OUTPUT_CSV == "/dummy/output.csv"
-    assert options_passed.RESUME is False
-    assert options_passed.REGEX_FILE == "/dummy/regex.json"
+        main()
 
+        mock_parse_lang.assert_called_once_with(["main.py", "--lang", "en"])
+        mock_set_lang.assert_called_once_with("en")
+        mock_cli_helper.get_argument_parser.assert_called_once()
+        mock_parser.parse_args.assert_called_once()
+        mock_cli_helper.parse_and_build_options.assert_called_once_with(
+            mock_parser.parse_args.return_value
+        )
+        mock_run_with_ui.assert_called_once_with(mock_options)
 
-@patch("pydocstructurer.main.argparse.ArgumentParser.parse_args")
-@patch("pydocstructurer.main.run_with_ui")
-@patch("pydocstructurer.extraction_session.ExtractionSession.load_state")
-def test_cli_parameterless_resume_success(
-    mock_load_state, mock_run_with_ui, mock_parse_args
-):
-    # Setup mock arguments with input_dir = None and resume = True
-    mock_args = Namespace(
-        input_dir=None,
-        output="/dummy/output.csv",
-        resume=True,
-        regex=None,
-        test=None,
-        recursive=False,
-        pages_per_unit=1,
-        lang="en",
-    )
-    mock_parse_args.return_value = mock_args
+    @patch("pydocstructurer.cli.terminal_ui.run_dump_mode")
+    @patch("pydocstructurer.main.CliHelper")
+    def test_main_execution_flow_to_dump(self, mock_cli_helper, mock_run_dump_mode):
+        mock_parser = MagicMock()
+        mock_cli_helper.get_argument_parser.return_value = mock_parser
 
-    # Mock CWD state file loading content
-    mock_load_state.return_value = {
-        "input_dir": "/loaded/input/dir",
-        "output_file": "/loaded/output.csv",
-        "regex_file": "/loaded/regex.json",
-        "processed_files": ["f1.pdf"],
-    }
+        mock_options = Options()
+        mock_options.DUMP_FILE = "/path/to/dump.pdf"
+        mock_options.TEST_FILE = None
+        mock_cli_helper.parse_and_build_options.return_value = mock_options
 
-    # Run main
-    main()
+        main()
 
-    # Assert options contains the loaded paths from state file
-    mock_run_with_ui.assert_called_once()
-    options_passed = mock_run_with_ui.call_args[0][0]
-    assert options_passed.BASE_PATH == "/loaded/input/dir"
-    assert options_passed.OUTPUT_CSV == "/loaded/output.csv"
-    assert options_passed.RESUME is True
-    assert options_passed.REGEX_FILE == "/loaded/regex.json"
+        mock_run_dump_mode.assert_called_once_with(mock_options)
+
+    @patch("pydocstructurer.cli.terminal_ui.run_test_mode")
+    @patch("pydocstructurer.main.CliHelper")
+    def test_main_execution_flow_to_test(self, mock_cli_helper, mock_run_test_mode):
+        mock_parser = MagicMock()
+        mock_cli_helper.get_argument_parser.return_value = mock_parser
+
+        mock_options = Options()
+        mock_options.DUMP_FILE = None
+        mock_options.TEST_FILE = "/path/to/test.pdf"
+        mock_cli_helper.parse_and_build_options.return_value = mock_options
+
+        main()
+
+        mock_run_test_mode.assert_called_once_with(mock_options)
+
+    @patch("pydocstructurer.main.CliHelper")
+    def test_main_handles_value_error(self, mock_cli_helper):
+        mock_parser = MagicMock()
+        mock_parser.error.side_effect = SystemExit(2)
+        mock_cli_helper.get_argument_parser.return_value = mock_parser
+
+        mock_cli_helper.parse_and_build_options.side_effect = ValueError(
+            "Some error message"
+        )
+
+        with pytest.raises(SystemExit):
+            main()
+
+        mock_parser.error.assert_called_once_with("Some error message")
 
 
 @patch("pydocstructurer.pydocstructurer.os.path.exists")
@@ -119,10 +122,8 @@ def test_app_controller_log_deletion(
     mock_parser_class, mock_regex_engine, mock_remove, mock_isdir, mock_exists
 ):
     # Scenario 1: Resume is False -> Should remove gaia_errors.log if it exists
-    mock_exists.side_effect = (
-        lambda p: True
-        if "gaia_errors.log" in p or p == "/dummy/input"
-        else False
+    mock_exists.side_effect = lambda p: (
+        True if "gaia_errors.log" in p or p == "/dummy/input" else False
     )
     mock_isdir.return_value = True
 
@@ -155,7 +156,13 @@ def test_app_controller_log_deletion(
 @patch("pydocstructurer.parsers.PdfParser")
 @patch("pydocstructurer.pydocstructurer.DefaultOutputStream")
 def test_gaia_run_with_direct_file(
-    mock_output_stream, mock_parser_class, mock_regex_engine, mock_isdir, mock_isfile, mock_exists, mock_makedirs
+    mock_output_stream,
+    mock_parser_class,
+    mock_regex_engine,
+    mock_isdir,
+    mock_isfile,
+    mock_exists,
+    mock_makedirs,
 ):
     mock_exists.return_value = True
     mock_isdir.return_value = False
@@ -163,9 +170,7 @@ def test_gaia_run_with_direct_file(
 
     mock_parser_instance = MagicMock()
     mock_parser_class.return_value = mock_parser_instance
-    mock_parser_instance.process_file.return_value = [
-        (1, 1, "page text")
-    ]
+    mock_parser_instance.process_file.return_value = [(1, 1, "page text")]
 
     options = Options()
     options.BASE_PATH = "/dummy/input/file.pdf"
@@ -189,6 +194,7 @@ def test_gaia_run_with_direct_file(
 
 def test_default_output_stream_generator():
     from pydocstructurer.output_stream import DefaultOutputStream
+
     stream = DefaultOutputStream()
     stream.write({"field": "val1"})
     stream.write({"field": "val2"})
@@ -208,13 +214,14 @@ def test_run_dump_mode_success(mock_console_class, mock_factory, mock_exists):
     mock_factory.create.return_value = mock_parser
     mock_parser.process_file.return_value = [
         (1, 2, "Unit 1 Text"),
-        (2, 2, "Unit 2 Text")
+        (2, 2, "Unit 2 Text"),
     ]
 
     mock_console = MagicMock()
     mock_console_class.return_value = mock_console
 
     from pydocstructurer.cli.terminal_ui import run_dump_mode
+
     options = Options()
     options.DUMP_FILE = "/dummy/dump.pdf"
     options.PAGES_PER_UNIT = 1
@@ -235,6 +242,7 @@ def test_run_dump_mode_file_not_found(mock_console_class, mock_exists):
     mock_exists.return_value = False
 
     from pydocstructurer.cli.terminal_ui import run_dump_mode
+
     options = Options()
     options.DUMP_FILE = "/nonexistent/file.pdf"
 
@@ -242,4 +250,3 @@ def test_run_dump_mode_file_not_found(mock_console_class, mock_exists):
         run_dump_mode(options)
 
     assert excinfo.value.code == 1
-

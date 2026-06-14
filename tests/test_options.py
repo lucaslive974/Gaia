@@ -151,6 +151,33 @@ class TestCliHelperParsing:
         assert options.REGEX_FILE == "/my/regex.json"
         assert options.BASE_PATH == ""
 
+    def test_parameterless_resume_success(self):
+        with patch(
+            "pydocstructurer.extraction_session.ExtractionSession.load_state"
+        ) as mock_load_state:
+            mock_load_state.return_value = {
+                "input_dir": "/loaded/input/dir",
+                "output_file": "/loaded/output.csv",
+                "regex_file": "/loaded/regex.json",
+                "processed_files": ["f1.pdf"],
+            }
+            args = Namespace(
+                input_dir=None,
+                output="/dummy/output.csv",
+                resume=True,
+                regex=None,
+                test=None,
+                recursive=False,
+                pages_per_unit=1,
+                lang="en",
+            )
+            options = CliHelper.parse_and_build_options(args)
+            assert options.BASE_PATH == "/loaded/input/dir"
+            assert options.OUTPUT_CSV == "/loaded/output.csv"
+            assert options.RESUME is True
+            assert options.REGEX_FILE == "/loaded/regex.json"
+
+
 
 class TestCliHelperValidationErrors:
     def test_missing_input_dir(self):
@@ -159,7 +186,10 @@ class TestCliHelperValidationErrors:
             CliHelper.parse_and_build_options(args)
 
     def test_missing_input_dir_and_no_resume_state(self):
-        with patch("pydocstructurer.extraction_session.ExtractionSession.load_state", return_value=None):
+        with patch(
+            "pydocstructurer.extraction_session.ExtractionSession.load_state",
+            return_value=None,
+        ):
             args = Namespace(input_dir=None, resume=True, regex="/my/regex.json")
             with pytest.raises(ValueError, match="resume state"):
                 CliHelper.parse_and_build_options(args)
@@ -338,9 +368,10 @@ class TestResumeStateIntegration:
             mock_open.assert_any_call(state_file_cwd, "w", encoding="utf-8")
             mock_open.assert_any_call(state_file_input, "w", encoding="utf-8")
 
-        with patch("pydocstructurer.extraction_session.os.path.exists") as mock_exists, patch(
-            "pydocstructurer.extraction_session.open", create=True
-        ) as mock_open:
+        with (
+            patch("pydocstructurer.extraction_session.os.path.exists") as mock_exists,
+            patch("pydocstructurer.extraction_session.open", create=True) as mock_open,
+        ):
             mock_exists.return_value = True
             mock_file = MagicMock()
             mock_file.read.return_value = json.dumps(
@@ -361,9 +392,10 @@ class TestResumeStateIntegration:
             assert state["processed_files"] == ["file1.pdf"]
             assert state["regex_file"] == "/my/regex.json"
 
-        with patch("pydocstructurer.extraction_session.os.path.exists") as mock_exists, patch(
-            "pydocstructurer.extraction_session.os.remove"
-        ) as mock_remove:
+        with (
+            patch("pydocstructurer.extraction_session.os.path.exists") as mock_exists,
+            patch("pydocstructurer.extraction_session.os.remove") as mock_remove,
+        ):
             mock_exists.return_value = True
             session.clear_state()
             mock_remove.assert_any_call(state_file_cwd)

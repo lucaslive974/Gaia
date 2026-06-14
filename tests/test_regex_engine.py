@@ -1,4 +1,3 @@
-import os
 import pytest
 from pydocstructurer import NativeRegexEngine
 
@@ -81,15 +80,18 @@ class TestRegexEngineFileLoading:
 
 
 class TestRegexEngineSchemaValidation:
-    @pytest.mark.parametrize("invalid_config", [
-        ["not a dictionary"],
-        {"field": "not a dictionary"},
-        {"field": {"required": True}},
-        {"field": {"regex": 123}},
-        {"field": {"regex": "abc", "flags": "not a list"}},
-        {"field": {"regex": "abc", "flags": ["INVALID_FLAG"]}},
-        {"field": {"regex": "["}},
-    ])
+    @pytest.mark.parametrize(
+        "invalid_config",
+        [
+            ["not a dictionary"],
+            {"field": "not a dictionary"},
+            {"field": {"required": True}},
+            {"field": {"regex": 123}},
+            {"field": {"regex": "abc", "flags": "not a list"}},
+            {"field": {"regex": "abc", "flags": ["INVALID_FLAG"]}},
+            {"field": {"regex": "["}},
+        ],
+    )
     def test_invalid_schemas_raise_value_error(self, invalid_config):
         with pytest.raises(ValueError):
             NativeRegexEngine(invalid_config)
@@ -161,11 +163,14 @@ class TestRegexEngineParsing:
 
 
 class TestRegexEngineUtility:
-    @pytest.mark.parametrize("filename, expected", [
-        ("rules.json", "json"),
-        ("rules.toml", "toml"),
-        ("rules.TOML", "toml"),
-        ("rules.txt", "json"),
-    ])
+    @pytest.mark.parametrize(
+        "filename, expected",
+        [
+            ("rules.json", "json"),
+            ("rules.toml", "toml"),
+            ("rules.TOML", "toml"),
+            ("rules.txt", "json"),
+        ],
+    )
     def test_detect_file_format(self, filename, expected):
         assert NativeRegexEngine._detect_file_format(filename) == expected

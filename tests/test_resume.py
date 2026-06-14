@@ -1,7 +1,7 @@
-from unittest.mock import MagicMock, patch
 import os
 import json
 import pytest
+from unittest.mock import MagicMock, patch
 from pydocstructurer.pydocstructurer import PyDocStructurer
 from pydocstructurer.options import Options
 
@@ -192,8 +192,12 @@ class TestResumeSession:
         with patch("pydocstructurer.extraction_session.open", create=True) as mock_open:
             success = controller.run(resume_setup.options)
             assert success is True
-            mock_open.assert_any_call(resume_setup.state_file_cwd, "w", encoding="utf-8")
-            mock_open.assert_any_call(resume_setup.state_file_input, "w", encoding="utf-8")
+            mock_open.assert_any_call(
+                resume_setup.state_file_cwd, "w", encoding="utf-8"
+            )
+            mock_open.assert_any_call(
+                resume_setup.state_file_input, "w", encoding="utf-8"
+            )
 
     @patch("pydocstructurer.pydocstructurer.os.listdir")
     @patch("pydocstructurer.pydocstructurer.os.path.exists")
@@ -293,8 +297,8 @@ class TestResumeSession:
 
         # process_file yields a blank page first, then a non-blank page
         def mock_process_file(file_path, session, pages_per_unit=1):
-            yield (1, 2, "   ")        # Blank page!
-            yield (2, 2, "raw text")   # Valid page!
+            yield (1, 2, "   ")  # Blank page!
+            yield (2, 2, "raw text")  # Valid page!
 
         resume_setup.mock_parser.process_file.side_effect = mock_process_file
         resume_setup.mock_regex.parse.return_value = {"field": "value"}

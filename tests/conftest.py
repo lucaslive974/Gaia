@@ -1,6 +1,5 @@
 import pytest
 import json
-import os
 from pydocstructurer.options import Options
 from pydocstructurer.i18n import set_lang, Language
 
@@ -20,6 +19,7 @@ def reset_lang():
 @pytest.fixture
 def temp_file_factory(tmp_path):
     """Factory fixture to create temporary files with text or JSON content."""
+
     def _create_file(filename: str, content: str | dict, is_json: bool = False) -> str:
         file_path = tmp_path / filename
         if is_json:
@@ -27,4 +27,5 @@ def temp_file_factory(tmp_path):
         else:
             file_path.write_text(content, encoding="utf-8")
         return str(file_path)
+
     return _create_file

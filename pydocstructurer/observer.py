@@ -1,6 +1,7 @@
-from typing import Any, override
 import queue
+from typing import Any, override
 from abc import ABC, abstractmethod
+
 
 class ExtractionObserver(ABC):
     is_cancelled: bool = False
@@ -27,7 +28,7 @@ class ExtractionObserver(ABC):
         extracted_pages: int,
         error_pages: int,
         page_index: int,
-        total_pages: int
+        total_pages: int,
     ):
         """Called after a page has been processed."""
         pass
@@ -52,6 +53,7 @@ class QueueObserver(ExtractionObserver):
     """
     Thread-safe observer that puts events into a queue.Queue for UI consumption.
     """
+
     def __init__(self, event_queue: queue.Queue[tuple[str, Any]]):
         self._queue = event_queue
         self.is_cancelled: bool = False
@@ -75,12 +77,14 @@ class QueueObserver(ExtractionObserver):
         extracted_pages: int,
         error_pages: int,
         page_index: int,
-        total_pages: int
+        total_pages: int,
     ):
-        self._queue.put((
-            "PAGE_PROCESSED",
-            (success, extracted_pages, error_pages, page_index, total_pages)
-        ))
+        self._queue.put(
+            (
+                "PAGE_PROCESSED",
+                (success, extracted_pages, error_pages, page_index, total_pages),
+            )
+        )
 
     @override
     def on_file_complete(self, file_index: int, progress_percent: float):
@@ -99,6 +103,7 @@ class DefaultExtractionObserver(ExtractionObserver):
     """
     Default no-op implementation of ExtractionObserver.
     """
+
     def on_start(self, total_files: int):
         pass
 
@@ -114,7 +119,7 @@ class DefaultExtractionObserver(ExtractionObserver):
         extracted_pages: int,
         error_pages: int,
         page_index: int,
-        total_pages: int
+        total_pages: int,
     ):
         pass
 
@@ -126,4 +131,3 @@ class DefaultExtractionObserver(ExtractionObserver):
 
     def on_error(self, error_message: str):
         pass
-

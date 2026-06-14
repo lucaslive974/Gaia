@@ -1,6 +1,6 @@
+import os
 import time
 import json
-import os
 from pydocstructurer.observer import ExtractionObserver, DefaultExtractionObserver
 
 

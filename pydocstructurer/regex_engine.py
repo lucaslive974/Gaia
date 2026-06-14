@@ -1,6 +1,6 @@
 import re
-import json
 import os
+import json
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -49,6 +49,7 @@ class NativeRegexEngine(RegexEngine):
     @staticmethod
     def _load_toml(file_path: str) -> dict[str, Any]:
         import tomllib
+
         try:
             with open(file_path, "rb") as f:
                 return tomllib.load(f)

@@ -12,11 +12,10 @@ class CliHelper:
     @classmethod
     def get_argument_parser(cls) -> argparse.ArgumentParser:
         import tomllib
+
         parser = argparse.ArgumentParser(description=_("cli_desc"))
 
-        config_file_path = os.path.join(
-            os.path.dirname(__file__), "cli_arguments.toml"
-        )
+        config_file_path = os.path.join(os.path.dirname(__file__), "cli_arguments.toml")
         with open(config_file_path, "rb") as f:
             args_config = tomllib.load(f)
 
@@ -61,6 +60,7 @@ class CliHelper:
     @classmethod
     def _load_toml(cls, file_path: str) -> dict[str, Any]:
         import tomllib
+
         try:
             with open(file_path, "rb") as f:
                 return tomllib.load(f)
@@ -126,8 +126,6 @@ class CliHelper:
 
         # 3. Bind remaining CLI arguments that are explicitly provided (not None)
         for attr in Options.list_attr():
-
-
             if hasattr(args, attr[0]):
                 val = getattr(args, attr[0])
                 if val is not None:
@@ -169,6 +167,4 @@ class CliHelper:
                 if not options.REGEX_FILE:
                     raise ValueError(_("err_regex_required_resume"))
 
-
         return options
-

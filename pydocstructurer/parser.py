@@ -41,16 +41,19 @@ class ParserFactory:
     @staticmethod
     def _create_pdf_parser() -> Parser:
         from pydocstructurer.parsers import PdfParser
+
         return PdfParser()
 
     @staticmethod
     def _create_docx_parser() -> Parser:
         from pydocstructurer.parsers import DocxParser
+
         return DocxParser()
 
     @staticmethod
     def _create_ocr_parser() -> Parser:
         from pydocstructurer.parsers import OcrParser
+
         return OcrParser()
 
     _CREATORS = {

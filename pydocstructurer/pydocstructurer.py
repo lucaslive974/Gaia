@@ -81,7 +81,9 @@ class PyDocStructurer:
             )
             return False
 
-        if not os.path.isdir(self.options.BASE_PATH) and not os.path.isfile(self.options.BASE_PATH):
+        if not os.path.isdir(self.options.BASE_PATH) and not os.path.isfile(
+            self.options.BASE_PATH
+        ):
             self.observer.on_error(
                 f"The input path '{self.options.BASE_PATH}' is not a directory."
             )
@@ -112,9 +114,7 @@ class PyDocStructurer:
                 for f in filenames:
                     full_path = os.path.join(root, f)
                     if self.parser.accepts(full_path):
-                        rel_path = os.path.relpath(
-                            full_path, self.options.BASE_PATH
-                        )
+                        rel_path = os.path.relpath(full_path, self.options.BASE_PATH)
                         files.append(rel_path)
         else:
             try:

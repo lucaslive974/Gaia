@@ -33,9 +33,12 @@ class Options:
                     raise ValueError
                 value = val
             except (ValueError, TypeError):
-                raise ValueError("the '--pages-per-unit' argument must be an integer greater than or equal to 1.")
+                raise ValueError(
+                    "the '--pages-per-unit' argument must be an integer greater than or equal to 1."
+                )
         elif name == "PARSER_TYPE":
             from pydocstructurer.parser import ParserType
+
             valid_types = [item.value for item in ParserType]
             if value not in valid_types:
                 raise ValueError(f"the '--type' argument must be one of {valid_types}.")
@@ -57,4 +60,3 @@ class Options:
 
 
 options = Options()
-
