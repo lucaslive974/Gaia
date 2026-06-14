@@ -1,5 +1,5 @@
 import pytest
-from pydocstructurer.i18n import _, set_lang, get_lang
+from pydocstructurer.i18n import _, set_lang, get_lang, parse_lang_from_argv
 
 
 @pytest.fixture(autouse=True)
@@ -44,3 +44,14 @@ def test_invalid_language_does_not_switch():
     # Should stay at "en"
     assert get_lang() == "en"
     assert _("ui_metric") == "Metric"
+
+
+def test_parse_lang_from_argv():
+    assert parse_lang_from_argv([]) == "en"
+    assert parse_lang_from_argv(["main.py"]) == "en"
+    assert parse_lang_from_argv(["main.py", "--lang", "pt"]) == "pt"
+    assert parse_lang_from_argv(["main.py", "-l", "pt"]) == "pt"
+    assert parse_lang_from_argv(["main.py", "--lang", "en"]) == "en"
+    assert parse_lang_from_argv(["main.py", "-l", "fr"]) == "en"
+    assert parse_lang_from_argv(["main.py", "--lang"]) == "en"
+

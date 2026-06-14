@@ -92,5 +92,19 @@ def _(key: str, **kwargs) -> str:
         return text.format(**kwargs)
     return text
 
+
+def parse_lang_from_argv(argv: list[str]) -> str:
+    lang = "en"
+    for idx, arg in enumerate(argv):
+        if arg in ("--lang", "-l"):
+            if idx + 1 < len(argv):
+                candidate = argv[idx + 1]
+                if candidate in ("en", "pt"):
+                    lang = candidate
+            break
+    return lang
+
+
 # Initialize translations on module load
 init_i18n()
+

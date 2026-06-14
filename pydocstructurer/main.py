@@ -4,21 +4,14 @@ import argparse
 from pydocstructurer.options import Options
 from pydocstructurer.cli.cli_helper import CliHelper
 from pydocstructurer.cli.terminal_ui import run_with_ui
-from pydocstructurer.i18n import _, set_lang
+from pydocstructurer.i18n import _, set_lang, parse_lang_from_argv
 
 
 
 def main():
-    # Pre-parse lang flag from sys.argv
-    lang = "en"
-    for idx, arg in enumerate(sys.argv):
-        if arg in ("--lang", "-l"):
-            if idx + 1 < len(sys.argv):
-                lang = sys.argv[idx + 1]
-            break
+    lang = parse_lang_from_argv(sys.argv)
+    set_lang(lang)
 
-    if lang in ("en", "pt"):
-        set_lang(lang)
 
     parser = CliHelper.get_argument_parser()
     args = parser.parse_args()
