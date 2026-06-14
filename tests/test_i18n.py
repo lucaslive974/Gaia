@@ -4,85 +4,69 @@ from unittest.mock import patch
 from pydocstructurer.i18n import _, set_lang, get_lang, parse_lang_from_argv, Language, get_system_lang
 
 
-@pytest.fixture(autouse=True)
-def reset_lang():
-    # Reset to default language before each test
-    set_lang(Language.EN_US)
+class TestI18nLanguageSelection:
+    def test_default_language_is_english(self):
+        assert get_lang() == Language.EN_US
+        assert _("ui_metric") == "Metric"
+
+    def test_switch_to_portuguese(self):
+        set_lang("pt")
+        assert get_lang() == Language.PT_BR
+        assert _("ui_metric") == "Métrica"
+
+        set_lang(Language.EN_US)
+        assert get_lang() == Language.EN_US
+
+    def test_invalid_language_does_not_switch(self):
+        set_lang("invalid_lang")
+        assert get_lang() == Language.EN_US
+        assert _("ui_metric") == "Metric"
 
 
-def test_default_language_is_english():
-    assert get_lang() == Language.EN_US
-    assert _("ui_metric") == "Metric"
+class TestI18nTranslation:
+    @pytest.mark.parametrize("lang, expected", [
+        ("en", "The input directory '/some/dir' does not exist."),
+        ("pt", "O diretório de entrada '/some/dir' não existe."),
+    ])
+    def test_format_parameters(self, lang, expected):
+        set_lang(lang)
+        assert _("err_dir_not_exist", base_path="/some/dir") == expected
+
+    def test_fallback_on_missing_key(self):
+        assert _("non_existent_key_abc") == "non_existent_key_abc"
 
 
-def test_switch_to_portuguese():
-    set_lang("pt")
-    assert get_lang() == Language.PT_BR
-    assert _("ui_metric") == "Métrica"
+class TestI18nAutoDetection:
+    @pytest.mark.parametrize("argv, system_lang, expected", [
+        ([], Language.EN_US, "en"),
+        (["main.py"], Language.EN_US, "en"),
+        (["main.py", "--lang", "pt"], Language.EN_US, "pt"),
+        (["main.py", "-l", "pt"], Language.EN_US, "pt"),
+        (["main.py", "--lang", "en"], Language.EN_US, "en"),
+        (["main.py", "-l", "fr"], Language.EN_US, "en"),
+        (["main.py", "--lang"], Language.EN_US, "en"),
+        ([], Language.PT_BR, "pt"),
+        (["main.py"], Language.PT_BR, "pt"),
+        (["main.py", "--lang", "en"], Language.PT_BR, "en"),
+    ])
+    def test_parse_lang_from_argv_scenarios(self, argv, system_lang, expected):
+        with patch("pydocstructurer.i18n.get_system_lang", return_value=system_lang):
+            assert parse_lang_from_argv(argv) == expected
 
-    set_lang(Language.EN_US)
-    assert get_lang() == Language.EN_US
+    @pytest.mark.parametrize("locale_val, expected", [
+        (("pt_BR", "UTF-8"), Language.PT_BR),
+        (("en_US", "UTF-8"), Language.EN_US),
+    ])
+    def test_get_system_lang_from_locale(self, locale_val, expected):
+        with patch("locale.getlocale", return_value=locale_val):
+            assert get_system_lang() == expected
 
-
-def test_format_parameters():
-    # English formatting
-    assert (
-        _("err_dir_not_exist", base_path="/some/dir")
-        == "The input directory '/some/dir' does not exist."
-    )
-
-    # Portuguese formatting
-    set_lang("pt")
-    assert (
-        _("err_dir_not_exist", base_path="/some/dir")
-        == "O diretório de entrada '/some/dir' não existe."
-    )
-
-
-def test_fallback_on_missing_key():
-    # If key does not exist, it should return the key itself
-    assert _("non_existent_key_abc") == "non_existent_key_abc"
-
-
-def test_invalid_language_does_not_switch():
-    set_lang("invalid_lang")
-    # Should stay at "en"
-    assert get_lang() == Language.EN_US
-    assert _("ui_metric") == "Metric"
-
-
-def test_parse_lang_from_argv():
-    # With default system lang mocked to EN_US
-    with patch("pydocstructurer.i18n.get_system_lang", return_value=Language.EN_US):
-        assert parse_lang_from_argv([]) == "en"
-        assert parse_lang_from_argv(["main.py"]) == "en"
-        assert parse_lang_from_argv(["main.py", "--lang", "pt"]) == "pt"
-        assert parse_lang_from_argv(["main.py", "-l", "pt"]) == "pt"
-        assert parse_lang_from_argv(["main.py", "--lang", "en"]) == "en"
-        assert parse_lang_from_argv(["main.py", "-l", "fr"]) == "en"
-        assert parse_lang_from_argv(["main.py", "--lang"]) == "en"
-
-    # With default system lang mocked to PT_BR
-    with patch("pydocstructurer.i18n.get_system_lang", return_value=Language.PT_BR):
-        assert parse_lang_from_argv([]) == "pt"
-        assert parse_lang_from_argv(["main.py"]) == "pt"
-        assert parse_lang_from_argv(["main.py", "--lang", "en"]) == "en"
-
-
-def test_get_system_lang_locale():
-    with patch("locale.getlocale", return_value=("pt_BR", "UTF-8")):
-        assert get_system_lang() == Language.PT_BR
-
-    with patch("locale.getlocale", return_value=("en_US", "UTF-8")):
-        assert get_system_lang() == Language.EN_US
-
-    with patch("locale.getlocale", return_value=(None, None)):
-        # locale is None, fallback to env variables
-        with patch.dict(os.environ, {"LANG": "pt_PT.UTF-8"}):
-            assert get_system_lang() == Language.PT_BR
-
-        with patch.dict(os.environ, {"LANG": "en_GB.UTF-8"}):
-            assert get_system_lang() == Language.EN_US
-
-        with patch.dict(os.environ, {}, clear=True):
-            assert get_system_lang() == Language.EN_US
+    @pytest.mark.parametrize("env_dict, expected", [
+        ({"LANG": "pt_PT.UTF-8"}, Language.PT_BR),
+        ({"LANG": "en_GB.UTF-8"}, Language.EN_US),
+        ({}, Language.EN_US),
+    ])
+    def test_get_system_lang_from_env_fallback(self, env_dict, expected):
+        with patch("locale.getlocale", return_value=(None, None)):
+            with patch.dict(os.environ, env_dict, clear=True if not env_dict else False):
+                assert get_system_lang() == expected

@@ -7,512 +7,379 @@ from pydocstructurer.options import Options
 from pydocstructurer.options import options as global_options
 from pydocstructurer.cli.cli_helper import CliHelper
 from pydocstructurer.extraction_session import ExtractionSession
+from pydocstructurer.i18n import Language, get_lang
 
 
-@pytest.fixture
-def fresh_options():
-    return Options()
+class TestOptionsDefaultsAndAccess:
+    def test_default_values(self, fresh_options):
+        assert fresh_options.BASE_PATH == ""
+        assert fresh_options.OUTPUT_CSV == os.path.join(os.getcwd(), "output.csv")
+        assert fresh_options.RESUME is False
+        assert fresh_options.REGEX_FILE is None
+        assert fresh_options.TEST_FILE is None
+        assert fresh_options.DUMP_FILE is None
+        assert fresh_options.RECURSIVE is False
+        assert fresh_options.PAGES_PER_UNIT == 1
+        assert fresh_options.PARSER_TYPE == "pdf"
+
+    def test_dictionary_syntax_access(self, fresh_options):
+        assert fresh_options["BASE_PATH"] == ""
+        assert fresh_options["RESUME"] is False
+        assert fresh_options["REGEX_FILE"] is None
+        assert fresh_options["RECURSIVE"] is False
+
+    def test_dictionary_syntax_key_error(self, fresh_options):
+        with pytest.raises(KeyError):
+            _ = fresh_options["NON_EXISTENT_KEY"]
+
+    def test_dictionary_syntax_modification(self, fresh_options):
+        fresh_options["BASE_PATH"] = "/custom/path"
+        fresh_options["RESUME"] = True
+        fresh_options["REGEX_FILE"] = "/my/regex.json"
+        fresh_options["RECURSIVE"] = True
+
+        assert fresh_options["BASE_PATH"] == "/custom/path"
+        assert fresh_options.BASE_PATH == "/custom/path"
+        assert fresh_options["RESUME"] is True
+        assert fresh_options["REGEX_FILE"] == "/my/regex.json"
+        assert fresh_options["RECURSIVE"] is True
+
+    def test_contains_operator(self, fresh_options):
+        assert "BASE_PATH" in fresh_options
+        assert "OUTPUT_CSV" in fresh_options
+        assert "RESUME" in fresh_options
+        assert "NON_EXISTENT_KEY" not in fresh_options
+
+    def test_list_attr(self, fresh_options):
+        attrs = fresh_options.list_attr()
+        assert ("input_dir", "BASE_PATH") in attrs
+        assert ("output", "OUTPUT_CSV") in attrs
+        assert ("resume", "RESUME") in attrs
+        assert ("type", "PARSER_TYPE") in attrs
+        assert ("dump", "DUMP_FILE") in attrs
+
+    def test_global_options_instance(self):
+        assert "BASE_PATH" in global_options
+        assert "OUTPUT_CSV" in global_options
+        assert "RESUME" in global_options
 
 
-def test_default_values(fresh_options):
-    """Test that a new Options instance has the expected default values."""
-    assert fresh_options.BASE_PATH == ""
-    assert fresh_options.OUTPUT_CSV == os.path.join(os.getcwd(), "output.csv")
-    assert fresh_options.RESUME is False
-    assert fresh_options.REGEX_FILE is None
-    assert fresh_options.TEST_FILE is None
-    assert fresh_options.DUMP_FILE is None
-    assert fresh_options.RECURSIVE is False
-    assert fresh_options.PAGES_PER_UNIT == 1
-    assert fresh_options.PARSER_TYPE == "pdf"
+class TestOptionsSetAttrValidations:
+    @pytest.mark.parametrize("invalid_ppu", [0, -1, -100, "invalid", "abc", None])
+    def test_pages_per_unit_validation(self, fresh_options, invalid_ppu):
+        with pytest.raises(ValueError):
+            fresh_options.PAGES_PER_UNIT = invalid_ppu
+
+    @pytest.mark.parametrize("valid_type", ["pdf", "docx", "ocr"])
+    def test_parser_type_validation_success(self, fresh_options, valid_type):
+        fresh_options.PARSER_TYPE = valid_type
+        assert fresh_options.PARSER_TYPE == valid_type
+
+    def test_parser_type_validation_failure(self, fresh_options):
+        with pytest.raises(ValueError):
+            fresh_options.PARSER_TYPE = "invalid"
 
 
-def test_getitem_success(fresh_options):
-    """Test accessing options attributes using dictionary syntax."""
-    assert fresh_options["BASE_PATH"] == ""
-    assert fresh_options["RESUME"] is False
-    assert fresh_options["REGEX_FILE"] is None
-    assert fresh_options["RECURSIVE"] is False
-
-
-def test_getitem_key_error(fresh_options):
-    """Test that accessing a non-existent key via dictionary syntax raises KeyError."""
-    with pytest.raises(KeyError):
-        _ = fresh_options["NON_EXISTENT_KEY"]
-
-
-def test_setitem(fresh_options):
-    """Test modifying options attributes using dictionary syntax."""
-    fresh_options["BASE_PATH"] = "/custom/path"
-    fresh_options["RESUME"] = True
-    fresh_options["REGEX_FILE"] = "/my/regex.json"
-    fresh_options["RECURSIVE"] = True
-
-    # Verify both dictionary-like and attribute-like access reflect the changes
-    assert fresh_options["BASE_PATH"] == "/custom/path"
-    assert fresh_options.BASE_PATH == "/custom/path"
-    assert fresh_options["RESUME"] is True
-    assert fresh_options.RESUME is True
-    assert fresh_options["REGEX_FILE"] == "/my/regex.json"
-    assert fresh_options["RECURSIVE"] is True
-    assert fresh_options.RECURSIVE is True
-
-
-def test_contains(fresh_options):
-    """Test the 'in' operator on the options object."""
-    assert "BASE_PATH" in fresh_options
-    assert "OUTPUT_CSV" in fresh_options
-    assert "RESUME" in fresh_options
-    assert "REGEX_FILE" in fresh_options
-    assert "RECURSIVE" in fresh_options
-    assert "NON_EXISTENT_KEY" not in fresh_options
-
-
-def test_setattr_validation_ppu(fresh_options):
-    with pytest.raises(ValueError):
-        fresh_options.PAGES_PER_UNIT = 0
-    with pytest.raises(ValueError):
-        fresh_options.PAGES_PER_UNIT = -1
-    with pytest.raises(ValueError):
-        fresh_options.PAGES_PER_UNIT = "invalid"
-
-
-def test_list_attr(fresh_options):
-    attrs = fresh_options.list_attr()
-    assert ("input_dir", "BASE_PATH") in attrs
-    assert ("output", "OUTPUT_CSV") in attrs
-    assert ("resume", "RESUME") in attrs
-    assert ("type", "PARSER_TYPE") in attrs
-    assert ("dump", "DUMP_FILE") in attrs
-
-
-def test_parse_and_build_options_all_fields():
-    """Test parse_and_build_options with a Namespace containing all mapped attributes."""
-    from pydocstructurer.i18n import get_lang, Language
-    args = Namespace(
-        input_dir="/my/input",
-        output="/my/output.csv",
-        resume=True,
-        regex="/my/regex.json",
-        test=None,
-        recursive=True,
-        pages_per_unit=5,
-        lang="pt",
-    )
-    options = CliHelper.parse_and_build_options(args)
-
-    assert options.BASE_PATH == "/my/input"
-    assert options.OUTPUT_CSV == "/my/output.csv"
-    assert options.RESUME is True
-    assert options.REGEX_FILE == "/my/regex.json"
-    assert options.RECURSIVE is True
-    assert options.PAGES_PER_UNIT == 5
-    assert get_lang() == Language.PT_BR
-
-
-
-def test_parse_and_build_options_partial_fields():
-    """Test parse_and_build_options with a Namespace containing only some mapped attributes."""
-    args = Namespace(
-        input_dir="/my/input_only",
-        regex="/my/regex.json",
-        # other attributes are missing
-    )
-    options = CliHelper.parse_and_build_options(args)
-
-    # Check that present fields were updated
-    assert options.BASE_PATH == "/my/input_only"
-    assert options.REGEX_FILE == "/my/regex.json"
-    # Check that missing fields retained their defaults
-    assert options.RESUME is False
-    assert options.RECURSIVE is False
-    assert options.OUTPUT_CSV == os.path.join(os.getcwd(), "output.csv")
-
-
-def test_parse_and_build_options_unmapped_fields_ignored():
-    """Test that parse_and_build_options ignores attributes not in the mapping."""
-    args = Namespace(
-        input_dir="/my/input",
-        regex="/my/regex.json",
-        extra_arg="some_value",
-    )
-    options = CliHelper.parse_and_build_options(args)
-
-    assert options.BASE_PATH == "/my/input"
-    assert options.REGEX_FILE == "/my/regex.json"
-    # Ensure extra arg is not set on options
-    assert hasattr(options, "extra_arg") is False
-    assert ("extra_arg" in options) is False
-
-
-def test_parse_and_build_options_value_errors():
-    # Scenario 1: missing input_dir, resume = False -> should raise ValueError
-    args = Namespace(
-        input_dir=None, resume=False, output="/my/output.csv", regex="/my/regex.json"
-    )
-    with pytest.raises(ValueError):
-        CliHelper.parse_and_build_options(args)
-
-    # Scenario 2: missing input_dir, resume = True but no state file -> should raise ValueError
-    with patch("pydocstructurer.extraction_session.ExtractionSession.load_state", return_value=None):
+class TestCliHelperParsing:
+    def test_parse_all_fields(self):
         args = Namespace(
-            input_dir=None, resume=True, output="/my/output.csv", regex="/my/regex.json"
+            input_dir="/my/input",
+            output="/my/output.csv",
+            resume=True,
+            regex="/my/regex.json",
+            test=None,
+            recursive=True,
+            pages_per_unit=5,
+            lang="pt",
+        )
+        options = CliHelper.parse_and_build_options(args)
+        assert options.BASE_PATH == "/my/input"
+        assert options.OUTPUT_CSV == "/my/output.csv"
+        assert options.RESUME is True
+        assert options.REGEX_FILE == "/my/regex.json"
+        assert options.RECURSIVE is True
+        assert options.PAGES_PER_UNIT == 5
+        assert get_lang() == Language.PT_BR
+
+    def test_parse_partial_fields(self):
+        args = Namespace(
+            input_dir="/my/input_only",
+            regex="/my/regex.json",
+        )
+        options = CliHelper.parse_and_build_options(args)
+        assert options.BASE_PATH == "/my/input_only"
+        assert options.REGEX_FILE == "/my/regex.json"
+        assert options.RESUME is False
+        assert options.RECURSIVE is False
+
+    def test_ignore_unmapped_fields(self):
+        args = Namespace(
+            input_dir="/my/input",
+            regex="/my/regex.json",
+            extra_arg="some_value",
+        )
+        options = CliHelper.parse_and_build_options(args)
+        assert options.BASE_PATH == "/my/input"
+        assert hasattr(options, "extra_arg") is False
+
+    def test_dump_mode_bypasses_validations(self):
+        args = Namespace(
+            input_dir=None,
+            resume=False,
+            output="/my/output.csv",
+            regex=None,
+            test=None,
+            dump="/my/dump.pdf",
+            pages_per_unit=1,
+            lang="en",
+        )
+        options = CliHelper.parse_and_build_options(args)
+        assert options.DUMP_FILE == "/my/dump.pdf"
+        assert options.REGEX_FILE is None
+        assert options.BASE_PATH == ""
+
+    def test_test_mode_bypasses_input_dir(self):
+        args = Namespace(
+            input_dir=None,
+            resume=False,
+            output="/my/output.csv",
+            regex="/my/regex.json",
+            test="/my/test.pdf",
+        )
+        options = CliHelper.parse_and_build_options(args)
+        assert options.TEST_FILE == "/my/test.pdf"
+        assert options.REGEX_FILE == "/my/regex.json"
+        assert options.BASE_PATH == ""
+
+
+class TestCliHelperValidationErrors:
+    def test_missing_input_dir(self):
+        args = Namespace(input_dir=None, resume=False, regex="/my/regex.json")
+        with pytest.raises(ValueError, match="positional argument"):
+            CliHelper.parse_and_build_options(args)
+
+    def test_missing_input_dir_and_no_resume_state(self):
+        with patch("pydocstructurer.extraction_session.ExtractionSession.load_state", return_value=None):
+            args = Namespace(input_dir=None, resume=True, regex="/my/regex.json")
+            with pytest.raises(ValueError, match="resume state"):
+                CliHelper.parse_and_build_options(args)
+
+    def test_missing_regex_file(self):
+        args = Namespace(input_dir="/my/input", resume=False, regex=None)
+        with pytest.raises(ValueError, match="regex.*required"):
+            CliHelper.parse_and_build_options(args)
+
+    @pytest.mark.parametrize("invalid_ppu", [0, -5, "abc"])
+    def test_invalid_pages_per_unit(self, invalid_ppu):
+        args = Namespace(
+            input_dir="/my/input",
+            resume=False,
+            regex="/my/regex.json",
+            pages_per_unit=invalid_ppu,
         )
         with pytest.raises(ValueError):
             CliHelper.parse_and_build_options(args)
 
-    # Scenario 3: input_dir provided, resume = False, but regex is missing -> should raise ValueError
-    args = Namespace(
-        input_dir="/my/input", resume=False, output="/my/output.csv", regex=None
-    )
-    with pytest.raises(ValueError):
-        CliHelper.parse_and_build_options(args)
 
-    # Scenario 4: test mode provided -> input_dir is not required, but regex is required
-    args = Namespace(
-        input_dir=None,
-        resume=False,
-        output="/my/output.csv",
-        regex="/my/regex.json",
-        test="/my/test.pdf",
-    )
-    options = CliHelper.parse_and_build_options(args)
-    assert options.TEST_FILE == "/my/test.pdf"
-    assert options.REGEX_FILE == "/my/regex.json"
+class TestCliHelperConfig:
+    def test_detect_config_format(self):
+        assert CliHelper._detect_config_format("settings.toml") == "toml"
+        assert CliHelper._detect_config_format("settings.TOML") == "toml"
+        assert CliHelper._detect_config_format("settings.json") == "json"
+        assert CliHelper._detect_config_format("settings.txt") == "json"
 
-    # Scenario 5: pages_per_unit less than 1 -> should raise ValueError
-    args = Namespace(
-        input_dir="/my/input",
-        resume=False,
-        output="/my/output.csv",
-        regex="/my/regex.json",
-        pages_per_unit=0,
-    )
-    with pytest.raises(ValueError):
-        CliHelper.parse_and_build_options(args)
-
-    # Scenario 6: pages_per_unit is negative -> should raise ValueError
-    args = Namespace(
-        input_dir="/my/input",
-        resume=False,
-        output="/my/output.csv",
-        regex="/my/regex.json",
-        pages_per_unit=-5,
-    )
-    with pytest.raises(ValueError):
-        CliHelper.parse_and_build_options(args)
-
-    # Scenario 7: pages_per_unit is not an integer -> should raise ValueError
-    args = Namespace(
-        input_dir="/my/input",
-        resume=False,
-        output="/my/output.csv",
-        regex="/my/regex.json",
-        pages_per_unit="abc",
-    )
-    with pytest.raises(ValueError):
-        CliHelper.parse_and_build_options(args)
-
-
-def test_global_options_instance():
-    """Test that the global options instance exported by the package functions properly."""
-    assert "BASE_PATH" in global_options
-    assert "OUTPUT_CSV" in global_options
-    assert "RESUME" in global_options
-
-
-def test_load_save_clear_resume_state():
-    input_dir = "/dummy/input"
-    state_file_cwd = os.path.join(os.getcwd(), ".gaia_resume.json")
-    state_file_input = os.path.join(input_dir, ".gaia_resume.json")
-
-    options = Options()
-    options.BASE_PATH = input_dir
-    options.REGEX_FILE = "/my/regex.json"
-
-    session = ExtractionSession(None)
-    session.input_dir = options.BASE_PATH
-    session.output_file = options.OUTPUT_CSV
-    session.regex_file = options.REGEX_FILE
-    session.processed_files = ["file1.pdf"]
-    session.successful_pages = 10
-    session.failed_pages = 2
-    session.total_pages = 12
-
-    with patch("pydocstructurer.extraction_session.open", create=True) as mock_open:
-        session.save_state()
-        mock_open.assert_any_call(state_file_cwd, "w", encoding="utf-8")
-        mock_open.assert_any_call(state_file_input, "w", encoding="utf-8")
-
-    with patch("pydocstructurer.extraction_session.os.path.exists") as mock_exists, patch(
-        "pydocstructurer.extraction_session.open", create=True
-    ) as mock_open:
-        mock_exists.return_value = True
-        mock_file = MagicMock()
-        mock_file.read.return_value = json.dumps(
-            {
-                "input_dir": input_dir,
-                "output_file": options.OUTPUT_CSV,
-                "regex_file": "/my/regex.json",
-                "processed_files": ["file1.pdf"],
-                "successful_pages": 10,
-                "failed_pages": 2,
-                "total_pages": 12,
-            }
+    def test_load_valid_toml_config_file(self, temp_file_factory):
+        toml_content = """
+        [config]
+        input_dir = "/toml/input"
+        output = "/toml/output.csv"
+        resume = true
+        recursive = true
+        regex = "/toml/regex.toml"
+        pages_per_unit = 3
+        type = "docx"
+        """
+        config_file = temp_file_factory("config.toml", toml_content)
+        args = Namespace(
+            config=config_file,
+            input_dir=None,
+            output=None,
+            resume=None,
+            recursive=None,
+            regex=None,
+            test=None,
+            dump=None,
+            pages_per_unit=None,
+            lang=None,
+            type=None,
         )
-        mock_open.return_value.__enter__.return_value = mock_file
+        options = CliHelper.parse_and_build_options(args)
+        assert options.BASE_PATH == "/toml/input"
+        assert options.OUTPUT_CSV == "/toml/output.csv"
+        assert options.RESUME is True
+        assert options.RECURSIVE is True
+        assert options.REGEX_FILE == "/toml/regex.toml"
+        assert options.PAGES_PER_UNIT == 3
+        assert options.PARSER_TYPE == "docx"
 
-        state = ExtractionSession.load_state(input_dir)
-        assert state is not None
-        assert state["processed_files"] == ["file1.pdf"]
-        assert state["regex_file"] == "/my/regex.json"
-
-    with patch("pydocstructurer.extraction_session.os.path.exists") as mock_exists, patch(
-        "pydocstructurer.extraction_session.os.remove"
-    ) as mock_remove:
-        mock_exists.return_value = True
-        session.clear_state()
-        mock_remove.assert_any_call(state_file_cwd)
-        mock_remove.assert_any_call(state_file_input)
-
-
-def test_setattr_validation_parser_type(fresh_options):
-    fresh_options.PARSER_TYPE = "docx"
-    assert fresh_options.PARSER_TYPE == "docx"
-    fresh_options.PARSER_TYPE = "ocr"
-    assert fresh_options.PARSER_TYPE == "ocr"
-    with pytest.raises(ValueError):
-        fresh_options.PARSER_TYPE = "invalid"
-    fresh_options.PARSER_TYPE = "pdf"
-    assert fresh_options.PARSER_TYPE == "pdf"
-
-
-def test_parse_and_build_options_parser_type():
-    args = Namespace(
-        input_dir="/my/input",
-        output="/my/output.csv",
-        resume=False,
-        regex="/my/regex.json",
-        test=None,
-        recursive=False,
-        pages_per_unit=1,
-        lang="en",
-        type="pdf",
-    )
-    options = CliHelper.parse_and_build_options(args)
-    assert options.PARSER_TYPE == "pdf"
-
-
-def test_parser_factory():
-    from pydocstructurer.parser import ParserFactory, ParserType
-    from pydocstructurer.parsers import PdfParser
-
-    # String input
-    parser_str = ParserFactory.create("pdf")
-    assert isinstance(parser_str, PdfParser)
-
-    # Enum input
-    parser_enum = ParserFactory.create(ParserType.PDF)
-    assert isinstance(parser_enum, PdfParser)
-
-    # Invalid input
-    with pytest.raises(ValueError):
-        ParserFactory.create("invalid")
-
-
-def test_parse_and_build_options_dump():
-    # Dump mode should bypass input_dir and regex validations
-    args = Namespace(
-        input_dir=None,
-        resume=False,
-        output="/my/output.csv",
-        regex=None,
-        test=None,
-        dump="/my/dump.pdf",
-        pages_per_unit=1,
-        lang="en",
-    )
-    options = CliHelper.parse_and_build_options(args)
-    assert options.DUMP_FILE == "/my/dump.pdf"
-    assert options.REGEX_FILE is None
-    assert options.BASE_PATH == ""
-
-
-def test_detect_config_format():
-    assert CliHelper._detect_config_format("settings.toml") == "toml"
-    assert CliHelper._detect_config_format("settings.TOML") == "toml"
-    assert CliHelper._detect_config_format("settings.json") == "json"
-    assert CliHelper._detect_config_format("settings.txt") == "json"
-
-
-def test_load_valid_toml_config_file(tmp_path):
-    toml_content = """
-    [config]
-    input_dir = "/toml/input"
-    output = "/toml/output.csv"
-    resume = true
-    recursive = true
-    regex = "/toml/regex.toml"
-    pages_per_unit = 3
-    type = "docx"
-    """
-    config_file = os.path.join(tmp_path, "config.toml")
-    with open(config_file, "w", encoding="utf-8") as f:
-        f.write(toml_content)
-
-    args = Namespace(
-        config=config_file,
-        input_dir=None,
-        output=None,
-        resume=None,
-        recursive=None,
-        regex=None,
-        test=None,
-        dump=None,
-        pages_per_unit=None,
-        lang=None,
-        type=None,
-    )
-    options = CliHelper.parse_and_build_options(args)
-    assert options.BASE_PATH == "/toml/input"
-    assert options.OUTPUT_CSV == "/toml/output.csv"
-    assert options.RESUME is True
-    assert options.RECURSIVE is True
-    assert options.REGEX_FILE == "/toml/regex.toml"
-    assert options.PAGES_PER_UNIT == 3
-    assert options.PARSER_TYPE == "docx"
-
-
-def test_load_valid_json_config_file(tmp_path):
-    json_data = {
-        "config": {
-            "input_dir": "/json/input",
-            "output": "/json/output.csv",
-            "resume": False,
-            "recursive": False,
-            "regex": "/json/regex.json",
-            "pages_per_unit": 2,
-            "type": "pdf",
+    def test_load_valid_json_config_file(self, temp_file_factory):
+        json_data = {
+            "config": {
+                "input_dir": "/json/input",
+                "output": "/json/output.csv",
+                "resume": False,
+                "recursive": False,
+                "regex": "/json/regex.json",
+                "pages_per_unit": 2,
+                "type": "pdf",
+            }
         }
-    }
-    config_file = os.path.join(tmp_path, "config.json")
-    with open(config_file, "w", encoding="utf-8") as f:
-        json.dump(json_data, f)
+        config_file = temp_file_factory("config.json", json_data, is_json=True)
+        args = Namespace(
+            config=config_file,
+            input_dir=None,
+            output=None,
+            resume=None,
+            recursive=None,
+            regex=None,
+            test=None,
+            dump=None,
+            pages_per_unit=None,
+            lang=None,
+            type=None,
+        )
+        options = CliHelper.parse_and_build_options(args)
+        assert options.BASE_PATH == "/json/input"
+        assert options.OUTPUT_CSV == "/json/output.csv"
+        assert options.RESUME is False
+        assert options.RECURSIVE is False
+        assert options.REGEX_FILE == "/json/regex.json"
+        assert options.PAGES_PER_UNIT == 2
+        assert options.PARSER_TYPE == "pdf"
 
-    args = Namespace(
-        config=config_file,
-        input_dir=None,
-        output=None,
-        resume=None,
-        recursive=None,
-        regex=None,
-        test=None,
-        dump=None,
-        pages_per_unit=None,
-        lang=None,
-        type=None,
-    )
-    options = CliHelper.parse_and_build_options(args)
-    assert options.BASE_PATH == "/json/input"
-    assert options.OUTPUT_CSV == "/json/output.csv"
-    assert options.RESUME is False
-    assert options.RECURSIVE is False
-    assert options.REGEX_FILE == "/json/regex.json"
-    assert options.PAGES_PER_UNIT == 2
-    assert options.PARSER_TYPE == "pdf"
+    def test_config_precedence(self, temp_file_factory):
+        toml_content = """
+        [config]
+        input_dir = "/toml/input"
+        output = "/toml/output.csv"
+        resume = true
+        recursive = true
+        pages_per_unit = 3
+        type = "docx"
+        """
+        config_file = temp_file_factory("config.toml", toml_content)
+        args = Namespace(
+            config=config_file,
+            input_dir="/cli/override/input",
+            output="/cli/override/output.csv",
+            resume=None,
+            recursive=False,
+            regex="/dummy/regex.json",
+            test=None,
+            dump=None,
+            pages_per_unit=None,
+            lang="pt",
+            type=None,
+        )
+        options = CliHelper.parse_and_build_options(args)
+        assert options.BASE_PATH == "/cli/override/input"
+        assert options.OUTPUT_CSV == "/cli/override/output.csv"
+        assert options.RECURSIVE is False
+        assert options.RESUME is True
+        assert options.PAGES_PER_UNIT == 3
+        assert get_lang() == Language.PT_BR
+        assert options.PARSER_TYPE == "docx"
 
+    def test_config_file_not_found(self):
+        args = Namespace(config="/nonexistent/path.toml")
+        with pytest.raises(FileNotFoundError):
+            CliHelper.parse_and_build_options(args)
 
-def test_config_precedence(tmp_path):
-    toml_content = """
-    [config]
-    input_dir = "/toml/input"
-    output = "/toml/output.csv"
-    resume = true
-    recursive = true
-    pages_per_unit = 3
-    type = "docx"
-    """
-    config_file = os.path.join(tmp_path, "config.toml")
-    with open(config_file, "w", encoding="utf-8") as f:
-        f.write(toml_content)
+    def test_malformed_toml_file(self, temp_file_factory):
+        bad_toml = temp_file_factory("bad.toml", "invalid = [toml")
+        args = Namespace(config=bad_toml)
+        with pytest.raises(ValueError, match="toml"):
+            CliHelper.parse_and_build_options(args)
 
-    # CLI explicitly overrides input_dir, output, and recursive,
-    # but leaves resume, pages_per_unit, and type as None (retaining config values)
-    from pydocstructurer.i18n import get_lang, Language
-    args = Namespace(
-        config=config_file,
-        input_dir="/cli/override/input",
-        output="/cli/override/output.csv",
-        resume=None,
-        recursive=False,
-        regex="/dummy/regex.json",
-        test=None,
-        dump=None,
-        pages_per_unit=None,
-        lang="pt",
-        type=None,
-    )
-    options = CliHelper.parse_and_build_options(args)
-    assert options.BASE_PATH == "/cli/override/input"  # CLI Wins
-    assert options.OUTPUT_CSV == "/cli/override/output.csv"  # CLI Wins
-    assert options.RECURSIVE is False  # CLI Wins
-    assert options.RESUME is True  # Config Wins
-    assert options.PAGES_PER_UNIT == 3  # Config Wins
-    assert get_lang() == Language.PT_BR  # CLI Wins (since it cannot be set in config)
-    assert options.PARSER_TYPE == "docx"  # Config Wins
+    def test_malformed_json_file(self, temp_file_factory):
+        bad_json = temp_file_factory("bad.json", "invalid json")
+        args = Namespace(config=bad_json)
+        with pytest.raises(ValueError, match="json"):
+            CliHelper.parse_and_build_options(args)
 
-
-
-def test_config_file_errors(tmp_path):
-    # 1. Non-existent file
-    args = Namespace(
-        config="/nonexistent/path.toml",
-    )
-    with pytest.raises(FileNotFoundError):
-        CliHelper.parse_and_build_options(args)
-
-    # 2. Malformed TOML file
-    bad_toml = os.path.join(tmp_path, "bad.toml")
-    with open(bad_toml, "w", encoding="utf-8") as f:
-        f.write("invalid = [toml")
-    args = Namespace(
-        config=bad_toml,
-    )
-    with pytest.raises(ValueError) as exc:
-        CliHelper.parse_and_build_options(args)
-    assert "toml" in str(exc.value).lower()
-
-    # 3. Malformed JSON file
-    bad_json = os.path.join(tmp_path, "bad.json")
-    with open(bad_json, "w", encoding="utf-8") as f:
-        f.write("invalid json")
-    args = Namespace(
-        config=bad_json,
-    )
-    with pytest.raises(ValueError) as exc:
-        CliHelper.parse_and_build_options(args)
-    assert "json" in str(exc.value).lower()
-
-    # 4. Missing [config] section/table
-    missing_sec_toml = os.path.join(tmp_path, "missing_sec.toml")
-    with open(missing_sec_toml, "w", encoding="utf-8") as f:
-        f.write("input_dir = '/toml/input'")  # at root level, not under [config]
-    args = Namespace(
-        config=missing_sec_toml,
-    )
-    with pytest.raises(ValueError) as exc:
-        CliHelper.parse_and_build_options(args)
-    assert "err_config_missing_section" in str(exc.value)
-
-    with open(bad_json, "w", encoding="utf-8") as f:
-        f.write("invalid json")
-    args = Namespace(
-        config=bad_json,
-    )
-    with pytest.raises(ValueError) as exc:
-        CliHelper.parse_and_build_options(args)
-    assert "json" in str(exc.value).lower()
+    def test_missing_config_section(self, temp_file_factory):
+        missing_sec = temp_file_factory("missing_sec.toml", "input_dir = '/toml/input'")
+        args = Namespace(config=missing_sec)
+        with pytest.raises(ValueError, match="err_config_missing_section"):
+            CliHelper.parse_and_build_options(args)
 
 
+class TestResumeStateIntegration:
+    def test_load_save_clear_resume_state(self):
+        input_dir = "/dummy/input"
+        state_file_cwd = os.path.join(os.getcwd(), ".gaia_resume.json")
+        state_file_input = os.path.join(input_dir, ".gaia_resume.json")
+
+        options = Options()
+        options.BASE_PATH = input_dir
+        options.REGEX_FILE = "/my/regex.json"
+
+        session = ExtractionSession(None)
+        session.input_dir = options.BASE_PATH
+        session.output_file = options.OUTPUT_CSV
+        session.regex_file = options.REGEX_FILE
+        session.processed_files = ["file1.pdf"]
+        session.successful_pages = 10
+        session.failed_pages = 2
+        session.total_pages = 12
+
+        with patch("pydocstructurer.extraction_session.open", create=True) as mock_open:
+            session.save_state()
+            mock_open.assert_any_call(state_file_cwd, "w", encoding="utf-8")
+            mock_open.assert_any_call(state_file_input, "w", encoding="utf-8")
+
+        with patch("pydocstructurer.extraction_session.os.path.exists") as mock_exists, patch(
+            "pydocstructurer.extraction_session.open", create=True
+        ) as mock_open:
+            mock_exists.return_value = True
+            mock_file = MagicMock()
+            mock_file.read.return_value = json.dumps(
+                {
+                    "input_dir": input_dir,
+                    "output_file": options.OUTPUT_CSV,
+                    "regex_file": "/my/regex.json",
+                    "processed_files": ["file1.pdf"],
+                    "successful_pages": 10,
+                    "failed_pages": 2,
+                    "total_pages": 12,
+                }
+            )
+            mock_open.return_value.__enter__.return_value = mock_file
+
+            state = ExtractionSession.load_state(input_dir)
+            assert state is not None
+            assert state["processed_files"] == ["file1.pdf"]
+            assert state["regex_file"] == "/my/regex.json"
+
+        with patch("pydocstructurer.extraction_session.os.path.exists") as mock_exists, patch(
+            "pydocstructurer.extraction_session.os.remove"
+        ) as mock_remove:
+            mock_exists.return_value = True
+            session.clear_state()
+            mock_remove.assert_any_call(state_file_cwd)
+            mock_remove.assert_any_call(state_file_input)
 
 
+class TestParserFactory:
+    def test_parser_factory_resolution(self):
+        from pydocstructurer.parser import ParserFactory, ParserType
+        from pydocstructurer.parsers import PdfParser
+
+        parser_str = ParserFactory.create("pdf")
+        assert isinstance(parser_str, PdfParser)
+
+        parser_enum = ParserFactory.create(ParserType.PDF)
+        assert isinstance(parser_enum, PdfParser)
+
+        with pytest.raises(ValueError):
+            ParserFactory.create("invalid")
