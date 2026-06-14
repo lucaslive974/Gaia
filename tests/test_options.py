@@ -88,7 +88,7 @@ def test_list_attr(fresh_options):
 
 def test_parse_and_build_options_all_fields():
     """Test parse_and_build_options with a Namespace containing all mapped attributes."""
-    from pydocstructurer.i18n import get_lang
+    from pydocstructurer.i18n import get_lang, Language
     args = Namespace(
         input_dir="/my/input",
         output="/my/output.csv",
@@ -107,7 +107,7 @@ def test_parse_and_build_options_all_fields():
     assert options.REGEX_FILE == "/my/regex.json"
     assert options.RECURSIVE is True
     assert options.PAGES_PER_UNIT == 5
-    assert get_lang() == "pt"
+    assert get_lang() == Language.PT_BR
 
 
 
@@ -438,7 +438,7 @@ def test_config_precedence(tmp_path):
 
     # CLI explicitly overrides input_dir, output, and recursive,
     # but leaves resume, pages_per_unit, and type as None (retaining config values)
-    from pydocstructurer.i18n import get_lang
+    from pydocstructurer.i18n import get_lang, Language
     args = Namespace(
         config=config_file,
         input_dir="/cli/override/input",
@@ -458,7 +458,7 @@ def test_config_precedence(tmp_path):
     assert options.RECURSIVE is False  # CLI Wins
     assert options.RESUME is True  # Config Wins
     assert options.PAGES_PER_UNIT == 3  # Config Wins
-    assert get_lang() == "pt"  # CLI Wins (since it cannot be set in config)
+    assert get_lang() == Language.PT_BR  # CLI Wins (since it cannot be set in config)
     assert options.PARSER_TYPE == "docx"  # Config Wins
 
 

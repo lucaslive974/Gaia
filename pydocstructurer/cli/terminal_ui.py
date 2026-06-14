@@ -7,7 +7,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich.live import Live
 from pydocstructurer.observer import ExtractionObserver
-from pydocstructurer.i18n import _, get_lang
+from pydocstructurer.i18n import _, get_lang, Language
 
 try:
     import termios
@@ -326,7 +326,7 @@ def run_test_mode(options):
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(
                 f"Arquivo PDF não encontrado: {pdf_path}"
-                if get_lang() == "pt"
+                if get_lang() == Language.PT_BR
                 else f"PDF file not found: {pdf_path}"
             )
 
@@ -334,7 +334,7 @@ def run_test_mode(options):
         if not pages:
             raise ValueError(
                 "O arquivo PDF não contém páginas."
-                if get_lang() == "pt"
+                if get_lang() == Language.PT_BR
                 else "The PDF file has no pages."
             )
 
