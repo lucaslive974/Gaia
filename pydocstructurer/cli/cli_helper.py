@@ -63,7 +63,12 @@ class CliHelper:
         config_data: dict[str, Any] = {}
         config_path = getattr(args, "config", None)
         if config_path:
-            config_data = cls._load_config_file(config_path)
+            raw_data = cls._load_config_file(config_path)
+            if "config" in raw_data and isinstance(raw_data["config"], dict):
+                config_data = raw_data["config"]
+            else:
+                raise ValueError(_("err_config_missing_section"))
+
             for k, v in config_data.items():
                 opt_attr = config_mapping.get(k)
                 if opt_attr and v is not None:

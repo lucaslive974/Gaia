@@ -235,4 +235,8 @@ msgstr "Erro ao ler o arquivo de configuração: {error}"
 msgid "err_config_not_found"
 msgstr "Arquivo de configuração não encontrado: {file_path}"
 
+msgid "err_config_missing_section"
+msgstr "O arquivo de configuração deve conter uma seção '[config]'."
+
+
 

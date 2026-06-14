@@ -9,7 +9,6 @@ from pydocstructurer import (
     NativeRegexEngine,
 )
 from pydocstructurer.parser import Parser, ParserFactory
-from pydocstructurer.i18n import _
 
 
 class PyDocStructurer:
@@ -78,13 +77,13 @@ class PyDocStructurer:
     def _validate_paths(self) -> bool:
         if not os.path.exists(self.options.BASE_PATH):
             self.observer.on_error(
-                _("err_dir_not_exist", base_path=self.options.BASE_PATH)
+                f"The input directory '{self.options.BASE_PATH}' does not exist."
             )
             return False
 
         if not os.path.isdir(self.options.BASE_PATH) and not os.path.isfile(self.options.BASE_PATH):
             self.observer.on_error(
-                _("err_not_a_dir", base_path=self.options.BASE_PATH)
+                f"The input path '{self.options.BASE_PATH}' is not a directory."
             )
             return False
         return True
@@ -124,7 +123,7 @@ class PyDocStructurer:
                     if self.parser.accepts(full_path):
                         files.append(f)
             except Exception as e:
-                self.observer.on_error(_("err_list_dir", error=e))
+                self.observer.on_error(f"Error listing directory: {e}")
                 return None
 
         files.sort()
@@ -165,7 +164,7 @@ class PyDocStructurer:
                 session.start_page(unit_index, total_units)
                 self._process_page(unit_text, unit_index, total_units, session)
         except Exception as e:
-            session.error(_("err_in_file", file_path=rel_file_path, error=e))
+            session.error(f"Error in file {rel_file_path}: {e}")
             return
 
         session.processed_files.append(rel_file_path)
@@ -206,10 +205,10 @@ class PyDocStructurer:
         try:
             with open(log_path, "a", encoding="utf-8") as f:
                 f.write(f"\n{'=' * 80}\n")
-                f.write(_("log_fail_extraction", page_number=page_number) + "\n")
-                f.write(_("log_error", error=error_msg) + "\n")
+                f.write(f"EXTRACTION FAILURE - Page {page_number}\n")
+                f.write(f"Error: {error_msg}\n")
                 if extracted_data:
-                    f.write(_("log_extracted_fields", fields=extracted_data) + "\n")
+                    f.write(f"Extracted fields: {extracted_data}\n")
                 f.write(f"{'-' * 80}\n")
                 f.write(page_text)
                 f.write(f"\n{'=' * 80}\n")

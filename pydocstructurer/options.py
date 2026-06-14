@@ -1,5 +1,4 @@
 import os
-from pydocstructurer.i18n import _
 
 
 class Options:
@@ -35,15 +34,15 @@ class Options:
                     raise ValueError
                 value = val
             except (ValueError, TypeError):
-                raise ValueError(_("err_ppu_invalid"))
+                raise ValueError("the '--pages-per-unit' argument must be an integer greater than or equal to 1.")
         elif name == "LANG":
             if value not in ("en", "pt"):
-                raise ValueError(_("err_lang_invalid"))
+                raise ValueError("the '--lang' argument must be 'en' or 'pt'.")
         elif name == "PARSER_TYPE":
             from pydocstructurer.parser import ParserType
             valid_types = [item.value for item in ParserType]
             if value not in valid_types:
-                raise ValueError(_("err_type_invalid"))
+                raise ValueError(f"the '--type' argument must be one of {valid_types}.")
         super().__setattr__(name, value)
 
     @classmethod
@@ -63,3 +62,4 @@ class Options:
 
 
 options = Options()
+

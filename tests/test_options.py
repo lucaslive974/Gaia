@@ -354,6 +354,7 @@ def test_detect_config_format():
 
 def test_load_valid_toml_config_file(tmp_path):
     toml_content = """
+    [config]
     input_dir = "/toml/input"
     output = "/toml/output.csv"
     resume = true
@@ -392,13 +393,15 @@ def test_load_valid_toml_config_file(tmp_path):
 
 def test_load_valid_json_config_file(tmp_path):
     json_data = {
-        "input_dir": "/json/input",
-        "output": "/json/output.csv",
-        "resume": False,
-        "recursive": False,
-        "regex": "/json/regex.json",
-        "pages_per_unit": 2,
-        "type": "pdf",
+        "config": {
+            "input_dir": "/json/input",
+            "output": "/json/output.csv",
+            "resume": False,
+            "recursive": False,
+            "regex": "/json/regex.json",
+            "pages_per_unit": 2,
+            "type": "pdf",
+        }
     }
     config_file = os.path.join(tmp_path, "config.json")
     with open(config_file, "w", encoding="utf-8") as f:
@@ -430,6 +433,7 @@ def test_load_valid_json_config_file(tmp_path):
 
 def test_config_precedence(tmp_path):
     toml_content = """
+    [config]
     input_dir = "/toml/input"
     output = "/toml/output.csv"
     resume = true
@@ -466,7 +470,6 @@ def test_config_precedence(tmp_path):
     assert options.PARSER_TYPE == "docx"  # Config Wins
 
 
-
 def test_config_file_errors(tmp_path):
     # 1. Non-existent file
     args = Namespace(
@@ -496,6 +499,27 @@ def test_config_file_errors(tmp_path):
     with pytest.raises(ValueError) as exc:
         CliHelper.parse_and_build_options(args)
     assert "json" in str(exc.value).lower()
+
+    # 4. Missing [config] section/table
+    missing_sec_toml = os.path.join(tmp_path, "missing_sec.toml")
+    with open(missing_sec_toml, "w", encoding="utf-8") as f:
+        f.write("input_dir = '/toml/input'")  # at root level, not under [config]
+    args = Namespace(
+        config=missing_sec_toml,
+    )
+    with pytest.raises(ValueError) as exc:
+        CliHelper.parse_and_build_options(args)
+    assert "err_config_missing_section" in str(exc.value)
+
+    with open(bad_json, "w", encoding="utf-8") as f:
+        f.write("invalid json")
+    args = Namespace(
+        config=bad_json,
+    )
+    with pytest.raises(ValueError) as exc:
+        CliHelper.parse_and_build_options(args)
+    assert "json" in str(exc.value).lower()
+
 
 
 
