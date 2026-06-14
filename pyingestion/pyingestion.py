@@ -1,6 +1,6 @@
 import os
-from pydocstructurer.options import Options
-from pydocstructurer import (
+from pyingestion.options import Options
+from pyingestion import (
     OutputStream,
     DefaultOutputStream,
     DefaultExtractionObserver,
@@ -8,10 +8,10 @@ from pydocstructurer import (
     ExtractionSession,
     NativeRegexEngine,
 )
-from pydocstructurer.parser import Parser, ParserFactory
+from pyingestion.parser import Parser, ParserFactory
 
 
-class PyDocStructurer:
+class PyIngestion:
     """
     Main global class (Codename: Gaia) responsible for orchestrating the execution logic,
     directory validations, file discovery, parsing progress, output persistence,

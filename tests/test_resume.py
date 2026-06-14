@@ -2,14 +2,14 @@ import os
 import json
 import pytest
 from unittest.mock import MagicMock, patch
-from pydocstructurer.pydocstructurer import PyDocStructurer
-from pydocstructurer.options import Options
+from pyingestion.pyingestion import PyIngestion
+from pyingestion.options import Options
 
 
 class TestResumeSession:
     @pytest.fixture
     def resume_setup(self, tmp_path):
-        from pydocstructurer.options import options as global_options
+        from pyingestion.options import options as global_options
 
         global_options.BASE_PATH = ""
         global_options.OUTPUT_CSV = os.path.join(tmp_path, "output.csv")
@@ -30,19 +30,19 @@ class TestResumeSession:
         state_file_input = os.path.join(options.BASE_PATH, ".gaia_resume.json")
 
         # Patch PdfParser
-        parser_patcher = patch("pydocstructurer.parsers.PdfParser")
+        parser_patcher = patch("pyingestion.parsers.PdfParser")
         mock_parser_class = parser_patcher.start()
         mock_parser = MagicMock()
         mock_parser_class.return_value = mock_parser
 
         # Patch DefaultOutputStream
-        csv_patcher = patch("pydocstructurer.pydocstructurer.DefaultOutputStream")
+        csv_patcher = patch("pyingestion.pyingestion.DefaultOutputStream")
         mock_csv_writer_class = csv_patcher.start()
         mock_csv_writer = MagicMock()
         mock_csv_writer_class.return_value = mock_csv_writer
 
         # Patch NativeRegexEngine
-        regex_patcher = patch("pydocstructurer.pydocstructurer.NativeRegexEngine")
+        regex_patcher = patch("pyingestion.pyingestion.NativeRegexEngine")
         mock_regex_class = regex_patcher.start()
         mock_regex = MagicMock()
         mock_regex_class.return_value = mock_regex
@@ -66,9 +66,9 @@ class TestResumeSession:
         csv_patcher.stop()
         regex_patcher.stop()
 
-    @patch("pydocstructurer.pydocstructurer.os.listdir")
-    @patch("pydocstructurer.pydocstructurer.os.path.exists")
-    @patch("pydocstructurer.pydocstructurer.os.path.isdir")
+    @patch("pyingestion.pyingestion.os.listdir")
+    @patch("pyingestion.pyingestion.os.path.exists")
+    @patch("pyingestion.pyingestion.os.path.isdir")
     def test_resume_skips_processed_files(
         self, mock_isdir, mock_exists, mock_listdir, resume_setup
     ):
@@ -92,7 +92,7 @@ class TestResumeSession:
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = PyDocStructurer(resume_setup.options, observer=mock_observer)
+        controller = PyIngestion(resume_setup.options, observer=mock_observer)
         resume_setup.options.RESUME = True
 
         processed_files = []
@@ -110,9 +110,9 @@ class TestResumeSession:
         # file1.pdf should be skipped, only file2.pdf processed
         assert processed_files == ["file2.pdf"]
 
-    @patch("pydocstructurer.pydocstructurer.os.listdir")
-    @patch("pydocstructurer.pydocstructurer.os.path.exists")
-    @patch("pydocstructurer.pydocstructurer.os.path.isdir")
+    @patch("pyingestion.pyingestion.os.listdir")
+    @patch("pyingestion.pyingestion.os.path.exists")
+    @patch("pyingestion.pyingestion.os.path.isdir")
     def test_resume_loads_correct_state_counters(
         self, mock_isdir, mock_exists, mock_listdir, resume_setup
     ):
@@ -146,15 +146,15 @@ class TestResumeSession:
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = PyDocStructurer(resume_setup.options, observer=mock_observer)
+        controller = PyIngestion(resume_setup.options, observer=mock_observer)
         resume_setup.options.RESUME = True
 
         success = controller.run(resume_setup.options)
         assert success is True
 
-    @patch("pydocstructurer.pydocstructurer.os.listdir")
-    @patch("pydocstructurer.pydocstructurer.os.path.exists")
-    @patch("pydocstructurer.pydocstructurer.os.path.isdir")
+    @patch("pyingestion.pyingestion.os.listdir")
+    @patch("pyingestion.pyingestion.os.path.exists")
+    @patch("pyingestion.pyingestion.os.path.isdir")
     def test_resume_saves_updated_state_after_each_file(
         self, mock_isdir, mock_exists, mock_listdir, resume_setup
     ):
@@ -186,10 +186,10 @@ class TestResumeSession:
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = PyDocStructurer(resume_setup.options, observer=mock_observer)
+        controller = PyIngestion(resume_setup.options, observer=mock_observer)
         resume_setup.options.RESUME = True
 
-        with patch("pydocstructurer.extraction_session.open", create=True) as mock_open:
+        with patch("pyingestion.extraction_session.open", create=True) as mock_open:
             success = controller.run(resume_setup.options)
             assert success is True
             mock_open.assert_any_call(
@@ -199,9 +199,9 @@ class TestResumeSession:
                 resume_setup.state_file_input, "w", encoding="utf-8"
             )
 
-    @patch("pydocstructurer.pydocstructurer.os.listdir")
-    @patch("pydocstructurer.pydocstructurer.os.path.exists")
-    @patch("pydocstructurer.pydocstructurer.os.path.isdir")
+    @patch("pyingestion.pyingestion.os.listdir")
+    @patch("pyingestion.pyingestion.os.path.exists")
+    @patch("pyingestion.pyingestion.os.path.isdir")
     def test_resume_deletes_state_on_success(
         self, mock_isdir, mock_exists, mock_listdir, resume_setup
     ):
@@ -233,7 +233,7 @@ class TestResumeSession:
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        controller = PyDocStructurer(resume_setup.options, observer=mock_observer)
+        controller = PyIngestion(resume_setup.options, observer=mock_observer)
         resume_setup.options.RESUME = True
 
         success = controller.run(resume_setup.options)
@@ -242,9 +242,9 @@ class TestResumeSession:
         # Check that CWD state file was deleted
         assert os.path.isfile(resume_setup.state_file_cwd) is False
 
-    @patch("pydocstructurer.pydocstructurer.os.listdir")
-    @patch("pydocstructurer.pydocstructurer.os.path.exists")
-    @patch("pydocstructurer.pydocstructurer.os.path.isdir")
+    @patch("pyingestion.pyingestion.os.listdir")
+    @patch("pyingestion.pyingestion.os.path.exists")
+    @patch("pyingestion.pyingestion.os.path.isdir")
     def test_resume_preserves_state_on_cancel(
         self, mock_isdir, mock_exists, mock_listdir, resume_setup
     ):
@@ -276,7 +276,7 @@ class TestResumeSession:
         mock_observer = MagicMock()
         mock_observer.is_cancelled = True  # Cancelled!
 
-        controller = PyDocStructurer(resume_setup.options, observer=mock_observer)
+        controller = PyIngestion(resume_setup.options, observer=mock_observer)
         resume_setup.options.RESUME = True
 
         success = controller.run(resume_setup.options)
@@ -285,9 +285,9 @@ class TestResumeSession:
         # Check that CWD state file was NOT deleted (still exists)
         assert os.path.isfile(resume_setup.state_file_cwd) is True
 
-    @patch("pydocstructurer.pydocstructurer.os.listdir")
-    @patch("pydocstructurer.pydocstructurer.os.path.exists")
-    @patch("pydocstructurer.pydocstructurer.os.path.isdir")
+    @patch("pyingestion.pyingestion.os.listdir")
+    @patch("pyingestion.pyingestion.os.path.exists")
+    @patch("pyingestion.pyingestion.os.path.isdir")
     def test_skip_blank_pages(
         self, mock_isdir, mock_exists, mock_listdir, resume_setup
     ):
@@ -305,7 +305,7 @@ class TestResumeSession:
 
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
-        controller = PyDocStructurer(resume_setup.options, observer=mock_observer)
+        controller = PyIngestion(resume_setup.options, observer=mock_observer)
 
         success = controller.run(resume_setup.options)
         assert success is True

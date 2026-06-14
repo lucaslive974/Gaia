@@ -3,9 +3,9 @@ import json
 import argparse
 from typing import Any
 from argparse import Namespace
-from pydocstructurer.options import Options
-from pydocstructurer.extraction_session import ExtractionSession
-from pydocstructurer.i18n import _, set_lang
+from pyingestion.options import Options
+from pyingestion.extraction_session import ExtractionSession
+from pyingestion.i18n import _, set_lang
 
 
 class CliHelper:

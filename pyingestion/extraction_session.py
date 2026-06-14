@@ -1,7 +1,7 @@
 import os
 import time
 import json
-from pydocstructurer.observer import ExtractionObserver, DefaultExtractionObserver
+from pyingestion.observer import ExtractionObserver, DefaultExtractionObserver
 
 
 class ExtractionSession:

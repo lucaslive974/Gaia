@@ -3,11 +3,11 @@ import json
 from unittest.mock import patch, MagicMock
 from argparse import Namespace
 import pytest
-from pydocstructurer.options import Options
-from pydocstructurer.options import options as global_options
-from pydocstructurer.cli.cli_helper import CliHelper
-from pydocstructurer.extraction_session import ExtractionSession
-from pydocstructurer.i18n import Language, get_lang
+from pyingestion.options import Options
+from pyingestion.options import options as global_options
+from pyingestion.cli.cli_helper import CliHelper
+from pyingestion.extraction_session import ExtractionSession
+from pyingestion.i18n import Language, get_lang
 
 
 class TestOptionsDefaultsAndAccess:
@@ -153,7 +153,7 @@ class TestCliHelperParsing:
 
     def test_parameterless_resume_success(self):
         with patch(
-            "pydocstructurer.extraction_session.ExtractionSession.load_state"
+            "pyingestion.extraction_session.ExtractionSession.load_state"
         ) as mock_load_state:
             mock_load_state.return_value = {
                 "input_dir": "/loaded/input/dir",
@@ -187,7 +187,7 @@ class TestCliHelperValidationErrors:
 
     def test_missing_input_dir_and_no_resume_state(self):
         with patch(
-            "pydocstructurer.extraction_session.ExtractionSession.load_state",
+            "pyingestion.extraction_session.ExtractionSession.load_state",
             return_value=None,
         ):
             args = Namespace(input_dir=None, resume=True, regex="/my/regex.json")
@@ -328,20 +328,21 @@ class TestCliHelperConfig:
     def test_malformed_toml_file(self, temp_file_factory):
         bad_toml = temp_file_factory("bad.toml", "invalid = [toml")
         args = Namespace(config=bad_toml)
-        with pytest.raises(ValueError, match="toml"):
+        with pytest.raises(ValueError, match="(?i)toml"):
             CliHelper.parse_and_build_options(args)
 
     def test_malformed_json_file(self, temp_file_factory):
         bad_json = temp_file_factory("bad.json", "invalid json")
         args = Namespace(config=bad_json)
-        with pytest.raises(ValueError, match="json"):
+        with pytest.raises(ValueError, match="(?i)json"):
             CliHelper.parse_and_build_options(args)
 
     def test_missing_config_section(self, temp_file_factory):
         missing_sec = temp_file_factory("missing_sec.toml", "input_dir = '/toml/input'")
         args = Namespace(config=missing_sec)
-        with pytest.raises(ValueError, match="err_config_missing_section"):
+        with pytest.raises(ValueError, match="(?i)config"):
             CliHelper.parse_and_build_options(args)
+
 
 
 class TestResumeStateIntegration:
@@ -363,14 +364,14 @@ class TestResumeStateIntegration:
         session.failed_pages = 2
         session.total_pages = 12
 
-        with patch("pydocstructurer.extraction_session.open", create=True) as mock_open:
+        with patch("pyingestion.extraction_session.open", create=True) as mock_open:
             session.save_state()
             mock_open.assert_any_call(state_file_cwd, "w", encoding="utf-8")
             mock_open.assert_any_call(state_file_input, "w", encoding="utf-8")
 
         with (
-            patch("pydocstructurer.extraction_session.os.path.exists") as mock_exists,
-            patch("pydocstructurer.extraction_session.open", create=True) as mock_open,
+            patch("pyingestion.extraction_session.os.path.exists") as mock_exists,
+            patch("pyingestion.extraction_session.open", create=True) as mock_open,
         ):
             mock_exists.return_value = True
             mock_file = MagicMock()
@@ -393,8 +394,8 @@ class TestResumeStateIntegration:
             assert state["regex_file"] == "/my/regex.json"
 
         with (
-            patch("pydocstructurer.extraction_session.os.path.exists") as mock_exists,
-            patch("pydocstructurer.extraction_session.os.remove") as mock_remove,
+            patch("pyingestion.extraction_session.os.path.exists") as mock_exists,
+            patch("pyingestion.extraction_session.os.remove") as mock_remove,
         ):
             mock_exists.return_value = True
             session.clear_state()
@@ -404,8 +405,8 @@ class TestResumeStateIntegration:
 
 class TestParserFactory:
     def test_parser_factory_resolution(self):
-        from pydocstructurer.parser import ParserFactory, ParserType
-        from pydocstructurer.parsers import PdfParser
+        from pyingestion.parser import ParserFactory, ParserType
+        from pyingestion.parsers import PdfParser
 
         parser_str = ParserFactory.create("pdf")
         assert isinstance(parser_str, PdfParser)

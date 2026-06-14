@@ -1,5 +1,5 @@
 import queue
-from pydocstructurer import QueueObserver
+from pyingestion import QueueObserver
 
 
 def test_queue_observer_puts_events():

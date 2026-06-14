@@ -10,10 +10,10 @@ cd "$PROJECT_ROOT"
 
 echo "Compiling locales..."
 
-mkdir -p pydocstructurer/locale/en/LC_MESSAGES
-mkdir -p pydocstructurer/locale/pt/LC_MESSAGES
+mkdir -p pyingestion/locale/en/LC_MESSAGES
+mkdir -p pyingestion/locale/pt/LC_MESSAGES
 
-msgfmt -o pydocstructurer/locale/en/LC_MESSAGES/messages.mo pydocstructurer/locale/en/messages.po
-msgfmt -o pydocstructurer/locale/pt/LC_MESSAGES/messages.mo pydocstructurer/locale/pt/messages.po
+msgfmt -o pyingestion/locale/en/LC_MESSAGES/messages.mo pyingestion/locale/en/messages.po
+msgfmt -o pyingestion/locale/pt/LC_MESSAGES/messages.mo pyingestion/locale/pt/messages.po
 
 echo "Locales compiled successfully!"

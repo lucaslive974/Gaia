@@ -1,17 +1,17 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from pydocstructurer.main import main
-from pydocstructurer.pydocstructurer import PyDocStructurer as Gaia
-from pydocstructurer.options import Options
+from pyingestion.main import main
+from pyingestion.pyingestion import PyIngestion as Gaia
+from pyingestion.options import Options
 
 
 class TestCliMainOrchestration:
     @patch("sys.argv", ["main.py", "--lang", "en"])
-    @patch("pydocstructurer.main.run_with_ui")
-    @patch("pydocstructurer.main.CliHelper")
-    @patch("pydocstructurer.main.parse_lang_from_argv")
-    @patch("pydocstructurer.main.set_lang")
+    @patch("pyingestion.main.run_with_ui")
+    @patch("pyingestion.main.CliHelper")
+    @patch("pyingestion.main.parse_lang_from_argv")
+    @patch("pyingestion.main.set_lang")
     def test_main_execution_flow_to_ui(
         self, mock_set_lang, mock_parse_lang, mock_cli_helper, mock_run_with_ui
     ):
@@ -35,8 +35,8 @@ class TestCliMainOrchestration:
         )
         mock_run_with_ui.assert_called_once_with(mock_options)
 
-    @patch("pydocstructurer.cli.terminal_ui.run_dump_mode")
-    @patch("pydocstructurer.main.CliHelper")
+    @patch("pyingestion.cli.terminal_ui.run_dump_mode")
+    @patch("pyingestion.main.CliHelper")
     def test_main_execution_flow_to_dump(self, mock_cli_helper, mock_run_dump_mode):
         mock_parser = MagicMock()
         mock_cli_helper.get_argument_parser.return_value = mock_parser
@@ -50,8 +50,8 @@ class TestCliMainOrchestration:
 
         mock_run_dump_mode.assert_called_once_with(mock_options)
 
-    @patch("pydocstructurer.cli.terminal_ui.run_test_mode")
-    @patch("pydocstructurer.main.CliHelper")
+    @patch("pyingestion.cli.terminal_ui.run_test_mode")
+    @patch("pyingestion.main.CliHelper")
     def test_main_execution_flow_to_test(self, mock_cli_helper, mock_run_test_mode):
         mock_parser = MagicMock()
         mock_cli_helper.get_argument_parser.return_value = mock_parser
@@ -65,7 +65,7 @@ class TestCliMainOrchestration:
 
         mock_run_test_mode.assert_called_once_with(mock_options)
 
-    @patch("pydocstructurer.main.CliHelper")
+    @patch("pyingestion.main.CliHelper")
     def test_main_handles_value_error(self, mock_cli_helper):
         mock_parser = MagicMock()
         mock_parser.error.side_effect = SystemExit(2)
@@ -81,11 +81,11 @@ class TestCliMainOrchestration:
         mock_parser.error.assert_called_once_with("Some error message")
 
 
-@patch("pydocstructurer.pydocstructurer.os.path.exists")
-@patch("pydocstructurer.pydocstructurer.os.path.isdir")
-@patch("pydocstructurer.pydocstructurer.NativeRegexEngine")
-@patch("pydocstructurer.parsers.PdfParser")
-@patch("pydocstructurer.pydocstructurer.DefaultOutputStream")
+@patch("pyingestion.pyingestion.os.path.exists")
+@patch("pyingestion.pyingestion.os.path.isdir")
+@patch("pyingestion.pyingestion.NativeRegexEngine")
+@patch("pyingestion.parsers.PdfParser")
+@patch("pyingestion.pyingestion.DefaultOutputStream")
 def test_app_controller_validations_and_run(
     mock_output_stream, mock_parser_class, mock_regex_engine, mock_isdir, mock_exists
 ):
@@ -105,7 +105,7 @@ def test_app_controller_validations_and_run(
     controller = Gaia(options, observer=mock_observer)
 
     # mock os.listdir to return empty list so it finishes quickly
-    with patch("pydocstructurer.pydocstructurer.os.listdir", return_value=[]):
+    with patch("pyingestion.pyingestion.os.listdir", return_value=[]):
         success = controller.run(options)
 
     assert success is True
@@ -113,11 +113,11 @@ def test_app_controller_validations_and_run(
     mock_isdir.assert_any_call("/dummy/input")
 
 
-@patch("pydocstructurer.pydocstructurer.os.path.exists")
-@patch("pydocstructurer.pydocstructurer.os.path.isdir")
-@patch("pydocstructurer.pydocstructurer.os.remove")
-@patch("pydocstructurer.pydocstructurer.NativeRegexEngine")
-@patch("pydocstructurer.parsers.PdfParser")
+@patch("pyingestion.pyingestion.os.path.exists")
+@patch("pyingestion.pyingestion.os.path.isdir")
+@patch("pyingestion.pyingestion.os.remove")
+@patch("pyingestion.pyingestion.NativeRegexEngine")
+@patch("pyingestion.parsers.PdfParser")
 def test_app_controller_log_deletion(
     mock_parser_class, mock_regex_engine, mock_remove, mock_isdir, mock_exists
 ):
@@ -136,25 +136,25 @@ def test_app_controller_log_deletion(
     mock_observer = MagicMock()
     controller = Gaia(options, observer=mock_observer)
 
-    with patch("pydocstructurer.pydocstructurer.os.listdir", return_value=[]):
+    with patch("pyingestion.pyingestion.os.listdir", return_value=[]):
         controller.run(options)
     mock_remove.assert_called_once()
 
     # Scenario 2: Resume is True -> Should NOT remove gaia_errors.log
     mock_remove.reset_mock()
     options.RESUME = True
-    with patch("pydocstructurer.pydocstructurer.os.listdir", return_value=[]):
+    with patch("pyingestion.pyingestion.os.listdir", return_value=[]):
         controller.run(options)
     mock_remove.assert_not_called()
 
 
-@patch("pydocstructurer.pydocstructurer.os.makedirs")
-@patch("pydocstructurer.pydocstructurer.os.path.exists")
-@patch("pydocstructurer.pydocstructurer.os.path.isfile")
-@patch("pydocstructurer.pydocstructurer.os.path.isdir")
-@patch("pydocstructurer.pydocstructurer.NativeRegexEngine")
-@patch("pydocstructurer.parsers.PdfParser")
-@patch("pydocstructurer.pydocstructurer.DefaultOutputStream")
+@patch("pyingestion.pyingestion.os.makedirs")
+@patch("pyingestion.pyingestion.os.path.exists")
+@patch("pyingestion.pyingestion.os.path.isfile")
+@patch("pyingestion.pyingestion.os.path.isdir")
+@patch("pyingestion.pyingestion.NativeRegexEngine")
+@patch("pyingestion.parsers.PdfParser")
+@patch("pyingestion.pyingestion.DefaultOutputStream")
 def test_gaia_run_with_direct_file(
     mock_output_stream,
     mock_parser_class,
@@ -193,7 +193,7 @@ def test_gaia_run_with_direct_file(
 
 
 def test_default_output_stream_generator():
-    from pydocstructurer.output_stream import DefaultOutputStream
+    from pyingestion.output_stream import DefaultOutputStream
 
     stream = DefaultOutputStream()
     stream.write({"field": "val1"})
@@ -204,9 +204,9 @@ def test_default_output_stream_generator():
     assert results == [{"field": "val1"}, {"field": "val2"}]
 
 
-@patch("pydocstructurer.cli.terminal_ui.os.path.exists")
-@patch("pydocstructurer.parser.ParserFactory")
-@patch("pydocstructurer.cli.terminal_ui.Console")
+@patch("pyingestion.cli.terminal_ui.os.path.exists")
+@patch("pyingestion.parser.ParserFactory")
+@patch("pyingestion.cli.terminal_ui.Console")
 def test_run_dump_mode_success(mock_console_class, mock_factory, mock_exists):
     mock_exists.return_value = True
 
@@ -220,7 +220,7 @@ def test_run_dump_mode_success(mock_console_class, mock_factory, mock_exists):
     mock_console = MagicMock()
     mock_console_class.return_value = mock_console
 
-    from pydocstructurer.cli.terminal_ui import run_dump_mode
+    from pyingestion.cli.terminal_ui import run_dump_mode
 
     options = Options()
     options.DUMP_FILE = "/dummy/dump.pdf"
@@ -236,12 +236,12 @@ def test_run_dump_mode_success(mock_console_class, mock_factory, mock_exists):
     )
 
 
-@patch("pydocstructurer.cli.terminal_ui.os.path.exists")
-@patch("pydocstructurer.cli.terminal_ui.Console")
+@patch("pyingestion.cli.terminal_ui.os.path.exists")
+@patch("pyingestion.cli.terminal_ui.Console")
 def test_run_dump_mode_file_not_found(mock_console_class, mock_exists):
     mock_exists.return_value = False
 
-    from pydocstructurer.cli.terminal_ui import run_dump_mode
+    from pyingestion.cli.terminal_ui import run_dump_mode
 
     options = Options()
     options.DUMP_FILE = "/nonexistent/file.pdf"

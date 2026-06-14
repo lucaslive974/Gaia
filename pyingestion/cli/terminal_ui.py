@@ -6,8 +6,8 @@ from rich.progress import Progress
 from rich.table import Table
 from rich.panel import Panel
 from rich.live import Live
-from pydocstructurer.observer import ExtractionObserver
-from pydocstructurer.i18n import _, get_lang, Language
+from pyingestion.observer import ExtractionObserver
+from pyingestion.i18n import _, get_lang, Language
 
 try:
     import termios
@@ -231,7 +231,7 @@ def print_summary_dashboard(
 
 
 def run_with_ui(options):
-    from pydocstructurer import PyDocStructurer, CsvWriteStream
+    from pyingestion import PyIngestion, CsvWriteStream
     import time
     from rich.progress import (
         SpinnerColumn,
@@ -252,7 +252,7 @@ def run_with_ui(options):
     )
     observer = ConsoleObserver(console, progress)
     output_stream = CsvWriteStream(options.OUTPUT_CSV)
-    controller = PyDocStructurer(options, observer=observer, output_stream=output_stream)
+    controller = PyIngestion(options, observer=observer, output_stream=output_stream)
 
     start_time = time.perf_counter()
 
@@ -302,7 +302,7 @@ def run_test_mode(options):
     from rich.console import Console
     from rich.table import Table
     from rich.panel import Panel
-    from pydocstructurer import NativeRegexEngine, PdfParser
+    from pyingestion import NativeRegexEngine, PdfParser
 
     console = Console()
     console.print(Panel(f"[bold green]{_('test_title')}[/bold green]", expand=False))
@@ -409,8 +409,8 @@ def run_dump_mode(options):
     import sys
     from rich.console import Console
     from rich.panel import Panel
-    from pydocstructurer.parser import ParserFactory
-    from pydocstructurer.i18n import _
+    from pyingestion.parser import ParserFactory
+    from pyingestion.i18n import _
 
     console = Console()
     console.print(Panel(f"[bold green]{_('dump_title')}[/bold green]", expand=False))

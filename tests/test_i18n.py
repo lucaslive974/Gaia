@@ -1,7 +1,7 @@
 import os
 import pytest
 from unittest.mock import patch
-from pydocstructurer.i18n import _, set_lang, get_lang, parse_lang_from_argv, Language, get_system_lang
+from pyingestion.i18n import _, set_lang, get_lang, parse_lang_from_argv, Language, get_system_lang
 
 
 class TestI18nLanguageSelection:
@@ -50,7 +50,7 @@ class TestI18nAutoDetection:
         (["main.py", "--lang", "en"], Language.PT_BR, "en"),
     ])
     def test_parse_lang_from_argv_scenarios(self, argv, system_lang, expected):
-        with patch("pydocstructurer.i18n.get_system_lang", return_value=system_lang):
+        with patch("pyingestion.i18n.get_system_lang", return_value=system_lang):
             assert parse_lang_from_argv(argv) == expected
 
     @pytest.mark.parametrize("locale_val, expected", [

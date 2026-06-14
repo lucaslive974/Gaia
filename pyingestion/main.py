@@ -1,7 +1,7 @@
 import sys
-from pydocstructurer.cli.cli_helper import CliHelper
-from pydocstructurer.cli.terminal_ui import run_with_ui
-from pydocstructurer.i18n import set_lang, parse_lang_from_argv
+from pyingestion.cli.cli_helper import CliHelper
+from pyingestion.cli.terminal_ui import run_with_ui
+from pyingestion.i18n import set_lang, parse_lang_from_argv
 
 
 def main():
@@ -17,11 +17,11 @@ def main():
         parser.error(str(e))
 
     if options.DUMP_FILE:
-        from pydocstructurer.cli.terminal_ui import run_dump_mode
+        from pyingestion.cli.terminal_ui import run_dump_mode
 
         run_dump_mode(options)
     elif options.TEST_FILE:
-        from pydocstructurer.cli.terminal_ui import run_test_mode
+        from pyingestion.cli.terminal_ui import run_test_mode
 
         run_test_mode(options)
     else:

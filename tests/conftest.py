@@ -1,7 +1,7 @@
 import pytest
 import json
-from pydocstructurer.options import Options
-from pydocstructurer.i18n import set_lang, Language
+from pyingestion.options import Options
+from pyingestion.i18n import set_lang, Language
 
 
 @pytest.fixture

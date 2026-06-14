@@ -1,5 +1,5 @@
 import pytest
-from pydocstructurer import NativeRegexEngine
+from pyingestion import NativeRegexEngine
 
 
 class TestRegexEngineFileLoading:

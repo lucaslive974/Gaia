@@ -1,7 +1,7 @@
 from typing import Generator
 from pypdf import PdfReader
-from pydocstructurer.extraction_session import ExtractionSession
-from pydocstructurer.parser import Parser
+from pyingestion.extraction_session import ExtractionSession
+from pyingestion.parser import Parser
 
 
 class PdfParser(Parser):
@@ -35,7 +35,7 @@ class PdfParser(Parser):
         Processes the PDF file page-by-page or in chunks, yielding
         (unit_index, total_units, unit_text).
         """
-        from pydocstructurer.extraction_session import NoOpExtractionSession
+        from pyingestion.extraction_session import NoOpExtractionSession
 
         session = session or NoOpExtractionSession()
 
@@ -136,7 +136,7 @@ class DocxParser(Parser):
         """
         Processes the DOCX file, yielding (unit_index, total_units, unit_text).
         """
-        from pydocstructurer.extraction_session import NoOpExtractionSession
+        from pyingestion.extraction_session import NoOpExtractionSession
 
         session = session or NoOpExtractionSession()
 
@@ -217,7 +217,7 @@ class OcrParser(Parser):
         Processes the image or PDF file page-by-page, running OCR and yielding
         (unit_index, total_units, unit_text).
         """
-        from pydocstructurer.extraction_session import NoOpExtractionSession
+        from pyingestion.extraction_session import NoOpExtractionSession
 
         session = session or NoOpExtractionSession()
         self._check_tesseract()

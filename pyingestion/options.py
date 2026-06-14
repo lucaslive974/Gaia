@@ -37,7 +37,7 @@ class Options:
                     "the '--pages-per-unit' argument must be an integer greater than or equal to 1."
                 )
         elif name == "PARSER_TYPE":
-            from pydocstructurer.parser import ParserType
+            from pyingestion.parser import ParserType
 
             valid_types = [item.value for item in ParserType]
             if value not in valid_types:

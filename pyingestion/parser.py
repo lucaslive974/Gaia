@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Generator
-from pydocstructurer.extraction_session import ExtractionSession
+from pyingestion.extraction_session import ExtractionSession
 
 
 class Parser(ABC):
@@ -40,19 +40,19 @@ class ParserType(Enum):
 class ParserFactory:
     @staticmethod
     def _create_pdf_parser() -> Parser:
-        from pydocstructurer.parsers import PdfParser
+        from pyingestion.parsers import PdfParser
 
         return PdfParser()
 
     @staticmethod
     def _create_docx_parser() -> Parser:
-        from pydocstructurer.parsers import DocxParser
+        from pyingestion.parsers import DocxParser
 
         return DocxParser()
 
     @staticmethod
     def _create_ocr_parser() -> Parser:
-        from pydocstructurer.parsers import OcrParser
+        from pyingestion.parsers import OcrParser
 
         return OcrParser()
 
