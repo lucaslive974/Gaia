@@ -207,7 +207,7 @@ def test_default_output_stream_generator():
 
 
 @patch("pyingestion.cli.terminal_ui.os.path.exists")
-@patch("pyingestion.parser.ParserFactory")
+@patch("pyingestion.input_stream.InputStreamFactory")
 @patch("pyingestion.cli.terminal_ui.Console")
 def test_run_dump_mode_success(mock_console_class, mock_factory, mock_exists):
     mock_exists.return_value = True

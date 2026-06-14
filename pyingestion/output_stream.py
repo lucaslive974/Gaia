@@ -1,12 +1,32 @@
 import csv
 from os import path
+from typing import Any, Generic, TypeVar
 from pyingestion.options import options
-from pyingestion.stream import OutputStream
+
+T_in = TypeVar("T_in")
 
 
+class OutputStream(Generic[T_in]):
+    input_type: type[T_in] = Any
+
+    def write(self, item: T_in) -> None:
+        raise NotImplementedError
 
 
-class CsvWriteStream(OutputStream):
+class MultiOutputStream(OutputStream[T_in]):
+    input_type: type[T_in] = Any
+
+    def __init__(self, streams: list[OutputStream[T_in]]):
+        self.streams = streams
+        if streams:
+            self.input_type = streams[0].input_type
+
+    def write(self, item: T_in) -> None:
+        for stream in self.streams:
+            stream.write(item)
+
+
+class CsvWriteStream(OutputStream[dict[str, str]]):
     def __init__(self, path_output: str | None = None):
         self._path = path_output
 
@@ -23,7 +43,7 @@ class CsvWriteStream(OutputStream):
             writer.writerow(content)
 
 
-class DefaultOutputStream(OutputStream):
+class DefaultOutputStream(OutputStream[dict[str, str]]):
     def __init__(self):
         self._data = []
 

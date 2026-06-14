@@ -1,10 +1,10 @@
 from typing import Generator
 from pypdf import PdfReader
 from pyingestion.extraction_session import ExtractionSession
-from pyingestion.parser import Parser
+from pyingestion.input_stream import InputStream
 
 
-class PdfParser(Parser):
+class PdfParser(InputStream):
     """
     PDF parser using layout-based text extraction from pypdf.
     """
@@ -64,7 +64,7 @@ class PdfParser(Parser):
             yield unit_index, total_units, "\n".join(unit_pages)
 
 
-class DocxParser(Parser):
+class DocxParser(InputStream):
     """
     DOCX parser using python-docx to extract text.
     """
@@ -163,7 +163,7 @@ class DocxParser(Parser):
             yield unit_index, total_units, "\n".join(unit_pages)
 
 
-class OcrParser(Parser):
+class OcrParser(InputStream):
     """
     OCR parser using pytesseract for text extraction from images and PDFs.
     """

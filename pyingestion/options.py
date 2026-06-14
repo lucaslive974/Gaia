@@ -36,9 +36,9 @@ class Options:
                     "the '--pages-per-unit' argument must be an integer greater than or equal to 1."
                 )
         elif name == "PARSER_TYPE":
-            from pyingestion.parser import ParserType
+            from pyingestion.input_stream import InputStreamType
 
-            valid_types = [item.value for item in ParserType]
+            valid_types = [item.value for item in InputStreamType]
             if value not in valid_types:
                 raise ValueError(f"the '--type' argument must be one of {valid_types}.")
         super().__setattr__(name, value)

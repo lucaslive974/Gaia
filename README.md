@@ -9,12 +9,12 @@ PyIngestion uses a modular architecture using fast native text extraction and an
 ## 🚀 Key Features
 
 * **Dual-Purpose Design**:
-  * **Programmatic Library**: Integrate the `RegexEngine`, built-in or custom `Parser` components, and observers directly into your own codebase.
+  * **Programmatic Library**: Integrate the `TransformStream`, built-in or custom `InputStream` components, and observers directly into your own codebase.
   * **Command-Line Interface**: Run parsing pipelines directly from your shell with dynamic dashboards, detailed progress tracking, and configurable execution.
-* **Extensible Parser Architecture**:
-  * Fully decoupled document discovery and data extraction. Programmatic users can write and inject custom parsers (e.g., Docx, OCR, XML) by subclassing the abstract `Parser` class.
+* **Extensible Input Stream (Parser) Architecture**:
+  * Fully decoupled document discovery and data extraction. Programmatic users can write and inject custom input streams (e.g., Docx, OCR, XML) by subclassing the abstract `InputStream` class.
 * **Fast Native PDF Processing**:
-  * Employs fast native layout-based PDF text extraction (via `pypdf`) as a built-in default parser.
+  * Employs fast native layout-based PDF text extraction (via `pypdf`) as a built-in default input stream.
 * **Dynamic Terminal Interface (TUI)**:
   * Real-time metrics rendered via `rich.live`.
   * Live status dashboard featuring counters for processed files, pages, failures, and a progress bar with numerical Estimated Time of Arrival (**ETA**).
@@ -45,15 +45,15 @@ Gaia/
 │   ├── pyingestion.py       # Main global program class (PyIngestion, codename: Gaia)
 │   ├── extraction_session.py# Session progress tracking & state serialization
 │   ├── options.py           # Config options container class & parameter validations
-│   ├── parser.py            # Abstract Parser base, ParserType Enum, and ParserFactory
+│   ├── input_stream.py      # Abstract InputStream base, InputStreamType Enum, and InputStreamFactory
 │   ├── i18n.py              # Gettext wrappers and language initialization
 │   ├── locale/              # Compiled translations directory
 │   │   ├── en/LC_MESSAGES/messages.mo
 │   │   └── pt/LC_MESSAGES/messages.mo
 │   ├── observer.py          # Progress notification interface (observer pattern)
 │   ├── output_stream.py     # Output stream interfaces (OutputStream, CsvWriteStream, DefaultOutputStream)
-│   ├── pdf_parser.py        # Native PDF Parser implementation
-│   ├── regex_engine.py      # Abstracted matching engine
+│   ├── parsers.py           # Concrete InputStream implementations (PdfParser, DocxParser, OcrParser)
+│   ├── transform_stream.py  # Abstract and concrete TransformStream and RegexEngine implementations
 │   └── main.py              # CLI entry point implementation
 ├── pyproject.toml           # Setuptools PEP 621 packaging definitions
 ├── requirements.txt         # Package requirements
@@ -116,17 +116,17 @@ controller = PyIngestion(options)
 success = controller.run()
 ```
 
-#### Creating & Injecting a Custom Parser
+#### Creating & Injecting a Custom Input Stream
 
-You can supply your own extraction parser format by subclassing the abstract base class `Parser`:
+You can supply your own extraction parser format by subclassing the abstract base class `InputStream`:
 
 ```python
 from typing import Generator
-from pyingestion import PyIngestion, Options, Parser, ExtractionSession
+from pyingestion import PyIngestion, Options, InputStream, ExtractionSession
 
-class CustomTxtParser(Parser):
+class CustomTxtParser(InputStream):
     def accepts(self, file_path: str) -> bool:
-        # Define what files this parser accepts
+        # Define what files this parser/stream accepts
         return file_path.lower().endswith(".txt")
 
     def process_file(
@@ -145,11 +145,12 @@ options = Options()
 options.BASE_PATH = "path/to/text/files"
 options.REGEX_FILE = "rules.json"
 
-controller = PyIngestion(options, parser=CustomTxtParser())
+# Supply your custom input_stream (and transform_stream)
+controller = PyIngestion(options, transform_stream=..., input_stream=CustomTxtParser())
 controller.run()
 ```
 
-#### Using Parser and Engine Components Directly
+#### Using Input Stream and Engine Components Directly
 
 To parse files manually and match patterns page-by-page:
 
@@ -172,14 +173,14 @@ engine = NativeRegexEngine(regex_rules)
 # Alternatively, load rules from a JSON file path:
 # engine = NativeRegexEngine.from_file("path/to/rules.json")
 
-# 2. Setup the parser
-parser = PdfParser()
+# 2. Setup the input stream
+input_stream = PdfParser()
 
 # 3. Process files programmatically
-# The parser yields raw text segments for each page/unit.
-# You then normalize the text and parse it using the RegexEngine.
-for unit_index, total_units, raw_text in parser.process_file("path/to/infraction.pdf", pages_per_unit=1):
-    record = engine.parse(raw_text)
+# The input stream yields raw text segments for each page/unit.
+# You then parse it using the engine.
+for unit_index, total_units, raw_text in input_stream.process_file("path/to/infraction.pdf", pages_per_unit=1):
+    record = engine.transform(raw_text)
     print("Parsed Record:", record)
 ```
 

@@ -411,7 +411,7 @@ def run_dump_mode(options):
     import sys
     from rich.console import Console
     from rich.panel import Panel
-    from pyingestion.parser import ParserFactory
+    from pyingestion.input_stream import InputStreamFactory
     from pyingestion.i18n import _
 
     console = Console()
@@ -424,14 +424,14 @@ def run_dump_mode(options):
         sys.exit(1)
 
     try:
-        parser = ParserFactory.create(options.PARSER_TYPE)
+        input_stream = InputStreamFactory.create(options.PARSER_TYPE)
     except Exception as e:
-        console.print(f"\n[bold red]Error instantiating parser: {e}[/bold red]")
+        console.print(f"\n[bold red]Error instantiating input stream: {e}[/bold red]")
         sys.exit(1)
 
     try:
         has_units = False
-        for unit_index, total_units, unit_text in parser.process_file(
+        for unit_index, total_units, unit_text in input_stream.process_file(
             file_path, session=None, pages_per_unit=options.PAGES_PER_UNIT
         ):
             has_units = True

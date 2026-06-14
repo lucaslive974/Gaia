@@ -152,7 +152,7 @@ class CliHelper:
 
     @classmethod
     def build_transform(cls, args: Namespace, options: Options) -> Any:
-        from pyingestion.regex_engine import NativeRegexEngine
+        from pyingestion.transform_stream import NativeRegexEngine
 
         is_dump = options.DUMP_FILE is not None
         if is_dump:

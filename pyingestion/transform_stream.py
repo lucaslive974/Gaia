@@ -2,8 +2,50 @@ import re
 import os
 import json
 from abc import ABC, abstractmethod
-from typing import Any
-from pyingestion.stream import TransformStream
+from typing import Any, Generic, TypeVar
+
+T_in = TypeVar("T_in")
+T_out = TypeVar("T_out")
+
+
+class TransformStream(Generic[T_in, T_out]):
+    input_type: type[T_in] = Any
+    output_type: type[T_out] = Any
+
+    def transform(self, data: T_in) -> T_out:
+        raise NotImplementedError
+
+
+class ParallelTransformStream(TransformStream[T_in, dict]):
+    input_type: type[T_in] = Any
+    output_type: type[dict] = dict
+
+    def __init__(self, transforms: list[TransformStream[T_in, dict]]):
+        self.transforms = transforms
+        if transforms:
+            self.input_type = transforms[0].input_type
+
+    def transform(self, data: T_in) -> dict:
+        result = {}
+        for transform in self.transforms:
+            res = transform.transform(data)
+            if isinstance(res, dict):
+                result.update(res)
+        return result
+
+
+class ChainedTransformStream(TransformStream[Any, Any]):
+    def __init__(self, transforms: list[TransformStream[Any, Any]]):
+        self.transforms = transforms
+        if transforms:
+            self.input_type = transforms[0].input_type
+            self.output_type = transforms[-1].output_type
+
+    def transform(self, data: Any) -> Any:
+        current = data
+        for transform in self.transforms:
+            current = transform.transform(current)
+        return current
 
 
 class RegexEngine(TransformStream[str, dict[str, str]], ABC):
@@ -40,7 +82,6 @@ class NativeRegexEngine(RegexEngine):
     @regex_file_path.setter
     def regex_file_path(self, value):
         self.config_file = value
-
 
     @staticmethod
     def _detect_file_format(file_path: str) -> str:

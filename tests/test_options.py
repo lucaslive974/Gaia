@@ -239,7 +239,7 @@ class TestCliHelperConfig:
         assert options.PARSER_TYPE == "docx"
 
         # Check that build_transform parses regex path from config file
-        with patch("pyingestion.regex_engine.NativeRegexEngine.from_file") as mock_from_file:
+        with patch("pyingestion.transform_stream.NativeRegexEngine.from_file") as mock_from_file:
             CliHelper.build_transform(args, options)
             mock_from_file.assert_called_once_with("/toml/regex.toml")
 
@@ -278,7 +278,7 @@ class TestCliHelperConfig:
         assert options.PARSER_TYPE == "pdf"
 
         # Check that build_transform parses regex path from config file
-        with patch("pyingestion.regex_engine.NativeRegexEngine.from_file") as mock_from_file:
+        with patch("pyingestion.transform_stream.NativeRegexEngine.from_file") as mock_from_file:
             CliHelper.build_transform(args, options)
             mock_from_file.assert_called_once_with("/json/regex.json")
 
@@ -399,16 +399,16 @@ class TestResumeStateIntegration:
             mock_remove.assert_any_call(state_file_input)
 
 
-class TestParserFactory:
-    def test_parser_factory_resolution(self):
-        from pyingestion.parser import ParserFactory, ParserType
+class TestInputStreamFactory:
+    def test_input_stream_factory_resolution(self):
+        from pyingestion.input_stream import InputStreamFactory, InputStreamType
         from pyingestion.parsers import PdfParser
 
-        parser_str = ParserFactory.create("pdf")
+        parser_str = InputStreamFactory.create("pdf")
         assert isinstance(parser_str, PdfParser)
 
-        parser_enum = ParserFactory.create(ParserType.PDF)
+        parser_enum = InputStreamFactory.create(InputStreamType.PDF)
         assert isinstance(parser_enum, PdfParser)
 
         with pytest.raises(ValueError):
-            ParserFactory.create("invalid")
+            InputStreamFactory.create("invalid")

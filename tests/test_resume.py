@@ -39,7 +39,7 @@ class TestResumeSession:
         mock_csv_writer_class.return_value = mock_csv_writer
 
         # Patch NativeRegexEngine
-        regex_patcher = patch("pyingestion.regex_engine.NativeRegexEngine")
+        regex_patcher = patch("pyingestion.transform_stream.NativeRegexEngine")
         mock_regex_class = regex_patcher.start()
         mock_regex = MagicMock()
         mock_regex.config_file = "/dummy/regex.json"

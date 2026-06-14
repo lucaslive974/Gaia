@@ -8,7 +8,7 @@ from pyingestion import (
     ExtractionSession,
     TransformStream,
 )
-from pyingestion.parser import Parser, ParserFactory
+from pyingestion.input_stream import InputStream, InputStreamFactory
 
 
 class PyIngestion:
@@ -24,13 +24,13 @@ class PyIngestion:
         transform_stream: TransformStream,
         observer: ExtractionObserver | None = None,
         output_stream: OutputStream | None = None,
-        parser: Parser | None = None,
+        input_stream: InputStream | None = None,
     ):
         self.options = options
         self.transform_stream = transform_stream
         self.observer = observer or DefaultExtractionObserver()
         self.output_stream = output_stream or DefaultOutputStream()
-        self.parser = parser or ParserFactory.create(options.PARSER_TYPE)
+        self.input_stream = input_stream or InputStreamFactory.create(options.PARSER_TYPE)
 
     def run(self, options: Options | None = None) -> bool:
         if options is not None:
@@ -104,7 +104,7 @@ class PyIngestion:
 
     def _find_files(self) -> list[str] | None:
         if os.path.isfile(self.options.BASE_PATH):
-            if self.parser.accepts(self.options.BASE_PATH):
+            if self.input_stream.accepts(self.options.BASE_PATH):
                 return [os.path.basename(self.options.BASE_PATH)]
             return []
 
@@ -113,14 +113,14 @@ class PyIngestion:
             for root, dirs, filenames in os.walk(self.options.BASE_PATH):
                 for f in filenames:
                     full_path = os.path.join(root, f)
-                    if self.parser.accepts(full_path):
+                    if self.input_stream.accepts(full_path):
                         rel_path = os.path.relpath(full_path, self.options.BASE_PATH)
                         files.append(rel_path)
         else:
             try:
                 for f in os.listdir(self.options.BASE_PATH):
                     full_path = os.path.join(self.options.BASE_PATH, f)
-                    if self.parser.accepts(full_path):
+                    if self.input_stream.accepts(full_path):
                         files.append(f)
             except Exception as e:
                 self.observer.on_error(f"Error listing directory: {e}")
@@ -154,7 +154,7 @@ class PyIngestion:
         session.start_file(file_index, full_file_path)
 
         try:
-            for unit_index, total_units, unit_text in self.parser.process_file(
+            for unit_index, total_units, unit_text in self.input_stream.process_file(
                 full_file_path, session, pages_per_unit=self.options.PAGES_PER_UNIT
             ):
                 # Verify blank pages

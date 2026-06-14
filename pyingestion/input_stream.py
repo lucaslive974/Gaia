@@ -4,16 +4,16 @@ from typing import Generator
 from pyingestion.extraction_session import ExtractionSession
 
 
-class Parser(ABC):
+class InputStream(ABC):
     """
-    Abstract Base Class representing a document/file parser.
-    Its responsibility is to identify supported files and extract raw text.
+    Abstract Base Class representing an input stream (formerly Parser).
+    Its responsibility is to identify supported files/sources and extract raw text.
     """
 
     @abstractmethod
     def accepts(self, file_path: str) -> bool:
         """
-        Determines if the parser can handle/process the given file path.
+        Determines if the input stream can handle/process the given file path.
         """
         pass
 
@@ -25,33 +25,33 @@ class Parser(ABC):
         pages_per_unit: int = 1,
     ) -> Generator[tuple[int, int, str], None, None]:
         """
-        Processes the file, extracting raw text and yielding
+        Processes the file/source, extracting raw text and yielding
         (unit_index, total_units, unit_text).
         """
         pass
 
 
-class ParserType(Enum):
+class InputStreamType(Enum):
     PDF = "pdf"
     DOCX = "docx"
     OCR = "ocr"
 
 
-class ParserFactory:
+class InputStreamFactory:
     @staticmethod
-    def _create_pdf_parser() -> Parser:
+    def _create_pdf_parser() -> InputStream:
         from pyingestion.parsers import PdfParser
 
         return PdfParser()
 
     @staticmethod
-    def _create_docx_parser() -> Parser:
+    def _create_docx_parser() -> InputStream:
         from pyingestion.parsers import DocxParser
 
         return DocxParser()
 
     @staticmethod
-    def _create_ocr_parser() -> Parser:
+    def _create_ocr_parser() -> InputStream:
         from pyingestion.parsers import OcrParser
 
         return OcrParser()
@@ -63,12 +63,12 @@ class ParserFactory:
     }
 
     @staticmethod
-    def create(parser_type: str | ParserType) -> Parser:
+    def create(parser_type: str | InputStreamType) -> InputStream:
         """
-        Lazily creates and returns a Parser instance corresponding to the type.
+        Lazily creates and returns an InputStream instance corresponding to the type.
         """
-        pt = parser_type.value if isinstance(parser_type, ParserType) else parser_type
-        creator = ParserFactory._CREATORS.get(pt)
+        pt = parser_type.value if isinstance(parser_type, InputStreamType) else parser_type
+        creator = InputStreamFactory._CREATORS.get(pt)
         if not creator:
             raise ValueError(f"Unknown parser type: {pt}")
         return creator()
