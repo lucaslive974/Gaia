@@ -80,12 +80,10 @@ class CliHelper:
             if lang not in ("en", "pt"):
                 raise ValueError(_("err_lang_invalid"))
             set_lang(lang)
-            options.LANG = lang
 
         # 3. Bind remaining CLI arguments that are explicitly provided (not None)
         for attr in Options.list_attr():
-            if attr[0] == "lang":
-                continue
+
 
             if hasattr(args, attr[0]):
                 val = getattr(args, attr[0])

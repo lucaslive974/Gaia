@@ -10,7 +10,6 @@ class Options:
     DUMP_FILE: str | None = None
     RECURSIVE: bool = False
     PAGES_PER_UNIT: int = 1
-    LANG: str = "en"
     PARSER_TYPE: str = "pdf"
 
     def __getitem__(self, attr):
@@ -35,9 +34,6 @@ class Options:
                 value = val
             except (ValueError, TypeError):
                 raise ValueError("the '--pages-per-unit' argument must be an integer greater than or equal to 1.")
-        elif name == "LANG":
-            if value not in ("en", "pt"):
-                raise ValueError("the '--lang' argument must be 'en' or 'pt'.")
         elif name == "PARSER_TYPE":
             from pydocstructurer.parser import ParserType
             valid_types = [item.value for item in ParserType]
@@ -56,7 +52,6 @@ class Options:
             ("dump", "DUMP_FILE"),
             ("recursive", "RECURSIVE"),
             ("pages_per_unit", "PAGES_PER_UNIT"),
-            ("lang", "LANG"),
             ("type", "PARSER_TYPE"),
         ]
 

@@ -24,7 +24,6 @@ def test_default_values(fresh_options):
     assert fresh_options.DUMP_FILE is None
     assert fresh_options.RECURSIVE is False
     assert fresh_options.PAGES_PER_UNIT == 1
-    assert fresh_options.LANG == "en"
     assert fresh_options.PARSER_TYPE == "pdf"
 
 
@@ -78,25 +77,18 @@ def test_setattr_validation_ppu(fresh_options):
         fresh_options.PAGES_PER_UNIT = "invalid"
 
 
-def test_setattr_validation_lang(fresh_options):
-    with pytest.raises(ValueError):
-        fresh_options.LANG = "fr"
-    fresh_options.LANG = "pt"
-    assert fresh_options.LANG == "pt"
-
-
 def test_list_attr(fresh_options):
     attrs = fresh_options.list_attr()
     assert ("input_dir", "BASE_PATH") in attrs
     assert ("output", "OUTPUT_CSV") in attrs
     assert ("resume", "RESUME") in attrs
-    assert ("lang", "LANG") in attrs
     assert ("type", "PARSER_TYPE") in attrs
     assert ("dump", "DUMP_FILE") in attrs
 
 
 def test_parse_and_build_options_all_fields():
     """Test parse_and_build_options with a Namespace containing all mapped attributes."""
+    from pydocstructurer.i18n import get_lang
     args = Namespace(
         input_dir="/my/input",
         output="/my/output.csv",
@@ -115,7 +107,8 @@ def test_parse_and_build_options_all_fields():
     assert options.REGEX_FILE == "/my/regex.json"
     assert options.RECURSIVE is True
     assert options.PAGES_PER_UNIT == 5
-    assert options.LANG == "pt"
+    assert get_lang() == "pt"
+
 
 
 def test_parse_and_build_options_partial_fields():
@@ -387,7 +380,6 @@ def test_load_valid_toml_config_file(tmp_path):
     assert options.RECURSIVE is True
     assert options.REGEX_FILE == "/toml/regex.toml"
     assert options.PAGES_PER_UNIT == 3
-    assert options.LANG == "en"
     assert options.PARSER_TYPE == "docx"
 
 
@@ -427,7 +419,6 @@ def test_load_valid_json_config_file(tmp_path):
     assert options.RECURSIVE is False
     assert options.REGEX_FILE == "/json/regex.json"
     assert options.PAGES_PER_UNIT == 2
-    assert options.LANG == "en"
     assert options.PARSER_TYPE == "pdf"
 
 
@@ -447,6 +438,7 @@ def test_config_precedence(tmp_path):
 
     # CLI explicitly overrides input_dir, output, and recursive,
     # but leaves resume, pages_per_unit, and type as None (retaining config values)
+    from pydocstructurer.i18n import get_lang
     args = Namespace(
         config=config_file,
         input_dir="/cli/override/input",
@@ -466,8 +458,9 @@ def test_config_precedence(tmp_path):
     assert options.RECURSIVE is False  # CLI Wins
     assert options.RESUME is True  # Config Wins
     assert options.PAGES_PER_UNIT == 3  # Config Wins
-    assert options.LANG == "pt"  # CLI Wins (since it cannot be set in config)
+    assert get_lang() == "pt"  # CLI Wins (since it cannot be set in config)
     assert options.PARSER_TYPE == "docx"  # Config Wins
+
 
 
 def test_config_file_errors(tmp_path):
