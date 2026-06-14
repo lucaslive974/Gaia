@@ -1,9 +1,11 @@
 import sys
+import os
 import argparse
 from pydocstructurer.options import Options
 from pydocstructurer.cli.cli_helper import CliHelper
 from pydocstructurer.cli.terminal_ui import run_with_ui
 from pydocstructurer.i18n import _, set_lang
+
 
 
 def main():
@@ -18,87 +20,7 @@ def main():
     if lang in ("en", "pt"):
         set_lang(lang)
 
-    parser = argparse.ArgumentParser(description=_("cli_desc"))
-    parser.add_argument(
-        "-c",
-        "--config",
-        type=str,
-        default=None,
-        help=_("cli_config_help"),
-    )
-    parser.add_argument(
-        "input_dir",
-        type=str,
-        nargs="?",
-        default=None,
-        help=_("cli_input_dir_help"),
-    )
-    parser.add_argument(
-        "-o",
-        "--output",
-        type=str,
-        default=None,
-        help=_("cli_output_help", default_csv=Options.OUTPUT_CSV),
-    )
-    parser.add_argument(
-        "--resume",
-        action="store_true",
-        default=None,
-        help=_("cli_resume_help"),
-    )
-    parser.add_argument(
-        "-r",
-        "--recursive",
-        action="store_true",
-        default=None,
-        help=_("cli_recursive_help"),
-    )
-    parser.add_argument(
-        "-g",
-        "--regex",
-        type=str,
-        default=None,
-        help=_("cli_regex_help"),
-    )
-    parser.add_argument(
-        "-t",
-        "--test",
-        type=str,
-        default=None,
-        metavar="FILE_PATH",
-        help=_("cli_test_help"),
-    )
-    parser.add_argument(
-        "-d",
-        "--dump",
-        type=str,
-        default=None,
-        metavar="FILE_PATH",
-        help=_("cli_dump_help"),
-    )
-    parser.add_argument(
-        "-p",
-        "--pages-per-unit",
-        type=int,
-        default=None,
-        help=_("cli_pages_per_unit_help"),
-    )
-    parser.add_argument(
-        "-l",
-        "--lang",
-        type=str,
-        choices=["en", "pt"],
-        default=None,
-        help=_("cli_lang_help"),
-    )
-    parser.add_argument(
-        "--type",
-        type=str,
-        choices=["pdf", "docx", "ocr"],
-        default=None,
-        help=_("cli_type_help"),
-    )
-
+    parser = CliHelper.get_argument_parser()
     args = parser.parse_args()
 
     try:

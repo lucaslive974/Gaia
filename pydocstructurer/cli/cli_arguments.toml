@@ -1,0 +1,61 @@
+# cli_arguments.toml
+
+[[arguments]]
+flags = ["-c", "--config"]
+type = "str"
+help = "cli_config_help"
+
+[[arguments]]
+flags = ["input_dir"]
+type = "str"
+nargs = "?"
+help = "cli_input_dir_help"
+
+[[arguments]]
+flags = ["-o", "--output"]
+type = "str"
+help = "cli_output_help"
+
+[[arguments]]
+flags = ["--resume"]
+action = "store_true"
+help = "cli_resume_help"
+
+[[arguments]]
+flags = ["-r", "--recursive"]
+action = "store_true"
+help = "cli_recursive_help"
+
+[[arguments]]
+flags = ["-g", "--regex"]
+type = "str"
+help = "cli_regex_help"
+
+[[arguments]]
+flags = ["-t", "--test"]
+type = "str"
+metavar = "FILE_PATH"
+help = "cli_test_help"
+
+[[arguments]]
+flags = ["-d", "--dump"]
+type = "str"
+metavar = "FILE_PATH"
+help = "cli_dump_help"
+
+[[arguments]]
+flags = ["-p", "--pages-per-unit"]
+type = "int"
+help = "cli_pages_per_unit_help"
+
+[[arguments]]
+flags = ["-l", "--lang"]
+type = "str"
+choices = ["en", "pt"]
+help = "cli_lang_help"
+
+[[arguments]]
+flags = ["--type"]
+type = "str"
+choices = ["pdf", "docx", "ocr"]
+help = "cli_type_help"

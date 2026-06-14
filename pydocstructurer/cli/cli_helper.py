@@ -1,5 +1,6 @@
 import os
 import json
+import argparse
 from typing import Any
 from argparse import Namespace
 from pydocstructurer.options import Options
@@ -8,6 +9,48 @@ from pydocstructurer.i18n import _, set_lang
 
 
 class CliHelper:
+    @classmethod
+    def get_argument_parser(cls) -> argparse.ArgumentParser:
+        import tomllib
+        parser = argparse.ArgumentParser(description=_("cli_desc"))
+
+        config_file_path = os.path.join(
+            os.path.dirname(__file__), "cli_arguments.toml"
+        )
+        with open(config_file_path, "rb") as f:
+            args_config = tomllib.load(f)
+
+        for arg_def in args_config.get("arguments", []):
+            args_list = arg_def["flags"]
+            kwargs = {}
+
+            if "action" in arg_def:
+                kwargs["action"] = arg_def["action"]
+            if "type" in arg_def:
+                type_str = arg_def["type"]
+                if type_str == "int":
+                    kwargs["type"] = int
+                else:
+                    kwargs["type"] = str
+            if "nargs" in arg_def:
+                kwargs["nargs"] = arg_def["nargs"]
+            if "choices" in arg_def:
+                kwargs["choices"] = arg_def["choices"]
+            if "metavar" in arg_def:
+                kwargs["metavar"] = arg_def["metavar"]
+
+            kwargs["default"] = None
+
+            help_key = arg_def["help"]
+            if help_key == "cli_output_help":
+                kwargs["help"] = _(help_key, default_csv=Options.OUTPUT_CSV)
+            else:
+                kwargs["help"] = _(help_key)
+
+            parser.add_argument(*args_list, **kwargs)
+
+        return parser
+
     @classmethod
     def _detect_config_format(cls, file_path: str) -> str:
         ext = os.path.splitext(file_path)[1].lower()
