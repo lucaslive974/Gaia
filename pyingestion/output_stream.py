@@ -1,26 +1,27 @@
 import csv
 from os import path
-from typing import Any, Generic, TypeVar
+from enum import Enum
+from collections.abc import Mapping
+from typing import Generic, cast 
+from pyingestion.types import T_out
 
-T_in = TypeVar("T_in")
 
+class OutputStream(Generic[T_out]):
+    input_type: type[T_out] = cast(type[T_out], object)
 
-class OutputStream(Generic[T_in]):
-    input_type: type[T_in] = Any
-
-    def write(self, item: T_in) -> None:
+    def write(self, item: T_out) -> None:  # pyright: ignore[reportUnusedParameter]
         raise NotImplementedError
 
 
-class MultiOutputStream(OutputStream[T_in]):
-    input_type: type[T_in] = Any
+class MultiOutputStream(OutputStream[T_out]):
+    input_type: type[T_out] = cast(type[T_out], object)
 
-    def __init__(self, streams: list[OutputStream[T_in]]):
+    def __init__(self, streams: list[OutputStream[T_out]]):
         self.streams = streams
         if streams:
             self.input_type = streams[0].input_type
 
-    def write(self, item: T_in) -> None:
+    def write(self, item: T_out) -> None:
         for stream in self.streams:
             stream.write(item)
 
@@ -29,25 +30,28 @@ class CsvWriteStream(OutputStream[dict[str, str]]):
     def __init__(self, path_output: str = "output.csv"):
         self._path = path_output
 
-    def write(self, content: dict[str, str]):
+    def get_path(self):
+        return self._path
+
+    def write(self, item: dict[str, str]):
         output_path = self._path
         file_exists = path.exists(output_path)
 
         with open(output_path, mode="a", newline="", encoding="utf-8") as csv_file:
             writer = csv.DictWriter(
-                csv_file, fieldnames=content.keys(), skipinitialspace=True
+                csv_file, fieldnames=item.keys(), skipinitialspace=True
             )
             if not file_exists:
                 writer.writeheader()
-            writer.writerow(content)
+            writer.writerow(item)
 
 
 class DefaultOutputStream(OutputStream[dict[str, str]]):
     def __init__(self):
         self._data = []
 
-    def write(self, content: dict[str, str]):
-        self._data.append(content)
+    def write(self, item: dict[str, str]):
+        self._data.append(item)
 
     def __iter__(self):
         for item in self._data:
@@ -152,7 +156,7 @@ class MysqlOutputStream(OutputStream[dict[str, str]]):
 
     def _initialize(self, sample_dict: dict[str, str]):
         try:
-            import pymysql
+            import pymysql  # pyright: ignore[reportMissingModuleSource]
         except ImportError:
             raise ImportError(
                 "The 'pymysql' package is required for MySQL output. Please install it using 'pip install pymysql'."
@@ -190,7 +194,7 @@ class MysqlOutputStream(OutputStream[dict[str, str]]):
         if not self._initialized:
             self._initialize(item)
 
-        import pymysql
+        import pymysql  # pyright: ignore[reportMissingModuleSource]
 
         conn = pymysql.connect(
             host=self.host,
@@ -220,3 +224,54 @@ class MysqlOutputStream(OutputStream[dict[str, str]]):
                 conn.commit()
         finally:
             conn.close()
+
+
+class OutputStreamType(Enum):
+    CSV = "csv"
+    SQLITE = "sqlite"
+    MYSQL = "mysql"
+
+
+class OutputStreamFactory:
+    @staticmethod
+    def create(
+        output_type: str | OutputStreamType,
+        config: Mapping[str, object] | None = None,
+    ) -> OutputStream[dict[str, str]]:
+        import os
+        from pyingestion.output_stream import (
+            CsvWriteStream,
+            SqliteOutputStream,
+            MysqlOutputStream,
+        )
+
+        pt = (
+            output_type.value
+            if isinstance(output_type, OutputStreamType)
+            else output_type.lower()
+        )
+
+        cfg = config or {}
+
+        if pt == "csv":
+            out_path = str(cfg.get("path") or cfg.get("output") or "output.csv")
+            return CsvWriteStream(out_path)
+        elif pt == "sqlite":
+            db_path = str(cfg.get("db_path") or cfg.get("path") or "records.db")
+            table_name = str(cfg.get("table_name") or cfg.get("table") or "extracted_data")
+            return SqliteOutputStream(db_path, table_name)
+        elif pt == "mysql":
+            conn_uri = str(
+                cfg.get("connection_uri")
+                or cfg.get("connection")
+                or os.environ.get("DATABASE_URL")
+                or ""
+            )
+            if not conn_uri:
+                raise ValueError(
+                    "MySQL output requires 'connection_uri' or env var 'DATABASE_URL'."
+                )
+            table_name = str(cfg.get("table_name") or cfg.get("table") or "extracted_data")
+            return MysqlOutputStream(connection_uri=conn_uri, table_name=table_name)
+        else:
+            raise ValueError(f"Unknown output type: {pt}")

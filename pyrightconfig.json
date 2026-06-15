@@ -8,6 +8,7 @@
   "reportImplicitOverride": false,
   "reportUnannotatedClassAttribute": false,
   "reportOptionalMemberAccess": false,
+  "reportUnsupportedDunderAll" : false,
   "venvPath": ".",
   "venv": ".venv"
 }

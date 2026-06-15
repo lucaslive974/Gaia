@@ -3,8 +3,7 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 from pyingestion.pyingestion import PyIngestion
-from pyingestion.extraction_session import ExtractionSession
-from pyingestion.session_store import FileSessionStore
+from pyingestion.extraction_session import ExtractionSession, FileExtractionSession
 
 
 class TestResumeSession:
@@ -47,8 +46,8 @@ class TestResumeSession:
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        # Build session and restore state using FileSessionStore
-        restored_state = FileSessionStore().load(resume_setup.input_dir)
+        # Build session and restore state using FileExtractionSession
+        restored_state = FileExtractionSession.load(resume_setup.input_dir)
         assert restored_state is not None
 
         session = ExtractionSession(mock_observer)
@@ -108,7 +107,7 @@ class TestResumeSession:
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        restored_state = FileSessionStore().load(resume_setup.input_dir)
+        restored_state = FileExtractionSession.load(resume_setup.input_dir)
         session = ExtractionSession(mock_observer)
         session.processed_files = restored_state["processed_files"]
         session.successful_pages = restored_state["successful_pages"]
@@ -164,11 +163,9 @@ class TestResumeSession:
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        restored_state = FileSessionStore().load(resume_setup.input_dir)
-        session = ExtractionSession(
+        restored_state = FileExtractionSession.load(resume_setup.input_dir)
+        session = FileExtractionSession(
             mock_observer,
-            on_save=lambda src, sess: FileSessionStore().save(src, sess),
-            on_clear=lambda src: FileSessionStore().clear(src),
         )
         session.processed_files = restored_state["processed_files"]
         session.successful_pages = restored_state["successful_pages"]
@@ -193,7 +190,7 @@ class TestResumeSession:
                 transform_stream.transform.return_value = {"field": "val"}
                 output_stream = MagicMock()
 
-                with patch("pyingestion.session_store.open", create=True) as mock_open:
+                with patch("pyingestion.extraction_session.open", create=True) as mock_open:
                     controller = PyIngestion()
                     success = controller.process(
                         source=resume_setup.input_dir,
@@ -227,11 +224,9 @@ class TestResumeSession:
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        restored_state = FileSessionStore().load(resume_setup.input_dir)
-        session = ExtractionSession(
+        restored_state = FileExtractionSession.load(resume_setup.input_dir)
+        session = FileExtractionSession(
             mock_observer,
-            on_save=lambda src, sess: FileSessionStore().save(src, sess),
-            on_clear=lambda src: FileSessionStore().clear(src),
         )
         session.processed_files = restored_state["processed_files"]
         session.successful_pages = restored_state["successful_pages"]
@@ -282,7 +277,7 @@ class TestResumeSession:
         mock_observer = MagicMock()
         mock_observer.is_cancelled = True  # Cancelled!
 
-        restored_state = FileSessionStore().load(resume_setup.input_dir)
+        restored_state = FileExtractionSession.load(resume_setup.input_dir)
         session = ExtractionSession(mock_observer)
         session.processed_files = restored_state["processed_files"]
         session.successful_pages = restored_state["successful_pages"]
@@ -367,7 +362,7 @@ class TestResumeSession:
         def my_error_handler(page_text, page_number, error_msg, extracted_data):
             errors_logged.append((page_text, page_number, error_msg, extracted_data))
 
-        session = ExtractionSession(error_handler=my_error_handler)
+        session = FileExtractionSession(error_handler=my_error_handler)
 
         with patch.object(PdfInputStream, "_find_files", return_value=["file1.pdf"]):
             with patch("pyingestion.input_streams.PdfReader") as mock_pdf_reader:

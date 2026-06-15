@@ -1,14 +1,10 @@
 import os
-from typing import TypeVar
 from pyingestion.input_stream import InputStream
 from pyingestion.transform_stream import TransformStream
 from pyingestion.output_stream import OutputStream
 from pyingestion.extraction_session import ExtractionSession
 
-T_source = TypeVar("T_source")
-T_in = TypeVar("T_in")
-T_out = TypeVar("T_out")
-
+from pyingestion.types import T_source, T_in, T_out
 
 class PyIngestion:
     """
@@ -37,8 +33,9 @@ class PyIngestion:
                 if session and session.is_cancelled:
                     break
 
-                if not unit_text.strip():
-                    continue
+                if(isinstance(unit_text, str)):
+                    if not unit_text.strip():
+                        continue
 
                 if session:
                     session.start_page(
@@ -60,12 +57,14 @@ class PyIngestion:
                     partial_results = None
                     if parse_test_fn:
                         try:
-                            partial_results, _ = parse_test_fn(unit_text)
+                            from typing import cast
+                            res = cast(tuple[dict[str, str], object], parse_test_fn(unit_text))
+                            partial_results = res[0]
                         except Exception:
                             pass
                     if session:
                         session.log_failed_page(
-                            unit_text,
+                            str(unit_text),
                             input_stream.current_unit_index,
                             str(e),
                             partial_results,

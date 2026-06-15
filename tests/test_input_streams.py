@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from pyingestion import PdfParser, ExtractionSession
+from pyingestion import PdfInputStream, ExtractionSession
 
 
 @patch("pyingestion.input_streams.PdfReader")
@@ -9,7 +9,7 @@ def test_native_parser_page_count(mock_pdf_reader):
     mock_reader_instance.pages = [MagicMock(), MagicMock()]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = PdfParser()
+    parser = PdfInputStream()
     assert parser.get_page_count("dummy.pdf") == 2
 
 
@@ -28,7 +28,7 @@ def test_native_parser_orchestration(mock_isfile, mock_exists, mock_pdf_reader):
     mock_reader_instance.pages = [page1, page2]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = PdfParser(pages_per_unit=1)
+    parser = PdfInputStream(pages_per_unit=1)
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
     session = ExtractionSession(mock_observer)
@@ -58,7 +58,7 @@ def test_native_parser_orchestration_multi_page_units(
     mock_reader_instance.pages = [page1, page2]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = PdfParser(pages_per_unit=2)
+    parser = PdfInputStream(pages_per_unit=2)
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
     session = ExtractionSession(mock_observer)
@@ -87,7 +87,7 @@ def test_parser_cancellation_mid_file(mock_isfile, mock_exists, mock_pdf_reader)
     mock_reader_instance.pages = [page1, page2, page3]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = PdfParser(pages_per_unit=1)
+    parser = PdfInputStream(pages_per_unit=1)
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
     session = ExtractionSession(mock_observer)
@@ -115,7 +115,7 @@ def test_parser_parameterless_session(mock_isfile, mock_exists, mock_pdf_reader)
     mock_reader_instance.pages = [page1]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = PdfParser(pages_per_unit=1)
+    parser = PdfInputStream(pages_per_unit=1)
     pages = list(parser.read("dummy.pdf"))
 
     assert len(pages) == 1
@@ -123,14 +123,14 @@ def test_parser_parameterless_session(mock_isfile, mock_exists, mock_pdf_reader)
 
 
 def test_native_parser_accepts():
-    parser = PdfParser()
+    parser = PdfInputStream()
     assert parser.accepts("test.pdf") is True
     assert parser.accepts("test.PDF") is True
     assert parser.accepts("test.txt") is False
     assert parser.accepts("test.pdf.docx") is False
 
 
-from pyingestion import DocxParser
+from pyingestion import DocxInputStream
 
 
 @patch("docx.Document")
@@ -146,7 +146,7 @@ def test_docx_parser_page_count(mock_docx_document):
     mock_doc_instance.element.body.iterchildren.return_value = [mock_p]
     mock_docx_document.return_value = mock_doc_instance
 
-    parser = DocxParser()
+    parser = DocxInputStream()
     assert parser.get_page_count("dummy.docx") == 1
 
 
@@ -176,7 +176,7 @@ def test_docx_parser_orchestration(mock_isfile, mock_exists, mock_docx_document)
     mock_doc_instance.element.body.iterchildren.return_value = [mock_p1, mock_p2]
     mock_docx_document.return_value = mock_doc_instance
 
-    parser = DocxParser(pages_per_unit=1)
+    parser = DocxInputStream(pages_per_unit=1)
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
     session = ExtractionSession(mock_observer)
@@ -189,18 +189,18 @@ def test_docx_parser_orchestration(mock_isfile, mock_exists, mock_docx_document)
 
 
 def test_docx_parser_accepts():
-    parser = DocxParser()
+    parser = DocxInputStream()
     assert parser.accepts("test.docx") is True
     assert parser.accepts("test.DOCX") is True
     assert parser.accepts("test.pdf") is False
     assert parser.accepts("test.txt") is False
 
 
-from pyingestion import OcrParser
+from pyingestion import OcrInputStream
 
 
 def test_ocr_parser_accepts():
-    parser = OcrParser()
+    parser = OcrInputStream()
     assert parser.accepts("test.png") is True
     assert parser.accepts("test.JPG") is True
     assert parser.accepts("test.pdf") is True
@@ -215,7 +215,7 @@ def test_ocr_parser_missing_tesseract(mock_isfile, mock_exists, mock_which):
     mock_exists.return_value = True
     mock_isfile.return_value = True
     mock_which.return_value = None  # tesseract not found
-    parser = OcrParser()
+    parser = OcrInputStream()
     with pytest.raises(RuntimeError) as excinfo:
         list(parser.read("test.png"))
     assert "Tesseract OCR is not installed" in str(excinfo.value)
@@ -227,7 +227,7 @@ def test_ocr_parser_missing_poppler_on_pdf(mock_which):
     mock_which.side_effect = lambda cmd: (
         "/usr/bin/tesseract" if cmd == "tesseract" else None
     )
-    parser = OcrParser()
+    parser = OcrInputStream()
     with pytest.raises(RuntimeError) as excinfo:
         parser.get_page_count("test.pdf")
     assert "Poppler (pdftoppm/pdfinfo) is not installed" in str(excinfo.value)
@@ -247,7 +247,7 @@ def test_ocr_parser_image_process(
     mock_image_open.return_value.__enter__.return_value = MagicMock()
     mock_ocr.return_value = "extracted image text"
 
-    parser = OcrParser()
+    parser = OcrInputStream()
     session = ExtractionSession()
     results = list(parser.read("test.jpg", session=session))
 
@@ -272,7 +272,7 @@ def test_ocr_parser_pdf_process_lazy(
     mock_convert.return_value = [MagicMock()]
     mock_ocr.side_effect = ["page 1 text", "page 2 text"]
 
-    parser = OcrParser(pages_per_unit=1)
+    parser = OcrInputStream(pages_per_unit=1)
     session = ExtractionSession()
     results = list(parser.read("test.pdf", session=session))
 

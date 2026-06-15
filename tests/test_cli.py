@@ -76,7 +76,7 @@ def test_app_controller_validations_and_process(mock_exists):
 @patch("pyingestion.cli.terminal_ui.Live")
 @patch("pyingestion.cli.terminal_ui.TerminalManager")
 @patch("pyingestion.PyIngestion")
-@patch("pyingestion.session_store.FileSessionStore")
+@patch("pyingestion.extraction_session.FileExtractionSession")
 @patch("pyingestion.cli.terminal_ui.os.path.exists")
 @patch("pyingestion.cli.terminal_ui.os.remove")
 def test_cli_log_deletion(
@@ -117,6 +117,7 @@ def test_cli_log_deletion(
         "total_pages": 12,
     }
     mock_session_store.return_value = mock_session_store_instance
+    mock_session_store.load.return_value = mock_session_store_instance.load.return_value
 
     run_with_ui(
         source="/dummy/input",

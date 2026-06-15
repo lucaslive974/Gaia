@@ -67,9 +67,9 @@ def load_po_file(filepath: str) -> dict[str, str]:
                 msgstr = line[6:].strip().strip('"')
             elif line.startswith('"') and line.endswith('"'):
                 val = line[1:-1]
-                if in_msgid:
+                if in_msgid and msgid is not None:
                     msgid += val
-                elif in_msgstr:
+                elif in_msgstr and msgstr is not None:
                     msgstr += val
 
         # Handle last key/value in file

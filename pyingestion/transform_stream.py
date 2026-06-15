@@ -2,46 +2,55 @@ import re
 import os
 import json
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Generic, TypeVar, cast, TypedDict
 
-T_in = TypeVar("T_in")
-T_out = TypeVar("T_out")
+T_in = TypeVar("T_in", contravariant=True)
+T_out = TypeVar("T_out", covariant=True)
+
+
+class PatternConfig(TypedDict):
+    regex_str: str
+    compiled: re.Pattern[str]
+    required: bool
+    default: str
+    flags: list[str]
+    description: str
 
 
 class TransformStream(Generic[T_in, T_out]):
-    input_type: type[T_in] = Any
-    output_type: type[T_out] = Any
+    input_type: type[T_in] = cast(type[T_in], object)
+    output_type: type[T_out] = cast(type[T_out], object)
 
-    def transform(self, data: T_in) -> T_out:
+    def transform(self, data: T_in) -> T_out:  # pyright: ignore[reportUnusedParameter]
         raise NotImplementedError
 
 
-class ParallelTransformStream(TransformStream[T_in, dict]):
-    input_type: type[T_in] = Any
-    output_type: type[dict] = dict
+class ParallelTransformStream(TransformStream[T_in, dict[str, object]]):
+    input_type: type[T_in] = cast(type[T_in], object)
+    output_type: type[dict[str, object]] = cast(type[dict[str, object]], dict)
 
-    def __init__(self, transforms: list[TransformStream[T_in, dict]]):
+    def __init__(self, transforms: list[TransformStream[T_in, dict[str, object]]]):
         self.transforms = transforms
         if transforms:
             self.input_type = transforms[0].input_type
 
-    def transform(self, data: T_in) -> dict:
-        result = {}
+    def transform(self, data: T_in) -> dict[str, object]:
+        result: dict[str, object] = {}
         for transform in self.transforms:
             res = transform.transform(data)
-            if isinstance(res, dict):
+            if isinstance(res, dict):  # pyright: ignore[reportUnnecessaryIsInstance]
                 result.update(res)
         return result
 
 
-class ChainedTransformStream(TransformStream[Any, Any]):
-    def __init__(self, transforms: list[TransformStream[Any, Any]]):
+class ChainedTransformStream(TransformStream[object, object]):
+    def __init__(self, transforms: list[TransformStream[object, object]]):
         self.transforms = transforms
         if transforms:
             self.input_type = transforms[0].input_type
             self.output_type = transforms[-1].output_type
 
-    def transform(self, data: Any) -> Any:
+    def transform(self, data: object) -> object:
         current = data
         for transform in self.transforms:
             current = transform.transform(current)
@@ -68,11 +77,11 @@ class RegexEngine(TransformStream[str, dict[str, str]], ABC):
 
 class NativeRegexEngine(RegexEngine):
     input_type = str
-    output_type = dict
+    output_type = cast(type[dict[str, str]], dict)
 
-    def __init__(self, patterns_data: dict[str, Any]):
+    def __init__(self, patterns_data: dict[str, object]):
         self.config_file = None
-        self.patterns: dict[str, dict[str, Any]] = {}
+        self.patterns: dict[str, PatternConfig] = {}
         self.load_and_validate(patterns_data)
 
     @property
@@ -91,17 +100,17 @@ class NativeRegexEngine(RegexEngine):
         return "json"
 
     @staticmethod
-    def _load_json(file_path: str) -> dict[str, Any]:
+    def _load_json(file_path: str) -> dict[str, object]:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                return cast(dict[str, object], json.load(f))
         except json.JSONDecodeError as e:
             raise ValueError(f"Erro ao parsear o arquivo JSON de regex: {e}")
         except Exception as e:
             raise ValueError(f"Erro ao ler o arquivo JSON de regex: {e}")
 
     @staticmethod
-    def _load_toml(file_path: str) -> dict[str, Any]:
+    def _load_toml(file_path: str) -> dict[str, object]:
         import tomllib
 
         try:
@@ -132,54 +141,58 @@ class NativeRegexEngine(RegexEngine):
         engine.regex_file_path = file_path
         return engine
 
-    def load_and_validate(self, data: dict[str, Any]):
-        if not isinstance(data, dict):
-            raise ValueError("O JSON de regex deve ser um objeto no nível raiz.")
+    def load_and_validate(self, data: dict[str, object]):
+        if not isinstance(data, dict):  # pyright: ignore[reportUnnecessaryIsInstance]
+            raise ValueError("O JSON de regex deve ser um objeto no nível raiz.")  # pyright: ignore[reportUnreachable]
 
-        patterns = {}
+        patterns: dict[str, PatternConfig] = {}
         for key, value in data.items():
             if not isinstance(value, dict):
                 raise ValueError(
                     f"A configuração para o campo '{key}' deve ser um objeto/dicionário."
                 )
-            if "regex" not in value:
+            val_dict = cast(dict[str, object], value)
+            if "regex" not in val_dict:
                 raise ValueError(f"O campo '{key}' deve conter uma chave 'regex'.")
-            if not isinstance(value["regex"], str):
+            if not isinstance(val_dict["regex"], str):
                 raise ValueError(
                     f"A chave 'regex' para o campo '{key}' deve ser uma string."
                 )
 
             # Compile flags
             flags = 0
-            if "flags" in value:
-                if not isinstance(value["flags"], list):
+            flags_list: list[str] = []
+            if "flags" in val_dict:
+                raw_flags = val_dict["flags"]
+                if not isinstance(raw_flags, list):
                     raise ValueError(
                         f"A chave 'flags' para o campo '{key}' deve ser uma lista de strings."
                     )
-                for flag_str in value["flags"]:
+                for flag_str in raw_flags:
                     if not isinstance(flag_str, str):
                         raise ValueError(
                             f"As flags do campo '{key}' devem ser strings."
                         )
                     flag_val = getattr(re, flag_str.upper(), None)
-                    if flag_val is None:
+                    if not isinstance(flag_val, int):
                         raise ValueError(
                             f"Flag de regex inválida '{flag_str}' no campo '{key}'."
                         )
                     flags |= flag_val
+                    flags_list.append(flag_str)
 
             try:
-                compiled = re.compile(value["regex"], flags)
+                compiled = re.compile(val_dict["regex"], flags)
             except re.error as e:
                 raise ValueError(f"Expressão regular inválida no campo '{key}': {e}")
 
             patterns[key] = {
-                "regex_str": value["regex"],
+                "regex_str": val_dict["regex"],
                 "compiled": compiled,
-                "required": bool(value.get("required", False)),
-                "default": str(value.get("default", "")),
-                "flags": value.get("flags", []),
-                "description": str(value.get("description", "")),
+                "required": bool(val_dict.get("required", False)),
+                "default": str(val_dict.get("default", "")),
+                "flags": flags_list,
+                "description": str(val_dict.get("description", "")),
             }
 
         self.patterns = patterns

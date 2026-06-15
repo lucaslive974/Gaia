@@ -1,8 +1,9 @@
 import os
-from typing import Generator, Any
-from pypdf import PdfReader
+from collections.abc import Generator
 from pyingestion.extraction_session import ExtractionSession
 from pyingestion.input_stream import FileInputStream
+
+from pypdf import PdfReader
 
 
 class PdfInputStream(FileInputStream):
@@ -33,7 +34,7 @@ class PdfInputStream(FileInputStream):
         return page.extract_text(extraction_mode="layout") or ""
 
     def read(
-        self, source: Any, session: ExtractionSession | None = None
+        self, source: str, session: ExtractionSession | None = None
     ) -> Generator[str, None, None]:
         files = self._find_files(source)
         if session:
@@ -130,7 +131,7 @@ class DocxInputStream(FileInputStream):
         def has_page_break(p: Paragraph) -> bool:
             if p.paragraph_format.page_break_before:
                 return True
-            p_xml = p._element.xml
+            p_xml = p._element.xml  # pyright: ignore[reportPrivateUsage]
             if "w:br" in p_xml and 'type="page"' in p_xml:
                 return True
             return False
@@ -174,7 +175,7 @@ class DocxInputStream(FileInputStream):
         return len(pages)
 
     def read(
-        self, source: Any, session: ExtractionSession | None = None
+        self, source: str, session: ExtractionSession | None = None
     ) -> Generator[str, None, None]:
         files = self._find_files(source)
         if session:
@@ -264,7 +265,7 @@ class OcrInputStream(FileInputStream):
         if not shutil.which("tesseract"):
             raise RuntimeError(
                 "Tesseract OCR is not installed or not in system PATH. "
-                "Please install tesseract-ocr to use the OCR parser."
+                + "Please install tesseract-ocr to use the OCR parser."
             )
 
     def _check_poppler(self):
@@ -273,7 +274,7 @@ class OcrInputStream(FileInputStream):
         if not shutil.which("pdftoppm") or not shutil.which("pdfinfo"):
             raise RuntimeError(
                 "Poppler (pdftoppm/pdfinfo) is not installed or not in system PATH. "
-                "Please install poppler-utils to parse PDF files using the OCR parser."
+                + "Please install poppler-utils to parse PDF files using the OCR parser."
             )
 
     def get_page_count(self, file_path: str) -> int:
@@ -292,7 +293,7 @@ class OcrInputStream(FileInputStream):
         return 1
 
     def read(
-        self, source: Any, session: ExtractionSession | None = None
+        self, source: str, session: ExtractionSession | None = None
     ) -> Generator[str, None, None]:
         files = self._find_files(source)
         if session:
@@ -321,7 +322,7 @@ class OcrInputStream(FileInputStream):
                     self._check_poppler()
                     self._check_tesseract()
                     import pdf2image
-                    import pytesseract
+                    import pytesseract  # pyright: ignore[reportMissingTypeStubs]
 
                     total_pages = self.get_page_count(full_file_path)
                     if session:
@@ -373,7 +374,7 @@ class OcrInputStream(FileInputStream):
 
                 else:
                     self._check_tesseract()
-                    import pytesseract
+                    import pytesseract  # pyright: ignore[reportMissingTypeStubs]
                     from PIL import Image
 
                     if session:
@@ -394,7 +395,7 @@ class OcrInputStream(FileInputStream):
                         else:
                             raise e
 
-                    yield text
+                    yield str(text)
 
             except Exception as e:
                 if session:
@@ -412,7 +413,79 @@ class OcrInputStream(FileInputStream):
             session.clear(source)
 
 
-# Aliases for backward compatibility in internal code/tests
-PdfParser = PdfInputStream
-DocxParser = DocxInputStream
-OcrParser = OcrInputStream
+from pyingestion.input_stream import InputStream
+from enum import Enum
+
+class InputStreamType(Enum):
+    PDF = "pdf"
+    DOCX = "docx"
+    OCR = "ocr"
+
+
+class InputStreamFactory:
+    @staticmethod
+    def _create_pdf_parser(
+        pages_per_unit: int = 1, recursive: bool = False
+    ) -> InputStream[str, str]:
+        from pyingestion.input_streams import PdfInputStream
+
+        return PdfInputStream(pages_per_unit=pages_per_unit, recursive=recursive)
+
+    @staticmethod
+    def _create_docx_parser(
+        pages_per_unit: int = 1, recursive: bool = False
+    ) -> InputStream[str, str]:
+        from pyingestion.input_streams import DocxInputStream
+
+        return DocxInputStream(pages_per_unit=pages_per_unit, recursive=recursive)
+
+    @staticmethod
+    def _create_ocr_parser(
+        pages_per_unit: int = 1, recursive: bool = False
+    ) -> InputStream[str, str]:
+        from pyingestion.input_streams import OcrInputStream
+
+        return OcrInputStream(pages_per_unit=pages_per_unit, recursive=recursive)
+
+    _CREATORS = {
+        "pdf": _create_pdf_parser,
+        "docx": _create_docx_parser,
+        "ocr": _create_ocr_parser,
+    }
+
+    @staticmethod
+    def create(
+        parser_type: str | InputStreamType,
+        pages_per_unit: int = 1,
+        recursive: bool = False,
+    ) -> InputStream[str, str]:
+        """
+        Lazily creates and returns an InputStream instance corresponding to the type.
+        """
+        pt = (
+            parser_type.value
+            if isinstance(parser_type, InputStreamType)
+            else parser_type
+        )
+        creator = InputStreamFactory._CREATORS.get(pt)
+        if not creator:
+            raise ValueError(f"Unknown parser type: {pt}")
+        return creator(pages_per_unit=pages_per_unit, recursive=recursive)
+
+    @staticmethod
+    def from_file_path(
+        file_path: str,
+        pages_per_unit: int = 1,
+        recursive: bool = False,
+    ) -> InputStream[str, str]:
+        """
+        Detects the correct InputStream parser based on the file extension.
+        """
+        import os
+        ext = os.path.splitext(file_path)[1].lower()
+        if ext == ".docx":
+            return InputStreamFactory.create("docx", pages_per_unit, recursive)
+        elif ext in (".png", ".jpg", ".jpeg", ".tiff", ".bmp"):
+            return InputStreamFactory.create("ocr", pages_per_unit, recursive)
+        else:
+            return InputStreamFactory.create("pdf", pages_per_unit, recursive)

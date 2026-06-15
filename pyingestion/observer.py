@@ -1,5 +1,5 @@
 import queue
-from typing import Any, override
+from typing import override
 from abc import ABC, abstractmethod
 
 
@@ -54,7 +54,7 @@ class QueueObserver(ExtractionObserver):
     Thread-safe observer that puts events into a queue.Queue for UI consumption.
     """
 
-    def __init__(self, event_queue: queue.Queue[tuple[str, Any]]):
+    def __init__(self, event_queue: queue.Queue[tuple[str, object]]):
         self._queue = event_queue
         self.is_cancelled: bool = False
 

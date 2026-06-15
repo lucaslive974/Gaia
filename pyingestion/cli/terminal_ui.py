@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import override
+from typing import override, cast
 from rich.console import Console, Group
 from rich.progress import Progress
 from rich.table import Table
@@ -157,8 +157,7 @@ class ConsoleObserver(ExtractionObserver):
 
     @override
     def on_complete(self, successful_pages: int, total_pages: int):
-        if self.current_file_task is not None:
-            self.progress.remove_task(self.current_file_task)
+        self.progress.remove_task(self.current_file_task)
         self._update_live()
 
     @override
@@ -281,28 +280,23 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
         ) as live:
             observer.set_live(live)
             try:
-                from pyingestion.session_store import FileSessionStore
-                from pyingestion.extraction_session import ExtractionSession
+                from pyingestion.extraction_session import FileExtractionSession
 
                 session = None
                 if resume:
-                    state_data = FileSessionStore().load(source)
+                    state_data = FileExtractionSession.load(source)
                     if state_data:
-                        session = ExtractionSession(
+                        session = FileExtractionSession(
                             observer,
                             error_handler=cli_error_handler,
-                            on_save=lambda src, sess: FileSessionStore().save(
-                                src, sess
-                            ),
-                            on_clear=lambda src: FileSessionStore().clear(src),
                         )
-                        session.processed_files = state_data.get("processed_files", [])
-                        session.successful_pages = state_data.get("successful_pages", 0)
-                        session.failed_pages = state_data.get("failed_pages", 0)
-                        session.total_pages = state_data.get("total_pages", 0)
-                        session.config_file = state_data.get("config_file")
-                        session.output_file = state_data.get("output_file")
-                        session.input_dir = state_data.get("input_dir")
+                        session.processed_files = cast(list[str], state_data.get("processed_files", []))
+                        session.successful_pages = cast(int, state_data.get("successful_pages", 0))
+                        session.failed_pages = cast(int, state_data.get("failed_pages", 0))
+                        session.total_pages = cast(int, state_data.get("total_pages", 0))
+                        session.config_file = cast(str | None, state_data.get("config_file"))
+                        session.output_file = cast(str | None, state_data.get("output_file"))
+                        session.input_dir = cast(str | None, state_data.get("input_dir"))
                     else:
                         raise ValueError(_("err_resume_no_state"))
 
@@ -315,17 +309,15 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
                         except Exception:
                             pass
 
-                    session = ExtractionSession(
+                    session = FileExtractionSession(
                         observer,
                         error_handler=cli_error_handler,
-                        on_save=lambda src, sess: FileSessionStore().save(src, sess),
-                        on_clear=lambda src: FileSessionStore().clear(src),
                     )
                     session.config_file = getattr(transform_stream, "config_file", None)
                     from pyingestion.output_stream import CsvWriteStream
 
                     if isinstance(output_stream, CsvWriteStream):
-                        session.output_file = output_stream._path
+                        session.output_file = output_stream.get_path()
                     session.input_dir = source
 
                 success = controller.process(

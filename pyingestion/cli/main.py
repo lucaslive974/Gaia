@@ -5,8 +5,11 @@ from pyingestion.input_stream import InputStream
 from pyingestion.transform_stream import TransformStream
 from pyingestion.output_stream import OutputStream
 
+from collections.abc import Mapping
+from typing import Any, cast
 
-def load_config_file(file_path: str) -> dict:
+
+def load_config_file(file_path: str) -> dict[str, object]:
     import json
     import tomllib
 
@@ -14,16 +17,18 @@ def load_config_file(file_path: str) -> dict:
     try:
         if ext == ".toml":
             with open(file_path, "rb") as f:
-                return tomllib.load(f)
+                return cast(dict[str, object], tomllib.load(f))
         else:
             with open(file_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                return cast(dict[str, object], json.load(f))
     except Exception as e:
         raise click.ClickException(f"Error loading config file: {e}")
 
 
-def build_input_stream_from_config(config_data: dict) -> InputStream:
-    from pyingestion.input_stream import InputStreamFactory
+def build_input_stream_from_config(
+    config_data: Mapping[str, object],
+) -> InputStream[Any, Any]:  # pyright: ignore[reportExplicitAny]
+    from pyingestion.input_streams import InputStreamFactory
 
     input_section = config_data.get("input")
     if isinstance(input_section, dict):
@@ -34,23 +39,27 @@ def build_input_stream_from_config(config_data: dict) -> InputStream:
     return InputStreamFactory.create("pdf")
 
 
-def build_transform_stream_from_config(config_data: dict) -> TransformStream:
+def build_transform_stream_from_config(
+    config_data: Mapping[str, object],
+) -> TransformStream[Any, Any]:  # pyright: ignore[reportExplicitAny]
     from pyingestion.transform_stream import NativeRegexEngine, ChainedTransformStream
 
     transform_data = config_data.get("transform")
     if not transform_data:
         regex_path = config_data.get("regex")
-        if not regex_path:
+        if not isinstance(regex_path, str):
             raise click.UsageError(
                 "Transform section or 'regex' path is required in config."
             )
         return NativeRegexEngine.from_file(regex_path)
 
-    def instantiate_transform(item: dict) -> TransformStream:
-        t_type = item.get("type")
+    def instantiate_transform(
+        item: Mapping[str, object],
+    ) -> TransformStream[Any, Any]:  # pyright: ignore[reportExplicitAny]
+        t_type = str(item.get("type", ""))
         if t_type == "regex":
             rules_file = item.get("config_file") or item.get("rules_file")
-            if not rules_file:
+            if not isinstance(rules_file, str):
                 raise click.UsageError(
                     "Transform of type 'regex' requires 'config_file' or 'rules_file'."
                 )
@@ -71,55 +80,30 @@ def build_transform_stream_from_config(config_data: dict) -> TransformStream:
     )
 
 
-def build_output_stream_from_config(config_data: dict) -> OutputStream:
-    from pyingestion.output_stream import (
-        CsvWriteStream,
-        SqliteOutputStream,
-        MysqlOutputStream,
-        MultiOutputStream,
-    )
+def build_output_stream_from_config(
+    config_data: Mapping[str, object],
+) -> OutputStream[Any]:  # pyright: ignore[reportExplicitAny]
+    from pyingestion.output_stream import OutputStreamFactory, MultiOutputStream
 
     output_data = config_data.get("output")
     if not output_data:
-        to_dest = config_data.get("to", "csv")
-        out_path = config_data.get("output", "output.csv")
-        if to_dest == "sqlite":
-            if out_path.endswith(".csv"):
-                out_path = out_path[:-4] + ".db"
-            return SqliteOutputStream(out_path)
-        elif to_dest == "mysql":
-            connection_uri = os.environ.get("DATABASE_URL")
-            if not connection_uri:
-                raise click.UsageError(
-                    "Environment variable 'DATABASE_URL' is required for MySQL output."
-                )
-            return MysqlOutputStream(connection_uri=connection_uri)
-        else:
-            return CsvWriteStream(out_path)
+        to_dest = str(config_data.get("to", "csv"))
+        out_path = str(config_data.get("output", "output.csv"))
+        if to_dest == "sqlite" and out_path.endswith(".csv"):
+            out_path = out_path[:-4] + ".db"
+        try:
+            return OutputStreamFactory.create(to_dest, {"path": out_path})
+        except ValueError as e:
+            raise click.UsageError(str(e))
 
-    def instantiate_output(item: dict) -> OutputStream:
-        out_type = item.get("type")
-        if out_type == "csv":
-            out_path = item.get("path") or item.get("output") or "output.csv"
-            return CsvWriteStream(out_path)
-        elif out_type == "sqlite":
-            db_path = item.get("db_path") or item.get("path") or "records.db"
-            table_name = item.get("table_name") or item.get("table") or "extracted_data"
-            return SqliteOutputStream(db_path, table_name)
-        elif out_type == "mysql":
-            conn_uri = (
-                item.get("connection_uri")
-                or item.get("connection")
-                or os.environ.get("DATABASE_URL")
-            )
-            if not conn_uri:
-                raise click.UsageError(
-                    "MySQL output requires 'connection_uri' or env var 'DATABASE_URL'."
-                )
-            table_name = item.get("table_name") or item.get("table") or "extracted_data"
-            return MysqlOutputStream(connection_uri=conn_uri, table_name=table_name)
-        else:
-            raise click.UsageError(f"Unknown output type: {out_type}")
+    def instantiate_output(
+        item: Mapping[str, object],
+    ) -> OutputStream[Any]:  # pyright: ignore[reportExplicitAny]
+        out_type = str(item.get("type", ""))
+        try:
+            return OutputStreamFactory.create(out_type, item)
+        except ValueError as e:
+            raise click.UsageError(str(e))
 
     if isinstance(output_data, list):
         outputs = [instantiate_output(item) for item in output_data]
@@ -278,7 +262,7 @@ def mysql_output(ctx, connection, table):
 
 @cli.result_callback()
 @click.pass_context
-def process_pipeline(ctx, processors, **kwargs):
+def process_pipeline(ctx, _processors, **_kwargs):
     source = ctx.obj.get("source")
     resume = ctx.obj.get("resume")
     test_file = ctx.obj.get("test")
@@ -299,19 +283,9 @@ def process_pipeline(ctx, processors, **kwargs):
     if not input_stream and config_path:
         input_stream = build_input_stream_from_config(config_data)
     if not input_stream and (test_file or dump_file):
-        from pyingestion.input_streams import PdfInputStream
+        from pyingestion.input_streams import InputStreamFactory
 
-        ext = os.path.splitext(test_file or dump_file)[1].lower()
-        if ext == ".docx":
-            from pyingestion.input_streams import DocxInputStream
-
-            input_stream = DocxInputStream()
-        elif ext in (".png", ".jpg", ".jpeg", ".tiff", ".bmp"):
-            from pyingestion.input_streams import OcrInputStream
-
-            input_stream = OcrInputStream()
-        else:
-            input_stream = PdfInputStream()
+        input_stream = InputStreamFactory.from_file_path(str(test_file or dump_file))
 
     # Resolve transform_stream
     transform_stream = ctx.obj.get("transform_stream")
@@ -340,12 +314,12 @@ def process_pipeline(ctx, processors, **kwargs):
     if test_file:
         if not transform_stream:
             if resume:
-                from pyingestion.session_store import FileSessionStore
+                from pyingestion.extraction_session import FileExtractionSession
 
-                state = FileSessionStore().load(test_file)
+                state = FileExtractionSession.load(str(test_file))
                 if state:
                     regex_path = state.get("config_file") or state.get("regex_file")
-                    if regex_path:
+                    if isinstance(regex_path, str):
                         from pyingestion.transform_stream import NativeRegexEngine
 
                         transform_stream = NativeRegexEngine.from_file(regex_path)
@@ -359,7 +333,7 @@ def process_pipeline(ctx, processors, **kwargs):
     # 3. Regular Execution (UI Mode)
     if not source:
         if resume:
-            from pyingestion.session_store import FileSessionStore
+            from pyingestion.extraction_session import FileExtractionSession
 
             cwd_state = os.path.join(os.getcwd(), ".gaia_resume.json")
             if os.path.exists(cwd_state):
@@ -367,9 +341,9 @@ def process_pipeline(ctx, processors, **kwargs):
                     with open(cwd_state, "r", encoding="utf-8") as f:
                         import json
 
-                        data = json.load(f)
+                        data = cast(dict[str, object], json.load(f))
                         if data.get("input_dir"):
-                            source = data.get("input_dir")
+                            source = str(data.get("input_dir"))
                 except Exception:
                     pass
         if not source:
@@ -377,12 +351,12 @@ def process_pipeline(ctx, processors, **kwargs):
 
     if not transform_stream:
         if resume:
-            from pyingestion.session_store import FileSessionStore
+            from pyingestion.extraction_session import FileExtractionSession
 
-            state = FileSessionStore().load(source)
+            state = FileExtractionSession.load(str(source))
             if state:
                 regex_path = state.get("config_file") or state.get("regex_file")
-                if regex_path:
+                if isinstance(regex_path, str):
                     from pyingestion.transform_stream import NativeRegexEngine
 
                     transform_stream = NativeRegexEngine.from_file(regex_path)

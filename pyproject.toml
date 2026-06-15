@@ -37,7 +37,7 @@ dev = [
 ]
 
 [tool.setuptools.package-data]
-pyingestion = ["locale/**/*.po", "locale/**/*.mo", "cli/cli_arguments.toml"]
+pyingestion = ["locale/**/*.po", "locale/**/*.mo"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,4 +1,5 @@
 import time
+from typing import cast
 from pyingestion.observer import ExtractionObserver, DefaultExtractionObserver
 
 
@@ -7,13 +8,9 @@ class ExtractionSession:
         self,
         observer: ExtractionObserver | None = None,
         error_handler=None,
-        on_save=None,
-        on_clear=None,
     ):
         self.observer = observer or DefaultExtractionObserver()
         self.error_handler = error_handler
-        self.on_save = on_save
-        self.on_clear = on_clear
         self._is_cancelled: bool = False
         self.total_files: int = 0
         self.file_index: int = 0
@@ -30,13 +27,15 @@ class ExtractionSession:
         self.estimative_cnt: int = 1
         self._file_start_time: float = 0.0
 
-    def save(self, source: str) -> None:
-        if self.on_save:
-            self.on_save(source, self)
+    def save(self, source: str) -> None:  # pyright: ignore[reportUnusedParameter]
+        pass
 
-    def clear(self, source: str) -> None:
-        if self.on_clear:
-            self.on_clear(source)
+    def clear(self, source: str) -> None:  # pyright: ignore[reportUnusedParameter]
+        pass
+
+    @classmethod
+    def load(cls, source: str) -> dict[str, object] | None:  # pyright: ignore[reportUnusedParameter]
+        return None
 
     def log_failed_page(
         self,
@@ -103,6 +102,86 @@ class ExtractionSession:
         self._is_cancelled = value
 
 
+class FileExtractionSession(ExtractionSession):
+    @classmethod
+    def _get_paths(cls, source: str) -> list[str]:
+        import os
+
+        paths = [os.path.join(os.getcwd(), ".gaia_resume.json")]
+        if os.path.exists(source):
+            if os.path.isdir(source):
+                paths.append(os.path.join(source, ".gaia_resume.json"))
+            else:
+                paths.append(
+                    os.path.join(
+                        os.path.dirname(os.path.abspath(source)),
+                        ".gaia_resume.json",
+                    )
+                )
+        return list(set(paths))
+
+    @classmethod
+    def load(cls, source: str) -> dict[str, object] | None:
+        import os
+        import json
+
+        paths = cls._get_paths(source)
+        for p in paths:
+            if os.path.exists(p):
+                try:
+                    with open(p, "r", encoding="utf-8") as f:
+                        state_data = cast(dict[str, object], json.load(f))
+                        # Ensure compatibility keys
+                        if (
+                            "regex_file" in state_data
+                            and "config_file" not in state_data
+                        ):
+                            state_data["config_file"] = state_data["regex_file"]
+                        elif (
+                            "config_file" in state_data
+                            and "regex_file" not in state_data
+                        ):
+                            state_data["regex_file"] = state_data["config_file"]
+
+                        if state_data.get("input_dir") == source:
+                            return state_data
+                except Exception:
+                    pass
+        return None
+
+    def save(self, source: str) -> None:
+        import json
+
+        paths = self._get_paths(source)
+        state_data = {
+            "input_dir": source,
+            "output_file": self.output_file,
+            "config_file": self.config_file,
+            "regex_file": self.config_file,
+            "processed_files": self.processed_files,
+            "successful_pages": self.successful_pages,
+            "failed_pages": self.failed_pages,
+            "total_pages": self.total_pages,
+        }
+        for p in paths:
+            try:
+                with open(p, "w", encoding="utf-8") as f:
+                    json.dump(state_data, f, indent=4)
+            except Exception:
+                pass
+
+    def clear(self, source: str) -> None:
+        import os
+
+        paths = self._get_paths(source)
+        for p in paths:
+            if os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
+
+
 class NoOpExtractionSession(ExtractionSession):
     def __init__(self):
         super().__init__()
@@ -128,8 +207,8 @@ class NoOpExtractionSession(ExtractionSession):
     def error(self, error_message: str):
         pass
 
-    def save(self, source: str):
+    def save(self, source: str) -> None:
         pass
 
-    def clear(self, source: str):
+    def clear(self, source: str) -> None:
         pass
