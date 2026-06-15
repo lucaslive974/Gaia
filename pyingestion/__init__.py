@@ -1,7 +1,14 @@
 """
 PyIngestion (Codename: Gaia)
 """
-from pyingestion.parsers import PdfParser, DocxParser, OcrParser
+from pyingestion.input_streams import (
+    PdfInputStream,
+    DocxInputStream,
+    OcrInputStream,
+    PdfParser,
+    DocxParser,
+    OcrParser,
+)
 from pyingestion.transform_stream import (
     TransformStream,
     ParallelTransformStream,
@@ -25,7 +32,6 @@ from pyingestion.output_stream import (
 )
 from pyingestion.observer import ExtractionObserver, QueueObserver, DefaultExtractionObserver
 from pyingestion.pyingestion import PyIngestion
-from pyingestion.options import Options, options
 
 # Codename for reference
 Gaia = PyIngestion

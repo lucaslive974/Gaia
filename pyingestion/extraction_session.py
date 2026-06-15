@@ -1,12 +1,19 @@
-import os
 import time
-import json
 from pyingestion.observer import ExtractionObserver, DefaultExtractionObserver
 
 
 class ExtractionSession:
-    def __init__(self, observer: ExtractionObserver | None = None):
+    def __init__(
+        self,
+        observer: ExtractionObserver | None = None,
+        error_handler=None,
+        on_save=None,
+        on_clear=None,
+    ):
         self.observer = observer or DefaultExtractionObserver()
+        self.error_handler = error_handler
+        self.on_save = on_save
+        self.on_clear = on_clear
         self._is_cancelled: bool = False
         self.total_files: int = 0
         self.file_index: int = 0
@@ -22,6 +29,24 @@ class ExtractionSession:
         self.estimative_acc: float = 1200.0
         self.estimative_cnt: int = 1
         self._file_start_time: float = 0.0
+
+    def save(self, source: str) -> None:
+        if self.on_save:
+            self.on_save(source, self)
+
+    def clear(self, source: str) -> None:
+        if self.on_clear:
+            self.on_clear(source)
+
+    def log_failed_page(
+        self,
+        page_text: str,
+        page_number: int,
+        error_msg: str,
+        extracted_data: dict[str, str] | None = None,
+    ):
+        if self.error_handler:
+            self.error_handler(page_text, page_number, error_msg, extracted_data)
 
     def start(self, total_files: int):
         self.total_files = total_files
@@ -77,82 +102,6 @@ class ExtractionSession:
     def is_cancelled(self, value: bool):
         self._is_cancelled = value
 
-    @classmethod
-    def get_state_file_paths(cls, input_dir: str | None = None) -> list[str]:
-        paths = [os.path.join(os.getcwd(), ".gaia_resume.json")]
-        if input_dir:
-            paths.append(os.path.join(input_dir, ".gaia_resume.json"))
-        return list(set(paths))
-
-    @classmethod
-    def load_state(cls, input_dir: str | None = None) -> dict | None:
-        state_paths = cls.get_state_file_paths(input_dir)
-        for sf_path in state_paths:
-            if os.path.exists(sf_path):
-                try:
-                    with open(sf_path, "r", encoding="utf-8") as sf:
-                        state_data = json.load(sf)
-                        # Ensure compatibility keys are present in the returned state dictionary
-                        if "regex_file" in state_data and "config_file" not in state_data:
-                            state_data["config_file"] = state_data["regex_file"]
-                        elif "config_file" in state_data and "regex_file" not in state_data:
-                            state_data["regex_file"] = state_data["config_file"]
-
-                        if input_dir:
-                            if state_data.get("input_dir") == input_dir:
-                                return state_data
-                        else:
-                            return state_data
-                except Exception:
-                    pass
-        return None
-
-    @classmethod
-    def restore_or_create(
-        cls, options, observer: ExtractionObserver | None = None
-    ) -> "ExtractionSession":
-        state = cls.load_state(options.BASE_PATH)
-        session = cls(observer)
-        session.input_dir = options.BASE_PATH
-        session.output_file = options.OUTPUT_CSV
-
-        if state and options.RESUME:
-            session.processed_files = state.get("processed_files", [])
-            session.successful_pages = state.get("successful_pages", 0)
-            session.failed_pages = state.get("failed_pages", 0)
-            session.total_pages = state.get("total_pages", 0)
-            session.config_file = state.get("config_file") or state.get("regex_file")
-        return session
-
-    def save_state(self) -> None:
-        state_paths = self.get_state_file_paths(self.input_dir)
-        state_data = {
-            "input_dir": self.input_dir,
-            "output_file": self.output_file,
-            "config_file": self.config_file,
-            "regex_file": self.config_file,
-            "processed_files": self.processed_files,
-            "successful_pages": self.successful_pages,
-            "failed_pages": self.failed_pages,
-            "total_pages": self.total_pages,
-        }
-
-        for sf_path in state_paths:
-            try:
-                with open(sf_path, "w", encoding="utf-8") as sf:
-                    json.dump(state_data, sf, indent=4)
-            except Exception:
-                pass
-
-    def clear_state(self) -> None:
-        state_paths = self.get_state_file_paths(self.input_dir)
-        for sf_path in state_paths:
-            if os.path.exists(sf_path):
-                try:
-                    os.remove(sf_path)
-                except Exception:
-                    pass
-
 
 class NoOpExtractionSession(ExtractionSession):
     def __init__(self):
@@ -177,4 +126,10 @@ class NoOpExtractionSession(ExtractionSession):
         pass
 
     def error(self, error_message: str):
+        pass
+
+    def save(self, source: str):
+        pass
+
+    def clear(self, source: str):
         pass

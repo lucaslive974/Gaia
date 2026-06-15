@@ -2,15 +2,15 @@ import os
 import sqlite3
 import pytest
 from unittest.mock import MagicMock, patch
-from pyingestion import PyIngestion, Options, NativeRegexEngine, SqliteOutputStream
+from pyingestion import PyIngestion, NativeRegexEngine, SqliteOutputStream
 
 
-@patch("pyingestion.pyingestion.os.listdir")
-@patch("pyingestion.pyingestion.os.path.exists")
-@patch("pyingestion.pyingestion.os.path.isdir")
-@patch("pyingestion.parsers.PdfReader")
+@patch("pyingestion.input_stream.os.path.exists")
+@patch("pyingestion.input_stream.os.path.isdir")
+@patch("pyingestion.input_stream.os.listdir")
+@patch("pyingestion.input_streams.PdfReader")
 def test_sqlite_integration_flow(
-    mock_pdf_reader, mock_isdir, mock_exists, mock_listdir, tmp_path, temp_file_factory
+    mock_pdf_reader, mock_listdir, mock_isdir, mock_exists, tmp_path, temp_file_factory
 ):
     # Mocking filesystem
     mock_isdir.return_value = True
@@ -26,16 +26,8 @@ def test_sqlite_integration_flow(
     mock_reader_instance.pages = [page1, page2]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    # Options
-    options = Options()
-    options.BASE_PATH = "/dummy/files"
-    options.PARSER_TYPE = "pdf"
-    options.PAGES_PER_UNIT = 1
-    options.TO = "sqlite"
-
     db_path = os.path.join(tmp_path, "invoices.db")
     table_name = "invoices_table"
-    options.OUTPUT_CSV = db_path
 
     # Rules file
     rules_data = {
@@ -48,14 +40,21 @@ def test_sqlite_integration_flow(
     rules_file = temp_file_factory("rules.json", rules_data, is_json=True)
     regex_engine = NativeRegexEngine.from_file(rules_file)
 
-    # Output Stream
+    # Input/Output Stream
+    from pyingestion.input_streams import PdfInputStream
+    input_stream = PdfInputStream(pages_per_unit=1, recursive=False)
     output_stream = SqliteOutputStream(db_path, table_name)
 
     # Orchestrator
-    controller = PyIngestion(options, transform_stream=regex_engine, output_stream=output_stream)
+    controller = PyIngestion()
 
     # Run pipeline
-    success = controller.run()
+    success = controller.process(
+        source="/dummy/files",
+        input_stream=input_stream,
+        transform_stream=regex_engine,
+        output_stream=output_stream,
+    )
     assert success is True
 
     # Verify SQLite database contains the records

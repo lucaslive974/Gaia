@@ -1,12 +1,10 @@
 import os
-import json
-import pytest
-from argparse import Namespace
-from pyingestion.options import Options
-from pyingestion.cli.cli_helper import CliHelper
+from click.testing import CliRunner
+from unittest.mock import patch
+from pyingestion.cli.main import cli
 from pyingestion.input_stream import InputStream
 from pyingestion.transform_stream import TransformStream
-from pyingestion.output_stream import OutputStream, SqliteOutputStream, CsvWriteStream
+from pyingestion.output_stream import SqliteOutputStream
 
 
 def test_config_pipeline_builder_parsing(temp_file_factory):
@@ -37,30 +35,18 @@ def test_config_pipeline_builder_parsing(temp_file_factory):
     """
     config_file = temp_file_factory("pipeline.toml", toml_content)
 
-    args = Namespace(
-        config=config_file,
-        input_dir=None,
-        output=None,
-        resume=None,
-        recursive=None,
-        regex=None,
-        test=None,
-        dump=None,
-        pages_per_unit=None,
-        lang=None,
-        type=None,
-    )
-    options = CliHelper.parse_and_build_options(args)
-
-    input_stream, transform_stream, output_stream = CliHelper.build_pipeline(args, options)
-
-    from pyingestion.input_stream import InputStream
-    from pyingestion.transform_stream import TransformStream
-    from pyingestion.output_stream import OutputStream
-
-    assert isinstance(input_stream, InputStream)
-    assert options.PAGES_PER_UNIT == 2
-    assert transform_stream.config_file == rules_file
-    assert isinstance(output_stream, SqliteOutputStream)
-    assert output_stream.db_path == "records.db"
-    assert output_stream.table_name == "pdf_records"
+    runner = CliRunner()
+    with patch("pyingestion.cli.terminal_ui.run_with_ui") as mock_run:
+        result = runner.invoke(cli, [
+            "--config", config_file
+        ])
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+        args, kwargs = mock_run.call_args
+        assert args[0] == "/toml/input"
+        assert isinstance(kwargs["input_stream"], InputStream)
+        assert kwargs["input_stream"].pages_per_unit == 2
+        assert kwargs["transform_stream"].config_file == rules_file
+        assert isinstance(kwargs["output_stream"], SqliteOutputStream)
+        assert kwargs["output_stream"].db_path == "records.db"
+        assert kwargs["output_stream"].table_name == "pdf_records"

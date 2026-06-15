@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from pyingestion import PdfParser, ExtractionSession
 
 
-@patch("pyingestion.parsers.PdfReader")
+@patch("pyingestion.input_streams.PdfReader")
 def test_native_parser_page_count(mock_pdf_reader):
     mock_reader_instance = MagicMock()
     mock_reader_instance.pages = [MagicMock(), MagicMock()]
@@ -13,8 +13,13 @@ def test_native_parser_page_count(mock_pdf_reader):
     assert parser.get_page_count("dummy.pdf") == 2
 
 
-@patch("pyingestion.parsers.PdfReader")
-def test_native_parser_orchestration(mock_pdf_reader):
+@patch("pyingestion.input_streams.PdfReader")
+@patch("pyingestion.input_stream.os.path.exists")
+@patch("pyingestion.input_stream.os.path.isfile")
+def test_native_parser_orchestration(mock_isfile, mock_exists, mock_pdf_reader):
+    mock_exists.return_value = True
+    mock_isfile.return_value = True
+
     mock_reader_instance = MagicMock()
     page1 = MagicMock()
     page1.extract_text.return_value = "Page 1 Content"
@@ -23,21 +28,26 @@ def test_native_parser_orchestration(mock_pdf_reader):
     mock_reader_instance.pages = [page1, page2]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = PdfParser()
+    parser = PdfParser(pages_per_unit=1)
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
     session = ExtractionSession(mock_observer)
 
-    pages = list(parser.process_file("dummy.pdf", session=session, pages_per_unit=1))
+    pages = list(parser.read("dummy.pdf", session=session))
 
     assert len(pages) == 2
-    assert pages[0][2] == "Page 1 Content"
-    assert pages[1][2] == "Page 2 Content"
+    assert pages[0] == "Page 1 Content"
+    assert pages[1] == "Page 2 Content"
     assert session.total_pages == 2
 
 
-@patch("pyingestion.parsers.PdfReader")
-def test_native_parser_orchestration_multi_page_units(mock_pdf_reader):
+@patch("pyingestion.input_streams.PdfReader")
+@patch("pyingestion.input_stream.os.path.exists")
+@patch("pyingestion.input_stream.os.path.isfile")
+def test_native_parser_orchestration_multi_page_units(mock_isfile, mock_exists, mock_pdf_reader):
+    mock_exists.return_value = True
+    mock_isfile.return_value = True
+
     mock_reader_instance = MagicMock()
     page1 = MagicMock()
     page1.extract_text.return_value = "Page 1 Content"
@@ -46,20 +56,25 @@ def test_native_parser_orchestration_multi_page_units(mock_pdf_reader):
     mock_reader_instance.pages = [page1, page2]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = PdfParser()
+    parser = PdfParser(pages_per_unit=2)
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
     session = ExtractionSession(mock_observer)
 
-    pages = list(parser.process_file("dummy.pdf", session=session, pages_per_unit=2))
+    pages = list(parser.read("dummy.pdf", session=session))
 
     assert len(pages) == 1
-    assert pages[0][2] == "Page 1 Content\nPage 2 Content"
+    assert pages[0] == "Page 1 Content\nPage 2 Content"
     assert session.total_pages == 2
 
 
-@patch("pyingestion.parsers.PdfReader")
-def test_parser_cancellation_mid_file(mock_pdf_reader):
+@patch("pyingestion.input_streams.PdfReader")
+@patch("pyingestion.input_stream.os.path.exists")
+@patch("pyingestion.input_stream.os.path.isfile")
+def test_parser_cancellation_mid_file(mock_isfile, mock_exists, mock_pdf_reader):
+    mock_exists.return_value = True
+    mock_isfile.return_value = True
+
     mock_reader_instance = MagicMock()
     page1 = MagicMock()
     page1.extract_text.return_value = "page 1"
@@ -70,14 +85,14 @@ def test_parser_cancellation_mid_file(mock_pdf_reader):
     mock_reader_instance.pages = [page1, page2, page3]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = PdfParser()
+    parser = PdfParser(pages_per_unit=1)
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
     session = ExtractionSession(mock_observer)
 
-    gen = parser.process_file("dummy.pdf", session=session, pages_per_unit=1)
+    gen = parser.read("dummy.pdf", session=session)
     first_page = next(gen)
-    assert first_page[2] == "page 1"
+    assert first_page == "page 1"
 
     session.is_cancelled = True
 
@@ -85,19 +100,24 @@ def test_parser_cancellation_mid_file(mock_pdf_reader):
     assert len(pages_after_cancel) == 0
 
 
-@patch("pyingestion.parsers.PdfReader")
-def test_parser_parameterless_session(mock_pdf_reader):
+@patch("pyingestion.input_streams.PdfReader")
+@patch("pyingestion.input_stream.os.path.exists")
+@patch("pyingestion.input_stream.os.path.isfile")
+def test_parser_parameterless_session(mock_isfile, mock_exists, mock_pdf_reader):
+    mock_exists.return_value = True
+    mock_isfile.return_value = True
+
     mock_reader_instance = MagicMock()
     page1 = MagicMock()
     page1.extract_text.return_value = "valid text page"
     mock_reader_instance.pages = [page1]
     mock_pdf_reader.return_value = mock_reader_instance
 
-    parser = PdfParser()
-    pages = list(parser.process_file("dummy.pdf"))
+    parser = PdfParser(pages_per_unit=1)
+    pages = list(parser.read("dummy.pdf"))
 
     assert len(pages) == 1
-    assert pages[0][2] == "valid text page"
+    assert pages[0] == "valid text page"
 
 
 def test_native_parser_accepts():
@@ -129,7 +149,12 @@ def test_docx_parser_page_count(mock_docx_document):
 
 
 @patch("docx.Document")
-def test_docx_parser_orchestration(mock_docx_document):
+@patch("pyingestion.input_stream.os.path.exists")
+@patch("pyingestion.input_stream.os.path.isfile")
+def test_docx_parser_orchestration(mock_isfile, mock_exists, mock_docx_document):
+    mock_exists.return_value = True
+    mock_isfile.return_value = True
+
     mock_doc_instance = MagicMock()
 
     mock_p1 = MagicMock()
@@ -149,15 +174,15 @@ def test_docx_parser_orchestration(mock_docx_document):
     mock_doc_instance.element.body.iterchildren.return_value = [mock_p1, mock_p2]
     mock_docx_document.return_value = mock_doc_instance
 
-    parser = DocxParser()
+    parser = DocxParser(pages_per_unit=1)
     mock_observer = MagicMock()
     mock_observer.is_cancelled = False
     session = ExtractionSession(mock_observer)
 
-    pages = list(parser.process_file("dummy.docx", session=session, pages_per_unit=1))
+    pages = list(parser.read("dummy.docx", session=session))
     assert len(pages) == 2
-    assert pages[0][2] == "Paragraph 1 text"
-    assert pages[1][2] == "Paragraph 2 text"
+    assert pages[0] == "Paragraph 1 text"
+    assert pages[1] == "Paragraph 2 text"
     assert session.total_pages == 2
 
 
@@ -182,11 +207,15 @@ def test_ocr_parser_accepts():
 
 
 @patch("shutil.which")
-def test_ocr_parser_missing_tesseract(mock_which):
+@patch("pyingestion.input_stream.os.path.exists")
+@patch("pyingestion.input_stream.os.path.isfile")
+def test_ocr_parser_missing_tesseract(mock_isfile, mock_exists, mock_which):
+    mock_exists.return_value = True
+    mock_isfile.return_value = True
     mock_which.return_value = None  # tesseract not found
     parser = OcrParser()
     with pytest.raises(RuntimeError) as excinfo:
-        list(parser.process_file("test.png"))
+        list(parser.read("test.png"))
     assert "Tesseract OCR is not installed" in str(excinfo.value)
 
 
@@ -205,17 +234,21 @@ def test_ocr_parser_missing_poppler_on_pdf(mock_which):
 @patch("shutil.which")
 @patch("PIL.Image.open")
 @patch("pytesseract.image_to_string")
-def test_ocr_parser_image_process(mock_ocr, mock_image_open, mock_which):
+@patch("pyingestion.input_stream.os.path.exists")
+@patch("pyingestion.input_stream.os.path.isfile")
+def test_ocr_parser_image_process(mock_isfile, mock_exists, mock_ocr, mock_image_open, mock_which):
+    mock_exists.return_value = True
+    mock_isfile.return_value = True
     mock_which.return_value = "/usr/bin/tesseract"
     mock_image_open.return_value.__enter__.return_value = MagicMock()
     mock_ocr.return_value = "extracted image text"
 
     parser = OcrParser()
     session = ExtractionSession()
-    results = list(parser.process_file("test.jpg", session=session))
+    results = list(parser.read("test.jpg", session=session))
 
     assert len(results) == 1
-    assert results[0] == (1, 1, "extracted image text")
+    assert results[0] == "extracted image text"
     assert session.total_pages == 1
 
 
@@ -223,19 +256,23 @@ def test_ocr_parser_image_process(mock_ocr, mock_image_open, mock_which):
 @patch("pdf2image.pdfinfo_from_path")
 @patch("pdf2image.convert_from_path")
 @patch("pytesseract.image_to_string")
-def test_ocr_parser_pdf_process_lazy(mock_ocr, mock_convert, mock_pdfinfo, mock_which):
+@patch("pyingestion.input_stream.os.path.exists")
+@patch("pyingestion.input_stream.os.path.isfile")
+def test_ocr_parser_pdf_process_lazy(mock_isfile, mock_exists, mock_ocr, mock_convert, mock_pdfinfo, mock_which):
+    mock_exists.return_value = True
+    mock_isfile.return_value = True
     mock_which.return_value = "/usr/bin/some_bin"
     mock_pdfinfo.return_value = {"Pages": 2}
     mock_convert.return_value = [MagicMock()]
     mock_ocr.side_effect = ["page 1 text", "page 2 text"]
 
-    parser = OcrParser()
+    parser = OcrParser(pages_per_unit=1)
     session = ExtractionSession()
-    results = list(parser.process_file("test.pdf", session=session, pages_per_unit=1))
+    results = list(parser.read("test.pdf", session=session))
 
     assert len(results) == 2
-    assert results[0] == (1, 2, "page 1 text")
-    assert results[1] == (2, 2, "page 2 text")
+    assert results[0] == "page 1 text"
+    assert results[1] == "page 2 text"
     assert session.total_pages == 2
 
     # Check lazy page-by-page calls

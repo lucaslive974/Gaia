@@ -1,7 +1,6 @@
 import csv
 from os import path
 from typing import Any, Generic, TypeVar
-from pyingestion.options import options
 
 T_in = TypeVar("T_in")
 
@@ -27,11 +26,11 @@ class MultiOutputStream(OutputStream[T_in]):
 
 
 class CsvWriteStream(OutputStream[dict[str, str]]):
-    def __init__(self, path_output: str | None = None):
+    def __init__(self, path_output: str = "output.csv"):
         self._path = path_output
 
     def write(self, content: dict[str, str]):
-        output_path = self._path or options["OUTPUT_CSV"]
+        output_path = self._path
         file_exists = path.exists(output_path)
 
         with open(output_path, mode="a", newline="", encoding="utf-8") as csv_file:

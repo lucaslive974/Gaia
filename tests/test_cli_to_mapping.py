@@ -1,54 +1,42 @@
 import os
-import pytest
-from argparse import Namespace
-from pyingestion.options import Options
-from pyingestion.cli.cli_helper import CliHelper
-from pyingestion.output_stream import CsvWriteStream, SqliteOutputStream, MysqlOutputStream
+from click.testing import CliRunner
+from unittest.mock import patch
+from pyingestion.cli.main import cli
+from pyingestion.output_stream import CsvWriteStream, SqliteOutputStream
 
 
-def test_cli_to_mapping_csv(temp_file_factory):
-    rules_file = temp_file_factory("rules.json", {"f": {"regex": ".*"}}, is_json=True)
-    args = Namespace(
-        config=None,
-        input_dir="/dummy",
-        output="custom_output.csv",
-        resume=None,
-        recursive=None,
-        regex=rules_file,
-        test=None,
-        dump=None,
-        pages_per_unit=None,
-        lang=None,
-        type=None,
-        to="csv"
-    )
-    options = CliHelper.parse_and_build_options(args)
-    assert options.TO == "csv"
-
-    _, _, output_stream = CliHelper.build_pipeline(args, options)
-    assert isinstance(output_stream, CsvWriteStream)
-    assert output_stream._path == "custom_output.csv"
+def test_click_cli_csv_mapping(temp_file_factory):
+    rules_file = temp_file_factory("rules.json", {"invoice_title": {"regex": ".*"}}, is_json=True)
+    runner = CliRunner()
+    with patch("pyingestion.cli.terminal_ui.run_with_ui") as mock_run:
+        result = runner.invoke(cli, [
+            "--source", "/dummy",
+            "pdf-input",
+            "regex-transform", "-g", rules_file,
+            "csv-output", "-o", "custom_output.csv"
+        ])
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+        args, kwargs = mock_run.call_args
+        assert args[0] == "/dummy"
+        assert isinstance(kwargs["output_stream"], CsvWriteStream)
+        assert kwargs["output_stream"]._path == "custom_output.csv"
 
 
-def test_cli_to_mapping_sqlite(temp_file_factory):
-    rules_file = temp_file_factory("rules.json", {"f": {"regex": ".*"}}, is_json=True)
-    args = Namespace(
-        config=None,
-        input_dir="/dummy",
-        output="custom_output.csv",
-        resume=None,
-        recursive=None,
-        regex=rules_file,
-        test=None,
-        dump=None,
-        pages_per_unit=None,
-        lang=None,
-        type=None,
-        to="sqlite"
-    )
-    options = CliHelper.parse_and_build_options(args)
-    assert options.TO == "sqlite"
-
-    _, _, output_stream = CliHelper.build_pipeline(args, options)
-    assert isinstance(output_stream, SqliteOutputStream)
-    assert output_stream.db_path == "custom_output.db"
+def test_click_cli_sqlite_mapping(temp_file_factory):
+    rules_file = temp_file_factory("rules.json", {"invoice_title": {"regex": ".*"}}, is_json=True)
+    runner = CliRunner()
+    with patch("pyingestion.cli.terminal_ui.run_with_ui") as mock_run:
+        result = runner.invoke(cli, [
+            "--source", "/dummy",
+            "pdf-input",
+            "regex-transform", "-g", rules_file,
+            "sqlite-output", "--db", "custom.db", "--table", "my_table"
+        ])
+        assert result.exit_code == 0
+        mock_run.assert_called_once()
+        args, kwargs = mock_run.call_args
+        assert args[0] == "/dummy"
+        assert isinstance(kwargs["output_stream"], SqliteOutputStream)
+        assert kwargs["output_stream"].db_path == "custom.db"
+        assert kwargs["output_stream"].table_name == "my_table"

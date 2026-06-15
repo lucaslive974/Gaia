@@ -230,7 +230,28 @@ def print_summary_dashboard(
     console.print(table)
 
 
-def run_with_ui(options, transform_stream, input_stream=None, output_stream=None):
+def cli_error_handler(
+    page_text: str,
+    page_number: int,
+    error_msg: str,
+    extracted_data: dict[str, str] | None = None,
+):
+    log_path = os.path.join(os.getcwd(), "gaia_errors.log")
+    try:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"\n{'=' * 80}\n")
+            f.write(f"EXTRACTION FAILURE - Page {page_number}\n")
+            f.write(f"Error: {error_msg}\n")
+            if extracted_data:
+                f.write(f"Extracted fields: {extracted_data}\n")
+            f.write(f"{'-' * 80}\n")
+            f.write(page_text)
+            f.write(f"\n{'=' * 80}\n")
+    except Exception:
+        pass
+
+
+def run_with_ui(source, input_stream, transform_stream, output_stream, resume=False):
     from pyingestion import PyIngestion, CsvWriteStream
     import time
     from rich.progress import (
@@ -251,16 +272,7 @@ def run_with_ui(options, transform_stream, input_stream=None, output_stream=None
         console=console,
     )
     observer = ConsoleObserver(console, progress)
-    if output_stream is None:
-        output_stream = CsvWriteStream(options.OUTPUT_CSV)
-    controller = PyIngestion(
-        options,
-        transform_stream=transform_stream,
-        observer=observer,
-        output_stream=output_stream,
-        input_stream=input_stream,
-    )
-
+    controller = PyIngestion()
 
     start_time = time.perf_counter()
 
@@ -270,7 +282,57 @@ def run_with_ui(options, transform_stream, input_stream=None, output_stream=None
         ) as live:
             observer.set_live(live)
             try:
-                success = controller.run(options)
+                from pyingestion.session_store import FileSessionStore
+                from pyingestion.extraction_session import ExtractionSession
+                
+                session = None
+                if resume:
+                    state_data = FileSessionStore().load(source)
+                    if state_data:
+                        session = ExtractionSession(
+                            observer,
+                            error_handler=cli_error_handler,
+                            on_save=lambda src, sess: FileSessionStore().save(src, sess),
+                            on_clear=lambda src: FileSessionStore().clear(src),
+                        )
+                        session.processed_files = state_data.get("processed_files", [])
+                        session.successful_pages = state_data.get("successful_pages", 0)
+                        session.failed_pages = state_data.get("failed_pages", 0)
+                        session.total_pages = state_data.get("total_pages", 0)
+                        session.config_file = state_data.get("config_file")
+                        session.output_file = state_data.get("output_file")
+                        session.input_dir = state_data.get("input_dir")
+                    else:
+                        raise ValueError(_("err_resume_no_state"))
+                
+                if session is None:
+                    # Clear log if not resuming
+                    log_path = os.path.join(os.getcwd(), "gaia_errors.log")
+                    if os.path.exists(log_path):
+                        try:
+                            os.remove(log_path)
+                        except Exception:
+                            pass
+
+                    session = ExtractionSession(
+                        observer,
+                        error_handler=cli_error_handler,
+                        on_save=lambda src, sess: FileSessionStore().save(src, sess),
+                        on_clear=lambda src: FileSessionStore().clear(src),
+                    )
+                    session.config_file = getattr(transform_stream, "config_file", None)
+                    from pyingestion.output_stream import CsvWriteStream
+                    if isinstance(output_stream, CsvWriteStream):
+                        session.output_file = output_stream._path
+                    session.input_dir = source
+
+                success = controller.process(
+                    source=source,
+                    input_stream=input_stream,
+                    transform_stream=transform_stream,
+                    output_stream=output_stream,
+                    session=session,
+                )
             except KeyboardInterrupt:
                 observer.is_cancelled = True
                 success = False
@@ -305,17 +367,16 @@ def run_with_ui(options, transform_stream, input_stream=None, output_stream=None
         console.print(f"\n[bold green]{_('ui_completed_success')}[/bold green]\n")
 
 
-def run_test_mode(options, transform_stream, input_stream=None):
+def run_test_mode(test_file, transform_stream, input_stream):
     import sys
     from rich.console import Console
     from rich.table import Table
     from rich.panel import Panel
-    from pyingestion import PdfParser
 
     console = Console()
     console.print(Panel(f"[bold green]{_('test_title')}[/bold green]", expand=False))
 
-    pdf_path = options.TEST_FILE
+    pdf_path = test_file
     regex_path = getattr(transform_stream, "config_file", "In-Memory")
 
     console.print(f"[bold cyan]{_('test_pdf_file')}[/bold cyan] {pdf_path}")
@@ -323,10 +384,8 @@ def run_test_mode(options, transform_stream, input_stream=None):
 
     engine = transform_stream
 
-
     # 2. Extract First Page Text
     try:
-        parser = input_stream or PdfParser()
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(
                 f"Arquivo PDF não encontrado: {pdf_path}"
@@ -334,7 +393,7 @@ def run_test_mode(options, transform_stream, input_stream=None):
                 else f"PDF file not found: {pdf_path}"
             )
 
-        pages = [text for _, _, text in parser.process_file(pdf_path, pages_per_unit=1)]
+        pages = [text for text in input_stream.read(pdf_path)]
         if not pages:
             raise ValueError(
                 "O arquivo PDF não contém páginas."
@@ -408,35 +467,26 @@ def run_test_mode(options, transform_stream, input_stream=None):
         sys.exit(0)
 
 
-def run_dump_mode(options):
+def run_dump_mode(dump_file, input_stream):
     import os
     import sys
     from rich.console import Console
     from rich.panel import Panel
-    from pyingestion.input_stream import InputStreamFactory
-    from pyingestion.i18n import _
 
     console = Console()
     console.print(Panel(f"[bold green]{_('dump_title')}[/bold green]", expand=False))
 
-    file_path = options.DUMP_FILE
+    file_path = dump_file
 
     if not os.path.exists(file_path):
         console.print(f"\n[bold red]{_('err_dump_file_not_found', file_path=file_path)}[/bold red]")
         sys.exit(1)
 
     try:
-        input_stream = InputStreamFactory.create(options.PARSER_TYPE)
-    except Exception as e:
-        console.print(f"\n[bold red]Error instantiating input stream: {e}[/bold red]")
-        sys.exit(1)
-
-    try:
         has_units = False
-        for unit_index, total_units, unit_text in input_stream.process_file(
-            file_path, session=None, pages_per_unit=options.PAGES_PER_UNIT
-        ):
+        for unit_index, unit_text in enumerate(input_stream.read(file_path), start=1):
             has_units = True
+            total_units = getattr(input_stream, "total_units", unit_index)
             console.print(
                 f"\n[bold yellow]--- UNIT {unit_index} OF {total_units} ---[/bold yellow]\n"
             )

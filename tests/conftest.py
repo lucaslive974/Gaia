@@ -1,13 +1,6 @@
 import pytest
 import json
-from pyingestion.options import Options
 from pyingestion.i18n import set_lang, Language
-
-
-@pytest.fixture
-def fresh_options():
-    """Returns a fresh instance of the Options class."""
-    return Options()
 
 
 @pytest.fixture(autouse=True)

@@ -1,4 +1,4 @@
-from pyingestion.main import main
+from pyingestion.cli.main import main
 
 if __name__ == "__main__":
     main()
