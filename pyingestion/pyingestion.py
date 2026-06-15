@@ -1,8 +1,13 @@
 import os
+from typing import TypeVar, Any
 from pyingestion.input_stream import InputStream
 from pyingestion.transform_stream import TransformStream
 from pyingestion.output_stream import OutputStream
 from pyingestion.extraction_session import ExtractionSession
+
+T_source = TypeVar("T_source")
+T_in = TypeVar("T_in")
+T_out = TypeVar("T_out")
 
 
 class PyIngestion:
@@ -12,13 +17,13 @@ class PyIngestion:
 
     def process(
         self,
-        source: str,
-        input_stream: InputStream,
-        transform_stream: TransformStream,
-        output_stream: OutputStream,
+        source: T_source,
+        input_stream: InputStream[T_source, T_in],
+        transform_stream: TransformStream[T_in, T_out],
+        output_stream: OutputStream[T_out],
         session: ExtractionSession | None = None,
     ) -> bool:
-        if not os.path.exists(source):
+        if isinstance(source, str) and not os.path.exists(source):
             msg = f"The input directory '{source}' does not exist."
             if session:
                 session.error(msg)
