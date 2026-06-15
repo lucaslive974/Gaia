@@ -1,11 +1,14 @@
 import os
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Generator, Any
+from typing import Generator, Any, Generic, TypeVar
 from pyingestion.extraction_session import ExtractionSession
 
+T_source = TypeVar("T_source")
+T_out = TypeVar("T_out")
 
-class InputStream(ABC):
+
+class InputStream(Generic[T_source, T_out], ABC):
     """
     Abstract Base Class representing a generic input stream.
     Its responsibility is to read from a source and yield text units.
@@ -13,15 +16,15 @@ class InputStream(ABC):
 
     @abstractmethod
     def read(
-        self, source: Any, session: ExtractionSession | None = None
-    ) -> Generator[str, None, None]:
+        self, source: T_source, session: ExtractionSession | None = None
+    ) -> Generator[T_out, None, None]:
         """
         Reads from the source, updates the session, and yields groups (units) of text.
         """
         pass
 
 
-class FileInputStream(InputStream, ABC):
+class FileInputStream(InputStream[str, str], ABC):
     """
     Abstract Base Class representing a file-system based input stream.
     """
