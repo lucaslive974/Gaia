@@ -7,25 +7,29 @@ from pyingestion.extraction_session import ExtractionSession
 
 class InputStream(ABC):
     """
-    Abstract Base Class representing an input stream.
-    Its responsibility is to read from a source, discover files/pages,
-    manage paging/recursivity, and yield text units.
+    Abstract Base Class representing a generic input stream.
+    Its responsibility is to read from a source and yield text units.
     """
-
-    @abstractmethod
-    def accepts(self, file_path: str) -> bool:
-        """
-        Returns True if the stream supports the file extension, False otherwise.
-        """
-        pass
 
     @abstractmethod
     def read(
         self, source: Any, session: ExtractionSession | None = None
     ) -> Generator[str, None, None]:
         """
-        Reads from source (file or directory), discovers documents,
-        updates the session about discovered files, and yields groups (units) of text.
+        Reads from the source, updates the session, and yields groups (units) of text.
+        """
+        pass
+
+
+class FileInputStream(InputStream, ABC):
+    """
+    Abstract Base Class representing a file-system based input stream.
+    """
+
+    @abstractmethod
+    def accepts(self, file_path: str) -> bool:
+        """
+        Returns True if the stream supports the file extension, False otherwise.
         """
         pass
 

@@ -2,10 +2,10 @@ import os
 from typing import Generator, Any
 from pypdf import PdfReader
 from pyingestion.extraction_session import ExtractionSession
-from pyingestion.input_stream import InputStream
+from pyingestion.input_stream import InputStream, FileInputStream
 
 
-class PdfInputStream(InputStream):
+class PdfInputStream(FileInputStream):
     """
     PDF input stream using layout-based text extraction from pypdf.
     """
@@ -102,7 +102,7 @@ class PdfInputStream(InputStream):
             session.clear(source)
 
 
-class DocxInputStream(InputStream):
+class DocxInputStream(FileInputStream):
     """
     DOCX input stream using python-docx to extract text.
     """
@@ -239,7 +239,7 @@ class DocxInputStream(InputStream):
             session.clear(source)
 
 
-class OcrInputStream(InputStream):
+class OcrInputStream(FileInputStream):
     """
     OCR input stream using pytesseract for text extraction from images and PDFs.
     """

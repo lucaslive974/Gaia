@@ -18,6 +18,7 @@ from pyingestion.transform_stream import (
 )
 from pyingestion.input_stream import (
     InputStream,
+    FileInputStream,
     InputStreamType,
     InputStreamFactory,
 )
