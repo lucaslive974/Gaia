@@ -10,6 +10,7 @@ class Options:
     RECURSIVE: bool = False
     PAGES_PER_UNIT: int = 1
     PARSER_TYPE: str = "pdf"
+    TO: str = "csv"
 
     def __getitem__(self, attr):
         try:
@@ -41,6 +42,10 @@ class Options:
             valid_types = [item.value for item in InputStreamType]
             if value not in valid_types:
                 raise ValueError(f"the '--type' argument must be one of {valid_types}.")
+        elif name == "TO":
+            valid_destinations = ["csv", "sqlite", "mysql"]
+            if value not in valid_destinations:
+                raise ValueError(f"the '--to' argument must be one of {valid_destinations}.")
         super().__setattr__(name, value)
 
     @classmethod
@@ -54,6 +59,7 @@ class Options:
             ("recursive", "RECURSIVE"),
             ("pages_per_unit", "PAGES_PER_UNIT"),
             ("type", "PARSER_TYPE"),
+            ("to", "TO"),
         ]
 
 

@@ -101,6 +101,7 @@ class CliHelper:
             "dump": "DUMP_FILE",
             "pages_per_unit": "PAGES_PER_UNIT",
             "type": "PARSER_TYPE",
+            "to": "TO",
         }
 
         # 1. Load config file if provided
@@ -111,7 +112,7 @@ class CliHelper:
             if "config" in raw_data and isinstance(raw_data["config"], dict):
                 config_data = raw_data["config"]
             else:
-                raise ValueError(_("err_config_missing_section"))
+                config_data = raw_data
 
             for k, v in config_data.items():
                 opt_attr = config_mapping.get(k)
@@ -151,35 +152,144 @@ class CliHelper:
         return options
 
     @classmethod
-    def build_transform(cls, args: Namespace, options: Options) -> Any:
-        from pyingestion.transform_stream import NativeRegexEngine
-
-        is_dump = options.DUMP_FILE is not None
-        if is_dump:
-            return None
-
-        # 1. Read regex path from CLI arguments, configuration file, or environment
-        regex_path = getattr(args, "regex", None)
-
-        # Or look in config file if provided
+    def build_pipeline(cls, args: Namespace, options: Options) -> tuple[Any, Any, Any]:
         config_path = getattr(args, "config", None)
-        if not regex_path and config_path:
-            raw_data = cls._load_config_file(config_path)
-            if "config" in raw_data and isinstance(raw_data["config"], dict):
-                regex_path = raw_data["config"].get("regex")
+        raw_config = {}
+        if config_path:
+            raw_config = cls._load_config_file(config_path)
 
-        # 2. Autoload from resume state if needed
-        if not regex_path and options.RESUME:
-            state = ExtractionSession.load_state(options.BASE_PATH)
-            if state:
-                # Support both new "config_file" and legacy "regex_file" key in state json
-                regex_path = state.get("config_file") or state.get("regex_file")
+        input_stream = cls._build_input_stream(args, options, raw_config)
+        transform_stream = cls._build_transform_stream(args, options, raw_config)
+        output_stream = cls._build_output_stream(args, options, raw_config)
 
-        if not regex_path:
-            if options.RESUME:
-                raise ValueError(_("err_regex_required_resume"))
+        return input_stream, transform_stream, output_stream
+
+    @classmethod
+    def _build_input_stream(cls, args: Namespace, options: Options, raw_config: dict) -> Any:
+        from pyingestion.input_stream import InputStreamFactory
+
+        input_section = raw_config.get("input")
+        if isinstance(input_section, dict):
+            input_type = input_section.get("type", options.PARSER_TYPE)
+            pages_per_unit = input_section.get("pages_per_unit")
+            if pages_per_unit is not None:
+                options.PAGES_PER_UNIT = int(pages_per_unit)
+            return InputStreamFactory.create(input_type)
+
+        return InputStreamFactory.create(options.PARSER_TYPE)
+
+    @classmethod
+    def build_transform(cls, args: Namespace, options: Options) -> Any:
+        config_path = getattr(args, "config", None)
+        raw_config = {}
+        if config_path:
+            raw_config = cls._load_config_file(config_path)
+        return cls._build_transform_stream(args, options, raw_config)
+
+    @classmethod
+    def _build_transform_stream(cls, args: Namespace, options: Options, raw_config: dict) -> Any:
+        from pyingestion.transform_stream import NativeRegexEngine, ChainedTransformStream
+
+        transform_data = raw_config.get("transform")
+        if not transform_data:
+            # Fallback to CLI arguments or resume state
+            regex_path = getattr(args, "regex", None)
+            if not regex_path:
+                config_sect = raw_config.get("config")
+                if isinstance(config_sect, dict):
+                    regex_path = config_sect.get("regex")
+                elif isinstance(raw_config, dict):
+                    regex_path = raw_config.get("regex")
+
+            if not regex_path and options.RESUME:
+                state = ExtractionSession.load_state(options.BASE_PATH)
+                if state:
+                    regex_path = state.get("config_file") or state.get("regex_file")
+
+            if not regex_path:
+                is_dump = options.DUMP_FILE is not None
+                if is_dump:
+                    return None
+                if options.RESUME:
+                    raise ValueError(_("err_regex_required_resume"))
+                else:
+                    raise ValueError(_("err_regex_required_normal"))
+            return NativeRegexEngine.from_file(regex_path)
+
+        def instantiate_transform(item: dict) -> Any:
+            t_type = item.get("type")
+            if t_type == "regex":
+                rules_file = item.get("config_file") or item.get("rules_file")
+                if not rules_file:
+                    raise ValueError("Transform of type 'regex' requires 'config_file' or 'rules_file'.")
+                return NativeRegexEngine.from_file(rules_file)
             else:
-                raise ValueError(_("err_regex_required_normal"))
+                raise ValueError(f"Unknown transform type: {t_type}")
 
-        return NativeRegexEngine.from_file(regex_path)
+        if isinstance(transform_data, list):
+            transforms = [instantiate_transform(item) for item in transform_data]
+            if len(transforms) == 1:
+                return transforms[0]
+            return ChainedTransformStream(transforms)
+        elif isinstance(transform_data, dict):
+            return instantiate_transform(transform_data)
+
+        raise ValueError("The 'transform' section must be a dictionary or a list of dictionaries.")
+
+    @classmethod
+    def _build_output_stream(cls, args: Namespace, options: Options, raw_config: dict) -> Any:
+        from pyingestion.output_stream import (
+            CsvWriteStream,
+            SqliteOutputStream,
+            MysqlOutputStream,
+            MultiOutputStream,
+        )
+
+        output_data = raw_config.get("output")
+        if not output_data:
+            to_dest = options.TO
+            is_dump = options.DUMP_FILE is not None
+            if is_dump:
+                return None
+
+            if to_dest == "sqlite":
+                db_path = options.OUTPUT_CSV
+                if db_path.endswith(".csv"):
+                    db_path = db_path[:-4] + ".db"
+                return SqliteOutputStream(db_path)
+            elif to_dest == "mysql":
+                connection_uri = os.environ.get("DATABASE_URL")
+                if not connection_uri:
+                    raise ValueError("Environment variable 'DATABASE_URL' is required for MySQL output (format: mysql://user:password@host:port/database).")
+                return MysqlOutputStream(connection_uri=connection_uri)
+            else:
+                return CsvWriteStream(options.OUTPUT_CSV)
+
+        def instantiate_output(item: dict) -> Any:
+            out_type = item.get("type")
+            if out_type == "csv":
+                out_path = item.get("path") or item.get("output") or options.OUTPUT_CSV
+                return CsvWriteStream(out_path)
+            elif out_type == "sqlite":
+                db_path = item.get("db_path") or item.get("path") or "records.db"
+                table_name = item.get("table_name") or item.get("table") or "extracted_data"
+                return SqliteOutputStream(db_path, table_name)
+            elif out_type == "mysql":
+                conn_uri = item.get("connection_uri") or item.get("connection") or os.environ.get("DATABASE_URL")
+                if not conn_uri:
+                    raise ValueError("MySQL output requires 'connection_uri' or env var 'DATABASE_URL'.")
+                table_name = item.get("table_name") or item.get("table") or "extracted_data"
+                return MysqlOutputStream(connection_uri=conn_uri, table_name=table_name)
+            else:
+                raise ValueError(f"Unknown output type: {out_type}")
+
+        if isinstance(output_data, list):
+            outputs = [instantiate_output(item) for item in output_data]
+            if len(outputs) == 1:
+                return outputs[0]
+            return MultiOutputStream(outputs)
+        elif isinstance(output_data, dict):
+            return instantiate_output(output_data)
+
+        raise ValueError("The 'output' section must be a dictionary or a list of dictionaries.")
 

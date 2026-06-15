@@ -20,6 +20,8 @@ from pyingestion.output_stream import (
     MultiOutputStream,
     CsvWriteStream,
     DefaultOutputStream,
+    SqliteOutputStream,
+    MysqlOutputStream,
 )
 from pyingestion.observer import ExtractionObserver, QueueObserver, DefaultExtractionObserver
 from pyingestion.pyingestion import PyIngestion

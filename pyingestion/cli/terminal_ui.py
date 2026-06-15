@@ -230,7 +230,7 @@ def print_summary_dashboard(
     console.print(table)
 
 
-def run_with_ui(options, transform_stream):
+def run_with_ui(options, transform_stream, input_stream=None, output_stream=None):
     from pyingestion import PyIngestion, CsvWriteStream
     import time
     from rich.progress import (
@@ -251,12 +251,14 @@ def run_with_ui(options, transform_stream):
         console=console,
     )
     observer = ConsoleObserver(console, progress)
-    output_stream = CsvWriteStream(options.OUTPUT_CSV)
+    if output_stream is None:
+        output_stream = CsvWriteStream(options.OUTPUT_CSV)
     controller = PyIngestion(
         options,
         transform_stream=transform_stream,
         observer=observer,
         output_stream=output_stream,
+        input_stream=input_stream,
     )
 
 
@@ -303,7 +305,7 @@ def run_with_ui(options, transform_stream):
         console.print(f"\n[bold green]{_('ui_completed_success')}[/bold green]\n")
 
 
-def run_test_mode(options, transform_stream):
+def run_test_mode(options, transform_stream, input_stream=None):
     import sys
     from rich.console import Console
     from rich.table import Table
@@ -324,7 +326,7 @@ def run_test_mode(options, transform_stream):
 
     # 2. Extract First Page Text
     try:
-        parser = PdfParser()
+        parser = input_stream or PdfParser()
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(
                 f"Arquivo PDF não encontrado: {pdf_path}"

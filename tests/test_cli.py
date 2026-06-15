@@ -24,8 +24,10 @@ class TestCliMainOrchestration:
         mock_options.TEST_FILE = None
         mock_cli_helper.parse_and_build_options.return_value = mock_options
 
+        mock_input = MagicMock()
         mock_transform = MagicMock()
-        mock_cli_helper.build_transform.return_value = mock_transform
+        mock_output = MagicMock()
+        mock_cli_helper.build_pipeline.return_value = (mock_input, mock_transform, mock_output)
 
         main()
 
@@ -36,10 +38,12 @@ class TestCliMainOrchestration:
         mock_cli_helper.parse_and_build_options.assert_called_once_with(
             mock_parser.parse_args.return_value
         )
-        mock_cli_helper.build_transform.assert_called_once_with(
+        mock_cli_helper.build_pipeline.assert_called_once_with(
             mock_parser.parse_args.return_value, mock_options
         )
-        mock_run_with_ui.assert_called_once_with(mock_options, mock_transform)
+        mock_run_with_ui.assert_called_once_with(
+            mock_options, mock_transform, input_stream=mock_input, output_stream=mock_output
+        )
 
     @patch("pyingestion.cli.terminal_ui.run_dump_mode")
     @patch("pyingestion.main.CliHelper")
@@ -67,12 +71,16 @@ class TestCliMainOrchestration:
         mock_options.TEST_FILE = "/path/to/test.pdf"
         mock_cli_helper.parse_and_build_options.return_value = mock_options
 
+        mock_input = MagicMock()
         mock_transform = MagicMock()
-        mock_cli_helper.build_transform.return_value = mock_transform
+        mock_output = MagicMock()
+        mock_cli_helper.build_pipeline.return_value = (mock_input, mock_transform, mock_output)
 
         main()
 
-        mock_run_test_mode.assert_called_once_with(mock_options, mock_transform)
+        mock_run_test_mode.assert_called_once_with(
+            mock_options, mock_transform, input_stream=mock_input
+        )
 
     @patch("pyingestion.main.CliHelper")
     def test_main_handles_value_error(self, mock_cli_helper):

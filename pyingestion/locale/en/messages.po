@@ -238,5 +238,8 @@ msgstr "Configuration file not found: {file_path}"
 msgid "err_config_missing_section"
 msgstr "The configuration file must contain a '[config]' section."
 
+msgid "cli_to_help"
+msgstr "Specify target output destination type (choices: csv, sqlite, mysql) (Default: csv)."
+
 
 

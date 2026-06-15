@@ -333,11 +333,25 @@ class TestCliHelperConfig:
         with pytest.raises(ValueError, match="(?i)json"):
             CliHelper.parse_and_build_options(args)
 
-    def test_missing_config_section(self, temp_file_factory):
-        missing_sec = temp_file_factory("missing_sec.toml", "input_dir = '/toml/input'")
-        args = Namespace(config=missing_sec)
-        with pytest.raises(ValueError, match="(?i)config"):
-            CliHelper.parse_and_build_options(args)
+    def test_root_level_config_keys_allowed(self, temp_file_factory):
+        raw_toml = "input_dir = '/toml/input'\noutput = '/toml/output.csv'"
+        config_file = temp_file_factory("raw.toml", raw_toml)
+        args = Namespace(
+            config=config_file,
+            input_dir=None,
+            output=None,
+            resume=None,
+            recursive=None,
+            regex=None,
+            test=None,
+            dump=None,
+            pages_per_unit=None,
+            lang=None,
+            type=None,
+        )
+        options = CliHelper.parse_and_build_options(args)
+        assert options.BASE_PATH == "/toml/input"
+        assert options.OUTPUT_CSV == "/toml/output.csv"
 
 
 

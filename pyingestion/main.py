@@ -13,7 +13,7 @@ def main():
 
     try:
         options = CliHelper.parse_and_build_options(args)
-        transform_stream = CliHelper.build_transform(args, options)
+        input_stream, transform_stream, output_stream = CliHelper.build_pipeline(args, options)
     except ValueError as e:
         parser.error(str(e))
 
@@ -24,9 +24,14 @@ def main():
     elif options.TEST_FILE:
         from pyingestion.cli.terminal_ui import run_test_mode
 
-        run_test_mode(options, transform_stream)
+        run_test_mode(options, transform_stream, input_stream=input_stream)
     else:
-        run_with_ui(options, transform_stream)
+        run_with_ui(
+            options,
+            transform_stream,
+            input_stream=input_stream,
+            output_stream=output_stream,
+        )
 
 
 

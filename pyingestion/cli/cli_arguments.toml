@@ -59,3 +59,9 @@ flags = ["--type"]
 type = "str"
 choices = ["pdf", "docx", "ocr"]
 help = "cli_type_help"
+
+[[arguments]]
+flags = ["--to"]
+type = "str"
+choices = ["csv", "sqlite", "mysql"]
+help = "cli_to_help"
