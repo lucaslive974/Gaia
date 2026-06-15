@@ -50,7 +50,7 @@ class TestResumeSession:
         # Build session and restore state using FileSessionStore
         restored_state = FileSessionStore().load(resume_setup.input_dir)
         assert restored_state is not None
-        
+
         session = ExtractionSession(mock_observer)
         session.processed_files = restored_state["processed_files"]
         session.successful_pages = restored_state["successful_pages"]
@@ -59,10 +59,13 @@ class TestResumeSession:
 
         # Mock input stream
         from pyingestion.input_streams import PdfInputStream
+
         input_stream = PdfInputStream(pages_per_unit=1)
-        
+
         # Patch _find_files to return both files
-        with patch.object(PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]):
+        with patch.object(
+            PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]
+        ):
             # Mock read's inner processing or mock reader
             with patch("pyingestion.input_streams.PdfReader") as mock_pdf_reader:
                 mock_reader_instance = MagicMock()
@@ -82,7 +85,7 @@ class TestResumeSession:
                     input_stream=input_stream,
                     transform_stream=transform_stream,
                     output_stream=output_stream,
-                    session=session
+                    session=session,
                 )
 
                 assert success is True
@@ -113,9 +116,12 @@ class TestResumeSession:
         session.total_pages = restored_state["total_pages"]
 
         from pyingestion.input_streams import PdfInputStream
+
         input_stream = PdfInputStream(pages_per_unit=1)
 
-        with patch.object(PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]):
+        with patch.object(
+            PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]
+        ):
             with patch("pyingestion.input_streams.PdfReader") as mock_pdf_reader:
                 mock_reader_instance = MagicMock()
                 page = MagicMock()
@@ -138,7 +144,7 @@ class TestResumeSession:
                     input_stream=input_stream,
                     transform_stream=transform_stream,
                     output_stream=output_stream,
-                    session=session
+                    session=session,
                 )
                 assert success is True
 
@@ -170,9 +176,12 @@ class TestResumeSession:
         session.total_pages = restored_state["total_pages"]
 
         from pyingestion.input_streams import PdfInputStream
+
         input_stream = PdfInputStream(pages_per_unit=1)
 
-        with patch.object(PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]):
+        with patch.object(
+            PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]
+        ):
             with patch("pyingestion.input_streams.PdfReader") as mock_pdf_reader:
                 mock_reader_instance = MagicMock()
                 page = MagicMock()
@@ -191,7 +200,7 @@ class TestResumeSession:
                         input_stream=input_stream,
                         transform_stream=transform_stream,
                         output_stream=output_stream,
-                        session=session
+                        session=session,
                     )
                     assert success is True
                     # Verify state file save was called
@@ -230,6 +239,7 @@ class TestResumeSession:
         session.total_pages = restored_state["total_pages"]
 
         from pyingestion.input_streams import PdfInputStream
+
         input_stream = PdfInputStream(pages_per_unit=1)
 
         with patch.object(PdfInputStream, "_find_files", return_value=["file1.pdf"]):
@@ -250,7 +260,7 @@ class TestResumeSession:
                     input_stream=input_stream,
                     transform_stream=transform_stream,
                     output_stream=output_stream,
-                    session=session
+                    session=session,
                 )
                 assert success is True
                 # Check that CWD state file was deleted
@@ -280,9 +290,12 @@ class TestResumeSession:
         session.total_pages = restored_state["total_pages"]
 
         from pyingestion.input_streams import PdfInputStream
+
         input_stream = PdfInputStream(pages_per_unit=1)
 
-        with patch.object(PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]):
+        with patch.object(
+            PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]
+        ):
             with patch("pyingestion.input_streams.PdfReader") as mock_pdf_reader:
                 mock_reader_instance = MagicMock()
                 page = MagicMock()
@@ -300,7 +313,7 @@ class TestResumeSession:
                     input_stream=input_stream,
                     transform_stream=transform_stream,
                     output_stream=output_stream,
-                    session=session
+                    session=session,
                 )
                 assert success is True
                 # Check that CWD state file still exists (not deleted since cancelled)
@@ -308,6 +321,7 @@ class TestResumeSession:
 
     def test_skip_blank_pages(self, resume_setup):
         from pyingestion.input_streams import PdfInputStream
+
         input_stream = PdfInputStream(pages_per_unit=1)
 
         with patch.object(PdfInputStream, "_find_files", return_value=["file1.pdf"]):
@@ -334,7 +348,7 @@ class TestResumeSession:
                     input_stream=input_stream,
                     transform_stream=transform_stream,
                     output_stream=output_stream,
-                    session=session
+                    session=session,
                 )
                 assert success is True
 
@@ -345,6 +359,7 @@ class TestResumeSession:
 
     def test_custom_error_handler(self, resume_setup):
         from pyingestion.input_streams import PdfInputStream
+
         input_stream = PdfInputStream(pages_per_unit=1)
 
         errors_logged = []
@@ -363,7 +378,9 @@ class TestResumeSession:
                 mock_pdf_reader.return_value = mock_reader_instance
 
                 transform_stream = MagicMock()
-                transform_stream.transform.side_effect = ValueError("custom transform error")
+                transform_stream.transform.side_effect = ValueError(
+                    "custom transform error"
+                )
                 output_stream = MagicMock()
 
                 controller = PyIngestion()
@@ -372,11 +389,10 @@ class TestResumeSession:
                     input_stream=input_stream,
                     transform_stream=transform_stream,
                     output_stream=output_stream,
-                    session=session
+                    session=session,
                 )
                 assert success is True
                 assert len(errors_logged) == 1
                 assert errors_logged[0][0] == "error page"
                 assert errors_logged[0][1] == 1
                 assert "custom transform error" in errors_logged[0][2]
-

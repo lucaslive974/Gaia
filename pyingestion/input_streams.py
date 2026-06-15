@@ -2,7 +2,7 @@ import os
 from typing import Generator, Any
 from pypdf import PdfReader
 from pyingestion.extraction_session import ExtractionSession
-from pyingestion.input_stream import InputStream, FileInputStream
+from pyingestion.input_stream import FileInputStream
 
 
 class PdfInputStream(FileInputStream):
@@ -62,7 +62,9 @@ class PdfInputStream(FileInputStream):
                 if session:
                     session.total_pages += total_pages
 
-                total_units = (total_pages + self.pages_per_unit - 1) // self.pages_per_unit
+                total_units = (
+                    total_pages + self.pages_per_unit - 1
+                ) // self.pages_per_unit
                 self.total_units = total_units
 
                 unit_pages = []
@@ -201,7 +203,9 @@ class DocxInputStream(FileInputStream):
                 if session:
                     session.total_pages += total_pages
 
-                total_units = (total_pages + self.pages_per_unit - 1) // self.pages_per_unit
+                total_units = (
+                    total_pages + self.pages_per_unit - 1
+                ) // self.pages_per_unit
                 self.total_units = total_units
 
                 unit_pages = []
@@ -323,7 +327,9 @@ class OcrInputStream(FileInputStream):
                     if session:
                         session.total_pages += total_pages
 
-                    total_units = (total_pages + self.pages_per_unit - 1) // self.pages_per_unit
+                    total_units = (
+                        total_pages + self.pages_per_unit - 1
+                    ) // self.pages_per_unit
                     self.total_units = total_units
 
                     unit_pages = []
@@ -382,7 +388,9 @@ class OcrInputStream(FileInputStream):
                             text = pytesseract.image_to_string(img)
                     except Exception as e:
                         if session:
-                            session.observer.on_error(f"Error running OCR on image file: {e}")
+                            session.observer.on_error(
+                                f"Error running OCR on image file: {e}"
+                            )
                         else:
                             raise e
 

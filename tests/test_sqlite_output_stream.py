@@ -1,6 +1,5 @@
 import os
 import sqlite3
-import pytest
 from pyingestion.output_stream import SqliteOutputStream
 
 

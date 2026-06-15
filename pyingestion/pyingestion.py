@@ -1,5 +1,5 @@
 import os
-from typing import TypeVar, Any
+from typing import TypeVar
 from pyingestion.input_stream import InputStream
 from pyingestion.transform_stream import TransformStream
 from pyingestion.output_stream import OutputStream

@@ -12,7 +12,6 @@ from pyingestion.i18n import _, get_lang, Language
 try:
     import termios
     import select
-    import tty
 except ImportError:
     termios = None
     select = None
@@ -284,7 +283,7 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
             try:
                 from pyingestion.session_store import FileSessionStore
                 from pyingestion.extraction_session import ExtractionSession
-                
+
                 session = None
                 if resume:
                     state_data = FileSessionStore().load(source)
@@ -292,7 +291,9 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
                         session = ExtractionSession(
                             observer,
                             error_handler=cli_error_handler,
-                            on_save=lambda src, sess: FileSessionStore().save(src, sess),
+                            on_save=lambda src, sess: FileSessionStore().save(
+                                src, sess
+                            ),
                             on_clear=lambda src: FileSessionStore().clear(src),
                         )
                         session.processed_files = state_data.get("processed_files", [])
@@ -304,7 +305,7 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
                         session.input_dir = state_data.get("input_dir")
                     else:
                         raise ValueError(_("err_resume_no_state"))
-                
+
                 if session is None:
                     # Clear log if not resuming
                     log_path = os.path.join(os.getcwd(), "gaia_errors.log")
@@ -322,6 +323,7 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
                     )
                     session.config_file = getattr(transform_stream, "config_file", None)
                     from pyingestion.output_stream import CsvWriteStream
+
                     if isinstance(output_stream, CsvWriteStream):
                         session.output_file = output_stream._path
                     session.input_dir = source
@@ -479,7 +481,9 @@ def run_dump_mode(dump_file, input_stream):
     file_path = dump_file
 
     if not os.path.exists(file_path):
-        console.print(f"\n[bold red]{_('err_dump_file_not_found', file_path=file_path)}[/bold red]")
+        console.print(
+            f"\n[bold red]{_('err_dump_file_not_found', file_path=file_path)}[/bold red]"
+        )
         sys.exit(1)
 
     try:
@@ -494,7 +498,7 @@ def run_dump_mode(dump_file, input_stream):
             break
 
         if not has_units:
-            console.print(f"\n[bold red]No text extracted from file.[/bold red]")
+            console.print("\n[bold red]No text extracted from file.[/bold red]")
             sys.exit(1)
 
     except Exception as e:
@@ -502,4 +506,3 @@ def run_dump_mode(dump_file, input_stream):
         sys.exit(1)
 
     sys.exit(0)
-

@@ -1,6 +1,5 @@
 import os
 import sqlite3
-import pytest
 from unittest.mock import MagicMock, patch
 from pyingestion import PyIngestion, NativeRegexEngine, SqliteOutputStream
 
@@ -34,7 +33,7 @@ def test_sqlite_integration_flow(
         "invoice_title": {
             "regex": r"Title:\s*([A-Za-z0-9-]+)",
             "required": True,
-            "default": ""
+            "default": "",
         }
     }
     rules_file = temp_file_factory("rules.json", rules_data, is_json=True)
@@ -42,6 +41,7 @@ def test_sqlite_integration_flow(
 
     # Input/Output Stream
     from pyingestion.input_streams import PdfInputStream
+
     input_stream = PdfInputStream(pages_per_unit=1, recursive=False)
     output_stream = SqliteOutputStream(db_path, table_name)
 

@@ -1,20 +1,13 @@
-import os
 from click.testing import CliRunner
 from unittest.mock import patch
 from pyingestion.cli.main import cli
 from pyingestion.input_stream import InputStream
-from pyingestion.transform_stream import TransformStream
 from pyingestion.output_stream import SqliteOutputStream
 
 
 def test_config_pipeline_builder_parsing(temp_file_factory):
     # Prepare dummy regex rules file
-    rules_data = {
-        "title": {
-            "regex": r"Title:\s*(.*)",
-            "required": True
-        }
-    }
+    rules_data = {"title": {"regex": r"Title:\s*(.*)", "required": True}}
     rules_file = temp_file_factory("rules.json", rules_data, is_json=True)
 
     toml_content = f"""
@@ -37,9 +30,7 @@ def test_config_pipeline_builder_parsing(temp_file_factory):
 
     runner = CliRunner()
     with patch("pyingestion.cli.terminal_ui.run_with_ui") as mock_run:
-        result = runner.invoke(cli, [
-            "--config", config_file
-        ])
+        result = runner.invoke(cli, ["--config", config_file])
         assert result.exit_code == 0
         mock_run.assert_called_once()
         args, kwargs = mock_run.call_args

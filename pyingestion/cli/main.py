@@ -1,7 +1,6 @@
 import click
 import os
-import sys
-from pyingestion.i18n import _, set_lang, parse_lang_from_argv
+from pyingestion.i18n import set_lang
 from pyingestion.input_stream import InputStream
 from pyingestion.transform_stream import TransformStream
 from pyingestion.output_stream import OutputStream
@@ -10,6 +9,7 @@ from pyingestion.output_stream import OutputStream
 def load_config_file(file_path: str) -> dict:
     import json
     import tomllib
+
     ext = os.path.splitext(file_path)[1].lower()
     try:
         if ext == ".toml":
@@ -24,6 +24,7 @@ def load_config_file(file_path: str) -> dict:
 
 def build_input_stream_from_config(config_data: dict) -> InputStream:
     from pyingestion.input_stream import InputStreamFactory
+
     input_section = config_data.get("input")
     if isinstance(input_section, dict):
         input_type = input_section.get("type", "pdf")
@@ -35,11 +36,14 @@ def build_input_stream_from_config(config_data: dict) -> InputStream:
 
 def build_transform_stream_from_config(config_data: dict) -> TransformStream:
     from pyingestion.transform_stream import NativeRegexEngine, ChainedTransformStream
+
     transform_data = config_data.get("transform")
     if not transform_data:
         regex_path = config_data.get("regex")
         if not regex_path:
-            raise click.UsageError("Transform section or 'regex' path is required in config.")
+            raise click.UsageError(
+                "Transform section or 'regex' path is required in config."
+            )
         return NativeRegexEngine.from_file(regex_path)
 
     def instantiate_transform(item: dict) -> TransformStream:
@@ -47,7 +51,9 @@ def build_transform_stream_from_config(config_data: dict) -> TransformStream:
         if t_type == "regex":
             rules_file = item.get("config_file") or item.get("rules_file")
             if not rules_file:
-                raise click.UsageError("Transform of type 'regex' requires 'config_file' or 'rules_file'.")
+                raise click.UsageError(
+                    "Transform of type 'regex' requires 'config_file' or 'rules_file'."
+                )
             return NativeRegexEngine.from_file(rules_file)
         else:
             raise click.UsageError(f"Unknown transform type: {t_type}")
@@ -60,7 +66,9 @@ def build_transform_stream_from_config(config_data: dict) -> TransformStream:
     elif isinstance(transform_data, dict):
         return instantiate_transform(transform_data)
 
-    raise click.UsageError("The 'transform' section must be a dictionary or a list of dictionaries.")
+    raise click.UsageError(
+        "The 'transform' section must be a dictionary or a list of dictionaries."
+    )
 
 
 def build_output_stream_from_config(config_data: dict) -> OutputStream:
@@ -70,6 +78,7 @@ def build_output_stream_from_config(config_data: dict) -> OutputStream:
         MysqlOutputStream,
         MultiOutputStream,
     )
+
     output_data = config_data.get("output")
     if not output_data:
         to_dest = config_data.get("to", "csv")
@@ -81,7 +90,9 @@ def build_output_stream_from_config(config_data: dict) -> OutputStream:
         elif to_dest == "mysql":
             connection_uri = os.environ.get("DATABASE_URL")
             if not connection_uri:
-                raise click.UsageError("Environment variable 'DATABASE_URL' is required for MySQL output.")
+                raise click.UsageError(
+                    "Environment variable 'DATABASE_URL' is required for MySQL output."
+                )
             return MysqlOutputStream(connection_uri=connection_uri)
         else:
             return CsvWriteStream(out_path)
@@ -96,9 +107,15 @@ def build_output_stream_from_config(config_data: dict) -> OutputStream:
             table_name = item.get("table_name") or item.get("table") or "extracted_data"
             return SqliteOutputStream(db_path, table_name)
         elif out_type == "mysql":
-            conn_uri = item.get("connection_uri") or item.get("connection") or os.environ.get("DATABASE_URL")
+            conn_uri = (
+                item.get("connection_uri")
+                or item.get("connection")
+                or os.environ.get("DATABASE_URL")
+            )
             if not conn_uri:
-                raise click.UsageError("MySQL output requires 'connection_uri' or env var 'DATABASE_URL'.")
+                raise click.UsageError(
+                    "MySQL output requires 'connection_uri' or env var 'DATABASE_URL'."
+                )
             table_name = item.get("table_name") or item.get("table") or "extracted_data"
             return MysqlOutputStream(connection_uri=conn_uri, table_name=table_name)
         else:
@@ -112,16 +129,37 @@ def build_output_stream_from_config(config_data: dict) -> OutputStream:
     elif isinstance(output_data, dict):
         return instantiate_output(output_data)
 
-    raise click.UsageError("The 'output' section must be a dictionary or a list of dictionaries.")
+    raise click.UsageError(
+        "The 'output' section must be a dictionary or a list of dictionaries."
+    )
 
 
 @click.group(chain=True, invoke_without_command=True)
-@click.option("--source", "-s", type=click.Path(), help="Input source path (file or directory).")
+@click.option(
+    "--source", "-s", type=click.Path(), help="Input source path (file or directory)."
+)
 @click.option("--resume", is_flag=True, help="Resume execution using checkpoint store.")
-@click.option("--test", "-t", type=click.Path(exists=True), help="Run in test mode on a specific file.")
-@click.option("--dump", "-d", type=click.Path(exists=True), help="Run in dump mode on a specific file.")
-@click.option("--config", "-c", type=click.Path(exists=True), help="Path to config file (JSON or TOML).")
-@click.option("--lang", "-l", type=click.Choice(["en", "pt"]), help="Language for the interface.")
+@click.option(
+    "--test",
+    "-t",
+    type=click.Path(exists=True),
+    help="Run in test mode on a specific file.",
+)
+@click.option(
+    "--dump",
+    "-d",
+    type=click.Path(exists=True),
+    help="Run in dump mode on a specific file.",
+)
+@click.option(
+    "--config",
+    "-c",
+    type=click.Path(exists=True),
+    help="Path to config file (JSON or TOML).",
+)
+@click.option(
+    "--lang", "-l", type=click.Choice(["en", "pt"]), help="Language for the interface."
+)
 @click.version_option(version="0.5.2b1", package_name="pyingestion")
 @click.pass_context
 def cli(ctx, source, resume, test, dump, config, lang):
@@ -140,66 +178,101 @@ def cli(ctx, source, resume, test, dump, config, lang):
 
 
 @cli.command("pdf-input")
-@click.option("--pages-per-unit", default=1, type=int, help="Number of pages per processing unit.")
+@click.option(
+    "--pages-per-unit", default=1, type=int, help="Number of pages per processing unit."
+)
 @click.option("--recursive", is_flag=True, help="Scan directories recursively.")
 @click.pass_context
 def pdf_input(ctx, pages_per_unit, recursive):
     from pyingestion.input_streams import PdfInputStream
-    ctx.obj["input_stream"] = PdfInputStream(pages_per_unit=pages_per_unit, recursive=recursive)
+
+    ctx.obj["input_stream"] = PdfInputStream(
+        pages_per_unit=pages_per_unit, recursive=recursive
+    )
 
 
 @cli.command("docx-input")
-@click.option("--pages-per-unit", default=1, type=int, help="Number of pages per processing unit.")
+@click.option(
+    "--pages-per-unit", default=1, type=int, help="Number of pages per processing unit."
+)
 @click.option("--recursive", is_flag=True, help="Scan directories recursively.")
 @click.pass_context
 def docx_input(ctx, pages_per_unit, recursive):
     from pyingestion.input_streams import DocxInputStream
-    ctx.obj["input_stream"] = DocxInputStream(pages_per_unit=pages_per_unit, recursive=recursive)
+
+    ctx.obj["input_stream"] = DocxInputStream(
+        pages_per_unit=pages_per_unit, recursive=recursive
+    )
 
 
 @cli.command("ocr-input")
-@click.option("--pages-per-unit", default=1, type=int, help="Number of pages per processing unit.")
+@click.option(
+    "--pages-per-unit", default=1, type=int, help="Number of pages per processing unit."
+)
 @click.option("--recursive", is_flag=True, help="Scan directories recursively.")
 @click.pass_context
 def ocr_input(ctx, pages_per_unit, recursive):
     from pyingestion.input_streams import OcrInputStream
-    ctx.obj["input_stream"] = OcrInputStream(pages_per_unit=pages_per_unit, recursive=recursive)
+
+    ctx.obj["input_stream"] = OcrInputStream(
+        pages_per_unit=pages_per_unit, recursive=recursive
+    )
 
 
 @cli.command("regex-transform")
-@click.option("-g", "--regex", "--config-file", required=True, help="Path to regex rules JSON/TOML file.")
+@click.option(
+    "-g",
+    "--regex",
+    "--config-file",
+    required=True,
+    help="Path to regex rules JSON/TOML file.",
+)
 @click.pass_context
 def regex_transform(ctx, regex):
     from pyingestion.transform_stream import NativeRegexEngine
+
     ctx.obj["transform_stream"] = NativeRegexEngine.from_file(regex)
 
 
 @cli.command("csv-output")
-@click.option("-o", "--output", "--path", default="output.csv", help="Path to output CSV file.")
+@click.option(
+    "-o", "--output", "--path", default="output.csv", help="Path to output CSV file."
+)
 @click.pass_context
 def csv_output(ctx, output):
     from pyingestion.output_stream import CsvWriteStream
+
     ctx.obj["output_stream"] = CsvWriteStream(output)
 
 
 @cli.command("sqlite-output")
-@click.option("--db", "--db-path", "--path", required=True, help="Path to SQLite database file.")
-@click.option("--table", "--table-name", default="extracted_data", help="Table name in database.")
+@click.option(
+    "--db", "--db-path", "--path", required=True, help="Path to SQLite database file."
+)
+@click.option(
+    "--table", "--table-name", default="extracted_data", help="Table name in database."
+)
 @click.pass_context
 def sqlite_output(ctx, db, table):
     from pyingestion.output_stream import SqliteOutputStream
+
     ctx.obj["output_stream"] = SqliteOutputStream(db, table)
 
 
 @cli.command("mysql-output")
 @click.option("--connection", "--connection-uri", help="MySQL connection URI.")
-@click.option("--table", "--table-name", default="extracted_data", help="Table name in database.")
+@click.option(
+    "--table", "--table-name", default="extracted_data", help="Table name in database."
+)
 @click.pass_context
 def mysql_output(ctx, connection, table):
     from pyingestion.output_stream import MysqlOutputStream
+
     conn = connection or os.environ.get("DATABASE_URL")
     if not conn:
-        raise click.UsageError("MySQL output requires --connection or environment variable DATABASE_URL.")
+        raise click.UsageError(
+            "MySQL output requires --connection or environment variable DATABASE_URL."
+        )
     ctx.obj["output_stream"] = MysqlOutputStream(connection_uri=conn, table_name=table)
 
 
@@ -227,12 +300,15 @@ def process_pipeline(ctx, processors, **kwargs):
         input_stream = build_input_stream_from_config(config_data)
     if not input_stream and (test_file or dump_file):
         from pyingestion.input_streams import PdfInputStream
+
         ext = os.path.splitext(test_file or dump_file)[1].lower()
         if ext == ".docx":
             from pyingestion.input_streams import DocxInputStream
+
             input_stream = DocxInputStream()
         elif ext in (".png", ".jpg", ".jpeg", ".tiff", ".bmp"):
             from pyingestion.input_streams import OcrInputStream
+
             input_stream = OcrInputStream()
         else:
             input_stream = PdfInputStream()
@@ -248,11 +324,13 @@ def process_pipeline(ctx, processors, **kwargs):
         output_stream = build_output_stream_from_config(config_data)
     if not output_stream:
         from pyingestion.output_stream import CsvWriteStream
+
         output_stream = CsvWriteStream()
 
     # 1. Run Dump Mode
     if dump_file:
         from pyingestion.cli.terminal_ui import run_dump_mode
+
         if not input_stream:
             raise click.UsageError("Dump mode requires an input stream type.")
         run_dump_mode(dump_file, input_stream)
@@ -263,15 +341,18 @@ def process_pipeline(ctx, processors, **kwargs):
         if not transform_stream:
             if resume:
                 from pyingestion.session_store import FileSessionStore
+
                 state = FileSessionStore().load(test_file)
                 if state:
                     regex_path = state.get("config_file") or state.get("regex_file")
                     if regex_path:
                         from pyingestion.transform_stream import NativeRegexEngine
+
                         transform_stream = NativeRegexEngine.from_file(regex_path)
             if not transform_stream:
                 raise click.UsageError("Test mode requires a transform stream.")
         from pyingestion.cli.terminal_ui import run_test_mode
+
         run_test_mode(test_file, transform_stream, input_stream=input_stream)
         return
 
@@ -279,11 +360,13 @@ def process_pipeline(ctx, processors, **kwargs):
     if not source:
         if resume:
             from pyingestion.session_store import FileSessionStore
+
             cwd_state = os.path.join(os.getcwd(), ".gaia_resume.json")
             if os.path.exists(cwd_state):
                 try:
                     with open(cwd_state, "r", encoding="utf-8") as f:
                         import json
+
                         data = json.load(f)
                         if data.get("input_dir"):
                             source = data.get("input_dir")
@@ -295,20 +378,24 @@ def process_pipeline(ctx, processors, **kwargs):
     if not transform_stream:
         if resume:
             from pyingestion.session_store import FileSessionStore
+
             state = FileSessionStore().load(source)
             if state:
                 regex_path = state.get("config_file") or state.get("regex_file")
                 if regex_path:
                     from pyingestion.transform_stream import NativeRegexEngine
+
                     transform_stream = NativeRegexEngine.from_file(regex_path)
         if not transform_stream:
             raise click.UsageError("Transform stream is required.")
 
     if not input_stream:
         from pyingestion.input_streams import PdfInputStream
+
         input_stream = PdfInputStream()
 
     from pyingestion.cli.terminal_ui import run_with_ui
+
     run_with_ui(
         source,
         input_stream=input_stream,

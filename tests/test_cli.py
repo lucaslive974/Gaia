@@ -1,25 +1,27 @@
-import os
-import pytest
 from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
 
-from pyingestion.cli.main import main
 from pyingestion.pyingestion import PyIngestion
 from pyingestion.cli.main import cli
-from pyingestion.input_streams import PdfInputStream
-from pyingestion.transform_stream import NativeRegexEngine
-from pyingestion.output_stream import CsvWriteStream
 
 
 def test_main_execution_flow_to_ui(temp_file_factory):
-    rules_file = temp_file_factory("rules.json", {"invoice_title": {"regex": ".*"}}, is_json=True)
+    rules_file = temp_file_factory(
+        "rules.json", {"invoice_title": {"regex": ".*"}}, is_json=True
+    )
     runner = CliRunner()
     with patch("pyingestion.cli.terminal_ui.run_with_ui") as mock_run:
-        result = runner.invoke(cli, [
-            "--source", "/dummy",
-            "pdf-input",
-            "regex-transform", "-g", rules_file,
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "--source",
+                "/dummy",
+                "pdf-input",
+                "regex-transform",
+                "-g",
+                rules_file,
+            ],
+        )
         assert result.exit_code == 0
         mock_run.assert_called_once()
         args, kwargs = mock_run.call_args
@@ -29,23 +31,20 @@ def test_main_execution_flow_to_ui(temp_file_factory):
 def test_main_execution_flow_to_dump():
     runner = CliRunner()
     with patch("pyingestion.cli.terminal_ui.run_dump_mode") as mock_run_dump:
-        result = runner.invoke(cli, [
-            "--dump", __file__,
-            "pdf-input"
-        ])
+        result = runner.invoke(cli, ["--dump", __file__, "pdf-input"])
         assert result.exit_code == 0
         mock_run_dump.assert_called_once()
 
 
 def test_main_execution_flow_to_test(temp_file_factory):
-    rules_file = temp_file_factory("rules.json", {"invoice_title": {"regex": ".*"}}, is_json=True)
+    rules_file = temp_file_factory(
+        "rules.json", {"invoice_title": {"regex": ".*"}}, is_json=True
+    )
     runner = CliRunner()
     with patch("pyingestion.cli.terminal_ui.run_test_mode") as mock_run_test:
-        result = runner.invoke(cli, [
-            "--test", __file__,
-            "pdf-input",
-            "regex-transform", "-g", rules_file
-        ])
+        result = runner.invoke(
+            cli, ["--test", __file__, "pdf-input", "regex-transform", "-g", rules_file]
+        )
         assert result.exit_code == 0
         mock_run_test.assert_called_once()
         args, kwargs = mock_run_test.call_args
@@ -98,6 +97,7 @@ def test_cli_log_deletion(
 
     # Scenario 1: Resume is False -> Should remove gaia_errors.log if it exists
     from pyingestion.cli.terminal_ui import run_with_ui
+
     run_with_ui(
         source="/dummy/input",
         input_stream=input_stream,

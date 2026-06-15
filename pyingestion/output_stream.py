@@ -62,17 +62,22 @@ class SqliteOutputStream(OutputStream[dict[str, str]]):
 
     def _initialize(self, sample_dict: dict[str, str]):
         import sqlite3
+
         conn = sqlite3.connect(self.db_path)
         try:
             cursor = conn.cursor()
-            sanitized_table = "".join(c for c in self.table_name if c.isalnum() or c == "_")
+            sanitized_table = "".join(
+                c for c in self.table_name if c.isalnum() or c == "_"
+            )
             columns = []
             for key in sample_dict.keys():
                 sanitized_col = "".join(c for c in key if c.isalnum() or c == "_")
                 columns.append(f"{sanitized_col} TEXT")
-            
+
             columns_str = ", ".join(columns)
-            cursor.execute(f"CREATE TABLE IF NOT EXISTS {sanitized_table} ({columns_str})")
+            cursor.execute(
+                f"CREATE TABLE IF NOT EXISTS {sanitized_table} ({columns_str})"
+            )
             conn.commit()
         finally:
             conn.close()
@@ -83,24 +88,27 @@ class SqliteOutputStream(OutputStream[dict[str, str]]):
             return
         if not self._initialized:
             self._initialize(item)
-        
+
         import sqlite3
+
         conn = sqlite3.connect(self.db_path)
         try:
             cursor = conn.cursor()
-            sanitized_table = "".join(c for c in self.table_name if c.isalnum() or c == "_")
+            sanitized_table = "".join(
+                c for c in self.table_name if c.isalnum() or c == "_"
+            )
             keys = []
             values = []
             for k, v in item.items():
                 sanitized_key = "".join(c for c in k if c.isalnum() or c == "_")
                 keys.append(sanitized_key)
                 values.append(v)
-            
+
             placeholders = ", ".join(["?"] * len(keys))
             columns_str = ", ".join(keys)
             cursor.execute(
                 f"INSERT INTO {sanitized_table} ({columns_str}) VALUES ({placeholders})",
-                values
+                values,
             )
             conn.commit()
         finally:
@@ -129,6 +137,7 @@ class MysqlOutputStream(OutputStream[dict[str, str]]):
 
         if connection_uri:
             import re
+
             m = re.match(
                 r"mysql(?:\+pymysql)?://([^:]+):([^@]+)@([^:/]+)(?::(\d+))?/([^?]+)",
                 connection_uri,
@@ -182,6 +191,7 @@ class MysqlOutputStream(OutputStream[dict[str, str]]):
             self._initialize(item)
 
         import pymysql
+
         conn = pymysql.connect(
             host=self.host,
             user=self.user,

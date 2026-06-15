@@ -1,7 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Generator, Any, Generic, TypeVar
+from typing import Generator, Generic, TypeVar
 from pyingestion.extraction_session import ExtractionSession
 
 T_source = TypeVar("T_source")

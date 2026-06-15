@@ -44,7 +44,9 @@ def test_native_parser_orchestration(mock_isfile, mock_exists, mock_pdf_reader):
 @patch("pyingestion.input_streams.PdfReader")
 @patch("pyingestion.input_stream.os.path.exists")
 @patch("pyingestion.input_stream.os.path.isfile")
-def test_native_parser_orchestration_multi_page_units(mock_isfile, mock_exists, mock_pdf_reader):
+def test_native_parser_orchestration_multi_page_units(
+    mock_isfile, mock_exists, mock_pdf_reader
+):
     mock_exists.return_value = True
     mock_isfile.return_value = True
 
@@ -236,7 +238,9 @@ def test_ocr_parser_missing_poppler_on_pdf(mock_which):
 @patch("pytesseract.image_to_string")
 @patch("pyingestion.input_stream.os.path.exists")
 @patch("pyingestion.input_stream.os.path.isfile")
-def test_ocr_parser_image_process(mock_isfile, mock_exists, mock_ocr, mock_image_open, mock_which):
+def test_ocr_parser_image_process(
+    mock_isfile, mock_exists, mock_ocr, mock_image_open, mock_which
+):
     mock_exists.return_value = True
     mock_isfile.return_value = True
     mock_which.return_value = "/usr/bin/tesseract"
@@ -258,7 +262,9 @@ def test_ocr_parser_image_process(mock_isfile, mock_exists, mock_ocr, mock_image
 @patch("pytesseract.image_to_string")
 @patch("pyingestion.input_stream.os.path.exists")
 @patch("pyingestion.input_stream.os.path.isfile")
-def test_ocr_parser_pdf_process_lazy(mock_isfile, mock_exists, mock_ocr, mock_convert, mock_pdfinfo, mock_which):
+def test_ocr_parser_pdf_process_lazy(
+    mock_isfile, mock_exists, mock_ocr, mock_convert, mock_pdfinfo, mock_which
+):
     mock_exists.return_value = True
     mock_isfile.return_value = True
     mock_which.return_value = "/usr/bin/some_bin"
