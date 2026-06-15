@@ -102,17 +102,19 @@ You can integrate PyIngestion directly into your Python scripts.
 To execute the entire extraction pipeline on a file or directory:
 
 ```python
-from pyingestion import PyIngestion, Options
+from pyingestion import PyIngestion, Options, NativeRegexEngine
 
 # 1. Configure options programmatically
 options = Options()
 options.BASE_PATH = "path/to/pdfs"
-options.REGEX_FILE = "path/to/rules.json"
 options.OUTPUT_CSV = "custom_output.csv"
 options.PAGES_PER_UNIT = 1
 
-# 2. Run the orchestrator
-controller = PyIngestion(options)
+# 2. Load transform stream
+transform = NativeRegexEngine.from_file("path/to/rules.json")
+
+# 3. Run the orchestrator
+controller = PyIngestion(options, transform_stream=transform)
 success = controller.run()
 ```
 
@@ -143,10 +145,10 @@ class CustomTxtParser(InputStream):
 # Inject it into PyIngestion orchestrator
 options = Options()
 options.BASE_PATH = "path/to/text/files"
-options.REGEX_FILE = "rules.json"
 
-# Supply your custom input_stream (and transform_stream)
-controller = PyIngestion(options, transform_stream=..., input_stream=CustomTxtParser())
+# Supply your custom input_stream and transform_stream
+transform = NativeRegexEngine.from_file("rules.json")
+controller = PyIngestion(options, transform_stream=transform, input_stream=CustomTxtParser())
 controller.run()
 ```
 
@@ -202,14 +204,15 @@ python -m pyingestion <input_dir> [options]
 * `<input_dir>`: Path to the directory containing files to process.
 
 #### Options
-* `-o`, `--output` `<path>`: Custom output CSV file path (Default: `output.csv` in your working directory).
-* `-g`, `--regex` `<path>`: Path to a JSON file containing customized regex extraction rules.
+* `-o`, `--output` `<path>`: Custom output file or database path (Default: `output.csv` in your working directory).
+* `-g`, `--regex` `<path>`: Path to a JSON/TOML file containing customized regex extraction rules.
 * `-r`, `--recursive`: Search for files recursively within subdirectories.
 * `--resume`: Resume processing using checkpoint data from `.gaia_resume.json`.
 * `-t`, `--test` `<file_path>`: Test your regex rules on the first page of the provided file.
 * `-p`, `--pages-per-unit` `<int>`: The number of pages/chunks grouped together as a single block for extraction matching (Default: `1`).
 * `-l`, `--lang` `{"en", "pt"}`: Force the interface language to English or Portuguese (Default: `en`).
-* `--type` `{"pdf"}`: Define the built-in parser type to use (Default: `pdf`).
+* `--type` `{"pdf", "docx", "ocr"}`: Define the built-in parser type to use (Default: `pdf`).
+* `--to` `{"csv", "sqlite", "mysql"}`: Force output destination type (Default: `csv`).
 
 #### Examples
 
@@ -227,6 +230,69 @@ python -m pyingestion <input_dir> [options]
   ```bash
   pyingestion -t sample.pdf -g rules.json
   ```
+
+#### Configuration Files Layout
+
+You can configure options and pipelines declaratively using a JSON or TOML file via the `-c` or `--config` parameter.
+
+##### 1. Basic Configuration Format (Root level or [config] section)
+To declare basic CLI options:
+```toml
+# config.toml
+input_dir = "poc/pdfs"
+output = "poc/resultados.csv"
+regex = "poc/rules.toml"
+to = "csv"
+```
+Or under a `[config]` section:
+```toml
+# config.toml
+[config]
+input_dir = "poc/pdfs"
+output = "poc/resultados.csv"
+regex = "poc/rules.toml"
+```
+
+##### 2. Advanced Declarative Pipelines
+To define inputs, transforms, and outputs dynamically:
+```toml
+# pipeline.toml
+input_dir = "poc/pdfs"
+
+[input]
+type = "pdf"
+pages_per_unit = 2
+
+[transform]
+type = "regex"
+config_file = "rules.toml"
+
+[output]
+type = "sqlite"
+db_path = "records.db"
+table_name = "pdf_records"
+```
+You can also define multiple transforms and outputs (e.g. to write to both CSV and SQLite):
+```toml
+# multi_pipeline.toml
+input_dir = "poc/pdfs"
+
+[input]
+type = "pdf"
+
+[[transform]]
+type = "regex"
+config_file = "rules.toml"
+
+[[output]]
+type = "sqlite"
+db_path = "records.db"
+table_name = "invoices"
+
+[[output]]
+type = "csv"
+path = "backup.csv"
+```
 
 ---
 

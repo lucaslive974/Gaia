@@ -65,3 +65,9 @@ flags = ["--to"]
 type = "str"
 choices = ["csv", "sqlite", "mysql"]
 help = "cli_to_help"
+
+[[arguments]]
+flags = ["-v", "--version"]
+action = "version"
+version = "pyingestion 0.5.0b1"
+help = "cli_version_help"

@@ -241,5 +241,8 @@ msgstr "The configuration file must contain a '[config]' section."
 msgid "cli_to_help"
 msgstr "Specify target output destination type (choices: csv, sqlite, mysql) (Default: csv)."
 
+msgid "cli_version_help"
+msgstr "Show program's version number and exit."
+
 
 

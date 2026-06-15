@@ -37,6 +37,8 @@ class CliHelper:
                 kwargs["choices"] = arg_def["choices"]
             if "metavar" in arg_def:
                 kwargs["metavar"] = arg_def["metavar"]
+            if "version" in arg_def:
+                kwargs["version"] = arg_def["version"]
 
             kwargs["default"] = None
 
