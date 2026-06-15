@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyingestion"
-version = "0.5.1b1"
+version = "0.5.2b1"
 description = "General-purpose document data ingestion library."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -36,7 +36,7 @@ dev = [
 ]
 
 [tool.setuptools.package-data]
-pyingestion = ["locale/**/*.po", "locale/**/*.mo"]
+pyingestion = ["locale/**/*.po", "locale/**/*.mo", "cli/cli_arguments.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
