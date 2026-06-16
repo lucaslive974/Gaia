@@ -19,7 +19,9 @@ class TestResumeSession:
         state_file_input = os.path.join(input_dir, ".gaia_resume.json")
 
         class Context:
-            pass
+            input_dir: str = ""
+            state_file_cwd: str = ""
+            state_file_input: str = ""
 
         ctx = Context()
         ctx.input_dir = input_dir
@@ -46,15 +48,15 @@ class TestResumeSession:
         mock_observer = MagicMock()
         mock_observer.is_cancelled = False
 
-        # Build session and restore state using FileExtractionSession
         restored_state = FileExtractionSession.load(resume_setup.input_dir)
         assert restored_state is not None
 
         session = ExtractionSession(mock_observer)
-        session.processed_files = restored_state["processed_files"]
-        session.successful_pages = restored_state["successful_pages"]
-        session.failed_pages = restored_state["failed_pages"]
-        session.total_pages = restored_state["total_pages"]
+        from typing import cast
+        session.processed_files = cast(list[str], restored_state["processed_files"])
+        session.successful_pages = cast(int, restored_state["successful_pages"])
+        session.failed_pages = cast(int, restored_state["failed_pages"])
+        session.total_pages = cast(int, restored_state["total_pages"])
 
         # Mock input stream
         from pyingestion.input_streams import PdfInputStream
@@ -108,11 +110,13 @@ class TestResumeSession:
         mock_observer.is_cancelled = False
 
         restored_state = FileExtractionSession.load(resume_setup.input_dir)
+        assert restored_state is not None
         session = ExtractionSession(mock_observer)
-        session.processed_files = restored_state["processed_files"]
-        session.successful_pages = restored_state["successful_pages"]
-        session.failed_pages = restored_state["failed_pages"]
-        session.total_pages = restored_state["total_pages"]
+        from typing import cast
+        session.processed_files = cast(list[str], restored_state["processed_files"])
+        session.successful_pages = cast(int, restored_state["successful_pages"])
+        session.failed_pages = cast(int, restored_state["failed_pages"])
+        session.total_pages = cast(int, restored_state["total_pages"])
 
         from pyingestion.input_streams import PdfInputStream
 
@@ -164,13 +168,15 @@ class TestResumeSession:
         mock_observer.is_cancelled = False
 
         restored_state = FileExtractionSession.load(resume_setup.input_dir)
+        assert restored_state is not None
         session = FileExtractionSession(
             mock_observer,
         )
-        session.processed_files = restored_state["processed_files"]
-        session.successful_pages = restored_state["successful_pages"]
-        session.failed_pages = restored_state["failed_pages"]
-        session.total_pages = restored_state["total_pages"]
+        from typing import cast
+        session.processed_files = cast(list[str], restored_state["processed_files"])
+        session.successful_pages = cast(int, restored_state["successful_pages"])
+        session.failed_pages = cast(int, restored_state["failed_pages"])
+        session.total_pages = cast(int, restored_state["total_pages"])
 
         from pyingestion.input_streams import PdfInputStream
 
@@ -225,13 +231,15 @@ class TestResumeSession:
         mock_observer.is_cancelled = False
 
         restored_state = FileExtractionSession.load(resume_setup.input_dir)
+        assert restored_state is not None
         session = FileExtractionSession(
             mock_observer,
         )
-        session.processed_files = restored_state["processed_files"]
-        session.successful_pages = restored_state["successful_pages"]
-        session.failed_pages = restored_state["failed_pages"]
-        session.total_pages = restored_state["total_pages"]
+        from typing import cast
+        session.processed_files = cast(list[str], restored_state["processed_files"])
+        session.successful_pages = cast(int, restored_state["successful_pages"])
+        session.failed_pages = cast(int, restored_state["failed_pages"])
+        session.total_pages = cast(int, restored_state["total_pages"])
 
         from pyingestion.input_streams import PdfInputStream
 
@@ -278,11 +286,13 @@ class TestResumeSession:
         mock_observer.is_cancelled = True  # Cancelled!
 
         restored_state = FileExtractionSession.load(resume_setup.input_dir)
+        assert restored_state is not None
         session = ExtractionSession(mock_observer)
-        session.processed_files = restored_state["processed_files"]
-        session.successful_pages = restored_state["successful_pages"]
-        session.failed_pages = restored_state["failed_pages"]
-        session.total_pages = restored_state["total_pages"]
+        from typing import cast
+        session.processed_files = cast(list[str], restored_state["processed_files"])
+        session.successful_pages = cast(int, restored_state["successful_pages"])
+        session.failed_pages = cast(int, restored_state["failed_pages"])
+        session.total_pages = cast(int, restored_state["total_pages"])
 
         from pyingestion.input_streams import PdfInputStream
 

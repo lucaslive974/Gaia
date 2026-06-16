@@ -99,7 +99,7 @@ class TestRegexEngineSchemaValidation:
 
 class TestRegexEngineParsing:
     def test_instantiation_with_in_memory_dict(self):
-        config = {
+        config: dict[str, object] = {
             "key1": {"regex": r"key1:\s*(\w+)", "required": True, "default": ""},
         }
         engine = NativeRegexEngine(config)
@@ -111,7 +111,7 @@ class TestRegexEngineParsing:
         assert results["key1"] == "value1"
 
     def test_parse_success(self):
-        config = {
+        config: dict[str, object] = {
             "key1": {"regex": r"key1:\s*(\w+)", "required": True, "default": ""},
             "key2": {
                 "regex": r"key2:\s*(\w+)",
@@ -127,7 +127,7 @@ class TestRegexEngineParsing:
         assert results["key2"] == "value2"
 
     def test_parse_sequential_search_offset(self):
-        config = {
+        config: dict[str, object] = {
             "first": {"regex": r"word:\s*(\w+)", "required": True},
             "second": {"regex": r"word:\s*(\w+)", "required": True},
         }
@@ -139,7 +139,7 @@ class TestRegexEngineParsing:
         assert results["second"] == "banana"
 
     def test_parse_missing_required_raises_value_error(self):
-        config = {"key1": {"regex": r"key1:\s*(\w+)", "required": True}}
+        config: dict[str, object] = {"key1": {"regex": r"key1:\s*(\w+)", "required": True}}
         engine = NativeRegexEngine(config)
 
         text = "key2: value2"
@@ -147,7 +147,7 @@ class TestRegexEngineParsing:
             engine.parse(text)
 
     def test_parse_test_does_not_raise(self):
-        config = {
+        config: dict[str, object] = {
             "key1": {"regex": r"key1:\s*(\w+)", "required": True},
             "key2": {"regex": r"key2:\s*(\w+)", "required": False},
         }
