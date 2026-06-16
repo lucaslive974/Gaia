@@ -162,19 +162,26 @@ def process_pipeline(ctx, _processors, **_kwargs):
     dump_file = ctx.obj.get("dump")
     config_path = ctx.obj.get("config")
 
-    config_data = {}
+    config_obj = None
     if config_path:
         config_data = load_config_file(config_path)
         if "config" in config_data and isinstance(config_data["config"], dict):
             config_data = config_data["config"]
+        from pyingestion.config_models import PipelineConfig
+
+        try:
+            config_obj = PipelineConfig.model_validate(config_data)
+        except Exception as e:
+            raise click.ClickException(f"Configuration validation error: {e}")
 
     if not source:
-        source = config_data.get("input_dir") or config_data.get("source")
+        if config_obj:
+            source = config_obj.input_dir or config_obj.source
 
     # Resolve input_stream
     input_stream = ctx.obj.get("input_stream")
     if not input_stream and config_path:
-        input_stream = build_input_stream_from_config(config_data)
+        input_stream = build_input_stream_from_config(config_obj)
     if not input_stream and (test_file or dump_file):
         from pyingestion.input_streams import InputStreamFactory
 
@@ -183,12 +190,12 @@ def process_pipeline(ctx, _processors, **_kwargs):
     # Resolve transform_stream
     transform_stream = ctx.obj.get("transform_stream")
     if not transform_stream and config_path:
-        transform_stream = build_transform_stream_from_config(config_data)
+        transform_stream = build_transform_stream_from_config(config_obj)
 
     # Resolve output_stream
     output_stream = ctx.obj.get("output_stream")
     if not output_stream and config_path:
-        output_stream = build_output_stream_from_config(config_data)
+        output_stream = build_output_stream_from_config(config_obj)
     if not output_stream:
         from pyingestion.output_stream import CsvWriteStream
 

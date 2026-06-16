@@ -21,7 +21,7 @@ PyIngestion uses a modular architecture using fast native text extraction and an
 * **Robust Session Resume**:
   * Automatically checkpoints progress using a state file (`.gaia_resume.json`). If interrupted, the `--resume` flag lets you pick up right where you left off.
 * **Custom Regex Configurations**:
-  * Supply custom pattern matching rules via a JSON configuration file.
+  * Supply custom pattern matching rules via a JSON/TOML configuration file.
 * **Multi-Page Unit Grouping**:
   * Group multiple pages as a single unit using `--pages-per-unit` for patterns that span across page boundaries.
 * **Internationalization (i18n)**:
@@ -40,21 +40,22 @@ Gaia/
 │   ├── __main__.py          # Main entry point for python -m pyingestion
 │   ├── cli/
 │   │   ├── __init__.py      # CLI subpackage initialization
-│   │   ├── cli_helper.py    # CLI arguments parser and prevalidation helper
+│   │   ├── builder.py       # Config loaders and pipeline builders
+│   │   ├── cli_helper.py    # Click group, options, commands, and callback definitions
+│   │   ├── main.py          # CLI entry point implementation
 │   │   └── terminal_ui.py   # Rich TUI display and keyboard input handling
-│   ├── pyingestion.py       # Main global program class (PyIngestion, codename: Gaia)
+│   ├── pyingestion.py       # Main stateless pipeline execution runner
 │   ├── extraction_session.py# Session progress tracking & state serialization
-│   ├── options.py           # Config options container class & parameter validations
-│   ├── input_stream.py      # Abstract InputStream base, InputStreamType Enum, and InputStreamFactory
+│   ├── input_stream.py      # Abstract InputStream base and FileInputStream base
+│   ├── input_streams.py     # Concrete InputStream implementations and InputStreamFactory
 │   ├── i18n.py              # Gettext wrappers and language initialization
 │   ├── locale/              # Compiled translations directory
 │   │   ├── en/LC_MESSAGES/messages.mo
 │   │   └── pt/LC_MESSAGES/messages.mo
 │   ├── observer.py          # Progress notification interface (observer pattern)
-│   ├── output_stream.py     # Output stream interfaces (OutputStream, CsvWriteStream, DefaultOutputStream)
-│   ├── parsers.py           # Concrete InputStream implementations (PdfParser, DocxParser, OcrParser)
+│   ├── output_stream.py     # Output stream interfaces (OutputStream, CsvWriteStream, DefaultOutputStream, SqliteOutputStream, MysqlOutputStream, OutputStreamFactory)
 │   ├── transform_stream.py  # Abstract and concrete TransformStream and RegexEngine implementations
-│   └── main.py              # CLI entry point implementation
+│   └── types.py             # Type variable declarations for strict typing
 ├── pyproject.toml           # Setuptools PEP 621 packaging definitions
 ├── requirements.txt         # Package requirements
 ├── tests/                   # Extensive test suites
@@ -75,7 +76,7 @@ Gaia/
 
 1. Clone or navigate to the repository:
    ```bash
-   cd Trabalho/Gaia
+   cd Trabajo/Gaia
    ```
 
 2. Setup virtual environment:
@@ -102,20 +103,21 @@ You can integrate PyIngestion directly into your Python scripts.
 To execute the entire extraction pipeline on a file or directory:
 
 ```python
-from pyingestion import PyIngestion, Options, NativeRegexEngine
+from pyingestion import PyIngestion, PdfInputStream, NativeRegexEngine, CsvWriteStream
 
-# 1. Configure options programmatically
-options = Options()
-options.BASE_PATH = "path/to/pdfs"
-options.OUTPUT_CSV = "custom_output.csv"
-options.PAGES_PER_UNIT = 1
-
-# 2. Load transform stream
+# 1. Load components
+input_stream = PdfInputStream(pages_per_unit=1)
 transform = NativeRegexEngine.from_file("path/to/rules.json")
+output = CsvWriteStream("custom_output.csv")
 
-# 3. Run the orchestrator
-controller = PyIngestion(options, transform_stream=transform)
-success = controller.run()
+# 2. Run the orchestrator
+runner = PyIngestion()
+success = runner.process(
+    source="path/to/pdfs",
+    input_stream=input_stream,
+    transform_stream=transform,
+    output_stream=output,
+)
 ```
 
 #### Creating & Injecting a Custom Input Stream
@@ -123,33 +125,57 @@ success = controller.run()
 You can supply your own extraction parser format by subclassing the abstract base class `InputStream`:
 
 ```python
-from typing import Generator
-from pyingestion import PyIngestion, Options, InputStream, ExtractionSession
+from collections.abc import Generator
+from pyingestion import PyIngestion, InputStream, ExtractionSession, NativeRegexEngine, CsvWriteStream
 
-class CustomTxtParser(InputStream):
-    def accepts(self, file_path: str) -> bool:
-        # Define what files this parser/stream accepts
-        return file_path.lower().endswith(".txt")
+class CustomTxtInputStream(InputStream[str, str]):
+    def read(
+        self, source: str, session: ExtractionSession | None = None
+    ) -> Generator[str, None, None]:
+        # For a directory: find files, or process directly
+        import glob
+        import os
 
-    def process_file(
-        self,
-        file_path: str,
-        session: ExtractionSession | None = None,
-        pages_per_unit: int = 1
-    ) -> Generator[tuple[int, int, str], None, None]:
-        # Process the file and yield: (unit_index, total_units, content_text)
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        yield 1, 1, content
+        files = []
+        if os.path.isdir(source):
+            files = glob.glob(os.path.join(source, "*.txt"))
+        elif os.path.isfile(source) and source.lower().endswith(".txt"):
+            files = [source]
+
+        self.total_units = len(files)
+        self.current_unit_index = 0
+
+        if session:
+            session.start(self.total_units)
+
+        for file_path in files:
+            self.current_unit_index += 1
+            if session:
+                session.start_file(self.current_unit_index, file_path)
+
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            yield content
+
+            if session:
+                session.complete_file(self.current_unit_index)
+
+        if session:
+            session.complete()
 
 # Inject it into PyIngestion orchestrator
-options = Options()
-options.BASE_PATH = "path/to/text/files"
-
-# Supply your custom input_stream and transform_stream
+input_stream = CustomTxtInputStream()
 transform = NativeRegexEngine.from_file("rules.json")
-controller = PyIngestion(options, transform_stream=transform, input_stream=CustomTxtParser())
-controller.run()
+output = CsvWriteStream("output.csv")
+
+runner = PyIngestion()
+runner.process(
+    source="path/to/text/files",
+    input_stream=input_stream,
+    transform_stream=transform,
+    output_stream=output,
+)
 ```
 
 #### Using Input Stream and Engine Components Directly
@@ -157,7 +183,7 @@ controller.run()
 To parse files manually and match patterns page-by-page:
 
 ```python
-from pyingestion import PdfParser, NativeRegexEngine
+from pyingestion import PdfInputStream, NativeRegexEngine
 
 # 1. Setup the Regex engine with rules in-memory (dictionary)
 regex_rules = {
@@ -176,12 +202,12 @@ engine = NativeRegexEngine(regex_rules)
 # engine = NativeRegexEngine.from_file("path/to/rules.json")
 
 # 2. Setup the input stream
-input_stream = PdfParser()
+input_stream = PdfInputStream(pages_per_unit=1)
 
 # 3. Process files programmatically
 # The input stream yields raw text segments for each page/unit.
 # You then parse it using the engine.
-for unit_index, total_units, raw_text in input_stream.process_file("path/to/infraction.pdf", pages_per_unit=1):
+for raw_text in input_stream.read("path/to/infraction.pdf"):
     record = engine.transform(raw_text)
     print("Parsed Record:", record)
 ```

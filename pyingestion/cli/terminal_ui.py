@@ -287,16 +287,30 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
                     state_data = FileExtractionSession.load(source)
                     if state_data:
                         session = FileExtractionSession(
-                            observer,
+                            observer=observer,
                             error_handler=cli_error_handler,
                         )
-                        session.processed_files = cast(list[str], state_data.get("processed_files", []))
-                        session.successful_pages = cast(int, state_data.get("successful_pages", 0))
-                        session.failed_pages = cast(int, state_data.get("failed_pages", 0))
-                        session.total_pages = cast(int, state_data.get("total_pages", 0))
-                        session.config_file = cast(str | None, state_data.get("config_file"))
-                        session.output_file = cast(str | None, state_data.get("output_file"))
-                        session.input_dir = cast(str | None, state_data.get("input_dir"))
+                        session.processed_files = cast(
+                            list[str], state_data.get("processed_files", [])
+                        )
+                        session.successful_pages = cast(
+                            int, state_data.get("successful_pages", 0)
+                        )
+                        session.failed_pages = cast(
+                            int, state_data.get("failed_pages", 0)
+                        )
+                        session.total_pages = cast(
+                            int, state_data.get("total_pages", 0)
+                        )
+                        session.config_file = cast(
+                            str | None, state_data.get("config_file")
+                        )
+                        session.output_file = cast(
+                            str | None, state_data.get("output_file")
+                        )
+                        session.input_dir = cast(
+                            str | None, state_data.get("input_dir")
+                        )
                     else:
                         raise ValueError(_("err_resume_no_state"))
 
