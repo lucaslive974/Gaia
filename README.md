@@ -19,7 +19,7 @@ PyIngestion uses a modular architecture using fast native text extraction and an
   * Real-time metrics rendered via `rich.live`.
   * Live status dashboard featuring counters for processed files, pages, failures, and a progress bar with numerical Estimated Time of Arrival (**ETA**).
 * **Robust Session Resume**:
-  * Automatically checkpoints progress using a state file (`.gaia_resume.json`). If interrupted, the `--resume` flag lets you pick up right where you left off.
+  * Automatically checkpoints progress using a state file (`.gaia_resume.json`) in the current directory. If interrupted, running the CLI with the `--resume` flag lets you pick up right where you left off, automatically restoring the input source, configuration, and processed files list from the checkpoint without needing to specify options again.
 * **Custom Regex Configurations**:
   * Supply custom pattern matching rules via a JSON/TOML configuration file.
 * **Multi-Page Unit Grouping**:
@@ -70,7 +70,7 @@ Gaia/
 ## 🛠️ Requirements & Installation
 
 ### Prerequisites
-1. **Python 3.10+**
+1. **Python 3.11+**
 
 ### Environment Setup & Packaging
 
@@ -86,9 +86,14 @@ Gaia/
    ```
 
 3. Install the package in editable mode:
-   ```bash
-   pip install -e .
-   ```
+   - **Standard installation** (core document parsing, regex engine):
+     ```bash
+     pip install -e .
+     ```
+   - **RAG & Embeddings installation** (includes `sentence-transformers` for generating vector embeddings):
+     ```bash
+     pip install -e .[rag]
+     ```
 
 ---
 
@@ -111,6 +116,33 @@ transform = NativeRegexEngine.from_file("path/to/rules.json")
 output = CsvWriteStream("custom_output.csv")
 
 # 2. Run the orchestrator
+runner = PyIngestion()
+success = runner.process(
+    source="path/to/pdfs",
+    input_stream=input_stream,
+    transform_stream=transform,
+    output_stream=output,
+)
+```
+
+#### Orchestrating a RAG Ingestion Pipeline Programmatically
+
+To perform chunking, vector embedding generation, and SQLite database persistence (RAG flow):
+
+```python
+from pyingestion import PyIngestion, PdfInputStream, ChunkerTransformStream, SqliteVectorOutputStream
+
+# 1. Load components
+input_stream = PdfInputStream(pages_per_unit=1)
+
+# ChunkerTransformStream splits document text using chunk_size and chunk_overlap,
+# and generates embeddings using the sentence-transformers library.
+transform = ChunkerTransformStream(chunk_size=300, chunk_overlap=50, device="cpu")
+
+# SqliteVectorOutputStream serializes and stores the text chunks, metadata, and embedding vectors in a SQLite DB
+output = SqliteVectorOutputStream(db_path="rag_vector_store.db", table_name="embeddings")
+
+# 2. Run the pipeline
 runner = PyIngestion()
 success = runner.process(
     source="path/to/pdfs",
@@ -220,20 +252,18 @@ PyIngestion can be executed directly as a global shell command, as a python modu
 
 ```bash
 # 1. As a global command (after package installation)
-pyingestion <input_dir> [options]
+pyingestion [options] [command] [command-options] ...
 
 # 2. As a python module run (from the repository root)
-python -m pyingestion <input_dir> [options]
+python -m pyingestion [options] [command] [command-options] ...
 ```
 
-#### Positional Arguments
-* `<input_dir>`: Path to the directory containing files to process.
-
 #### Options
+* `-s`, `--source` `<path>`: Input source path (file or directory).
 * `-o`, `--output` `<path>`: Custom output file or database path (Default: `output.csv` in your working directory).
 * `-g`, `--regex` `<path>`: Path to a JSON/TOML file containing customized regex extraction rules.
 * `-r`, `--recursive`: Search for files recursively within subdirectories.
-* `--resume`: Resume processing using checkpoint data from `.gaia_resume.json`.
+* `--resume`: Resume processing using checkpoint data from `.gaia_resume.json` in the current directory (does not require `--source`).
 * `-t`, `--test` `<file_path>`: Test your regex rules on the first page of the provided file.
 * `-p`, `--pages-per-unit` `<int>`: The number of pages/chunks grouped together as a single block for extraction matching (Default: `1`).
 * `-l`, `--lang` `{"en", "pt"}`: Force the interface language to English or Portuguese (Default: `en`).
@@ -244,17 +274,22 @@ python -m pyingestion <input_dir> [options]
 
 * **Basic processing run**:
   ```bash
-  pyingestion /path/to/pdfs -g rules.json
+  pyingestion --source /path/to/pdfs -g rules.json
   ```
 
 * **Resume an interrupted run**:
   ```bash
-  pyingestion /path/to/pdfs --resume
+  pyingestion --resume
   ```
 
 * **Test matching logic on a single file**:
   ```bash
   pyingestion -t sample.pdf -g rules.json
+  ```
+
+* **Run RAG embedding and ingestion via CLI Chaining**:
+  ```bash
+  pyingestion --source /path/to/pdfs pdf-input embed-transform --chunk-size 300 --chunk-overlap 50 --device cpu sqlite-vector-output --db vector_store.db
   ```
 
 #### Configuration Files Layout
@@ -297,6 +332,27 @@ config_file = "rules.toml"
 type = "sqlite"
 db_path = "records.db"
 table_name = "pdf_records"
+```
+
+##### 3. RAG Declarative Ingestion Pipeline
+To configure the document chunking, embedding, and vector database flow via a TOML config file:
+```toml
+# rag_pipeline.toml
+input_dir = "poc/pdfs"
+
+[input]
+type = "pdf"
+
+[transform]
+type = "embed"
+chunk_size = 300
+chunk_overlap = 50
+device = "cpu"
+
+[output]
+type = "sqlite-vector"
+db_path = "vector_store.db"
+table_name = "embeddings"
 ```
 You can also define multiple transforms and outputs (e.g. to write to both CSV and SQLite):
 ```toml
