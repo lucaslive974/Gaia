@@ -8,6 +8,8 @@ from pyingestion.transform_stream import (
     ChainedTransformStream,
     RegexEngine,
     NativeRegexEngine,
+    TransformStreamType,
+    TransformStreamFactory,
 )
 from pyingestion.input_stream import (
     InputStream,
@@ -38,6 +40,7 @@ from pyingestion.observer import (
     DefaultExtractionObserver,
 )
 from pyingestion.pyingestion import PyIngestion
+from pyingestion.rag_streams import ChunkerTransformStream, SqliteVectorOutputStream
 
 from pyingestion.types import T_source, T_in, T_out
 
@@ -54,6 +57,9 @@ __all__ = [
     ChainedTransformStream,
     RegexEngine,
     NativeRegexEngine,
+    TransformStreamType,
+    TransformStreamFactory,
+    ChunkerTransformStream,
     InputStream,
     FileInputStream,
     InputStreamFactory,
@@ -66,6 +72,7 @@ __all__ = [
     DefaultOutputStream,
     SqliteOutputStream,
     MysqlOutputStream,
+    SqliteVectorOutputStream,
     ExtractionObserver,
     QueueObserver,
     DefaultExtractionObserver,

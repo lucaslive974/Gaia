@@ -240,3 +240,55 @@ class NativeRegexEngine(RegexEngine):
                 matched_status[key] = False
 
         return results, matched_status
+
+
+from enum import Enum
+from collections.abc import Mapping, Callable
+from typing import Any
+
+
+class TransformStreamType(Enum):
+    REGEX = "regex"
+    EMBED = "embed"
+    EMBED_TRANSFORM = "embed-transform"
+
+
+class TransformStreamFactory:
+    _CREATORS: dict[
+        str, Callable[[Mapping[str, object]], TransformStream[Any, Any]]  # pyright: ignore[reportExplicitAny]
+    ] = {}
+
+    @classmethod
+    def register(
+        cls,
+        type_name: str,
+        creator: Callable[[Mapping[str, object]], TransformStream[Any, Any]],  # pyright: ignore[reportExplicitAny]
+    ) -> None:
+        cls._CREATORS[type_name] = creator
+
+    @staticmethod
+    def create(
+        transform_type: str | TransformStreamType,
+        config: Mapping[str, object] | None = None,
+    ) -> TransformStream[Any, Any]:  # pyright: ignore[reportExplicitAny]
+        pt = (
+            transform_type.value
+            if isinstance(transform_type, TransformStreamType)
+            else transform_type.lower()
+        )
+
+        cfg = config or {}
+        if pt == "regex":
+            rules_file = str(cfg.get("config_file") or cfg.get("rules_file") or "")
+            if not rules_file:
+                raise ValueError(
+                    "Transform of type 'regex' requires 'config_file' or 'rules_file'."
+                )
+            return NativeRegexEngine.from_file(rules_file)
+        elif pt in ("embed", "embed-transform"):
+            creator = TransformStreamFactory._CREATORS.get(pt)
+            if not creator:
+                raise ValueError(f"Transform type '{pt}' is not registered.")
+            return creator(cfg)
+        else:
+            raise ValueError(f"Unknown transform type: {pt}")

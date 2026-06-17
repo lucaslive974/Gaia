@@ -37,6 +37,9 @@ include = ["pyingestion*"]
 dev = [
     "pytest>=8.0.0",
 ]
+rag = [
+    "sentence-transformers>=3.0.0",
+]
 
 [tool.setuptools.package-data]
 pyingestion = ["locale/**/*.po", "locale/**/*.mo"]

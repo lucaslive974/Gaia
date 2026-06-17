@@ -111,6 +111,19 @@ def regex_transform(ctx, regex):
     ctx.obj["transform_stream"] = NativeRegexEngine.from_file(regex)
 
 
+@cli.command("embed-transform")
+@click.option("--chunk-size", default=500, type=int, help="Size of each text chunk.")
+@click.option("--chunk-overlap", default=100, type=int, help="Overlap between chunks.")
+@click.option("--device", default=None, type=str, help="Device to run embedding model on (e.g., cpu, cuda).")
+@click.pass_context
+def embed_transform(ctx, chunk_size, chunk_overlap, device):
+    from pyingestion.rag_streams import ChunkerTransformStream
+
+    ctx.obj["transform_stream"] = ChunkerTransformStream(
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap, device=device
+    )
+
+
 @cli.command("csv-output")
 @click.option(
     "-o", "--output", "--path", default="output.csv", help="Path to output CSV file."
@@ -134,6 +147,20 @@ def sqlite_output(ctx, db, table):
     from pyingestion.output_stream import SqliteOutputStream
 
     ctx.obj["output_stream"] = SqliteOutputStream(db, table)
+
+
+@cli.command("sqlite-vector-output")
+@click.option(
+    "--db", "--db-path", "--path", default="vector_store.db", help="Path to SQLite database file."
+)
+@click.option(
+    "--table", "--table-name", default="embeddings", help="Table name in database."
+)
+@click.pass_context
+def sqlite_vector_output(ctx, db, table):
+    from pyingestion.rag_streams import SqliteVectorOutputStream
+
+    ctx.obj["output_stream"] = SqliteVectorOutputStream(db_path=db, table_name=table)
 
 
 @cli.command("mysql-output")

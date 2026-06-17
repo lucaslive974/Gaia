@@ -46,7 +46,7 @@ def build_input_stream_from_config(
 def build_transform_stream_from_config(
     config_data: object,
 ) -> TransformStream[Any, Any]:  # pyright: ignore[reportExplicitAny]
-    from pyingestion.transform_stream import NativeRegexEngine, ChainedTransformStream
+    from pyingestion.transform_stream import TransformStreamFactory, ChainedTransformStream
 
     if not isinstance(config_data, PipelineConfig):
         try:
@@ -61,21 +61,20 @@ def build_transform_stream_from_config(
             raise click.UsageError(
                 "Transform section or 'regex' path is required in config."
             )
-        return NativeRegexEngine.from_file(regex_path)
+        try:
+            return TransformStreamFactory.create("regex", {"config_file": regex_path})
+        except ValueError as e:
+            raise click.UsageError(str(e))
 
     def instantiate_transform(
         item: TransformConfig,
     ) -> TransformStream[Any, Any]:  # pyright: ignore[reportExplicitAny]
         t_type = item.type
-        if t_type == "regex":
-            rules_file = item.config_file or item.rules_file
-            if not rules_file:
-                raise click.UsageError(
-                    "Transform of type 'regex' requires 'config_file' or 'rules_file'."
-                )
-            return NativeRegexEngine.from_file(rules_file)
-        else:
-            raise click.UsageError(f"Unknown transform type: {t_type}")
+        cfg = item.model_dump(exclude_none=True)
+        try:
+            return TransformStreamFactory.create(t_type, cfg)
+        except ValueError as e:
+            raise click.UsageError(str(e))
 
     if isinstance(transform_data, list):
         transforms = [instantiate_transform(item) for item in transform_data]
@@ -103,6 +102,9 @@ def build_output_stream_from_config(
         out_path = "output.csv"
         if to_dest == "sqlite":
             out_path = "records.db"
+        elif to_dest == "sqlite-vector":
+            from pyingestion.rag_streams import SqliteVectorOutputStream
+            return SqliteVectorOutputStream(db_path="vector_store.db")
         try:
             return OutputStreamFactory.create(to_dest, {"path": out_path})
         except ValueError as e:
@@ -113,6 +115,9 @@ def build_output_stream_from_config(
         out_path = output_data
         if to_dest == "sqlite" and out_path.endswith(".csv"):
             out_path = out_path[:-4] + ".db"
+        if to_dest == "sqlite-vector":
+            from pyingestion.rag_streams import SqliteVectorOutputStream
+            return SqliteVectorOutputStream(db_path=out_path)
         try:
             return OutputStreamFactory.create(to_dest, {"path": out_path})
         except ValueError as e:
@@ -123,6 +128,11 @@ def build_output_stream_from_config(
     ) -> OutputStream[Any]:  # pyright: ignore[reportExplicitAny]
         out_type = item.type
         cfg = item.model_dump(exclude_none=True)
+        if out_type == "sqlite-vector":
+            from pyingestion.rag_streams import SqliteVectorOutputStream
+            db_path = str(cfg.get("db_path") or cfg.get("path") or "vector_store.db")
+            table_name = str(cfg.get("table_name") or cfg.get("table") or "embeddings")
+            return SqliteVectorOutputStream(db_path=db_path, table_name=table_name)
         try:
             return OutputStreamFactory.create(out_type, cfg)
         except ValueError as e:

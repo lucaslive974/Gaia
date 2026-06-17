@@ -11,6 +11,9 @@ class TransformConfig(BaseModel):
     type: str = "regex"
     config_file: str | None = None
     rules_file: str | None = None
+    chunk_size: int = 500
+    chunk_overlap: int = 100
+    device: str | None = None
 
     @model_validator(mode="before")
     @classmethod

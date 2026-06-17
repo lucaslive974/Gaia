@@ -244,5 +244,8 @@ msgstr "Especificar o tipo do destino de saída (opções: csv, sqlite, mysql) (
 msgid "cli_version_help"
 msgstr "Mostra o número da versão do programa e sai."
 
+msgid "err_sentence_transformers_required"
+msgstr "O pacote 'sentence-transformers' é obrigatório para os embeddings padrão. Instale-o com 'pip install pyingestion[rag]' ou forneça um 'embedder' personalizado."
+
 
 
