@@ -18,9 +18,8 @@ from pyingestion.input_streams import (
     PdfInputStream,
 )
 from pyingestion.observer import (
-    DefaultExtractionObserver,
-    ExtractionObserver,
-    QueueObserver,
+    EventBus,
+    PipelineEvents,
 )
 from pyingestion.output_stream import (
     CsvWriteStream,
@@ -72,9 +71,8 @@ __all__ = [
     SqliteOutputStream,
     MysqlOutputStream,
     SqliteVectorOutputStream,
-    ExtractionObserver,
-    QueueObserver,
-    DefaultExtractionObserver,
+    EventBus,
+    PipelineEvents,
     T_in,
     T_out,
     T_source,

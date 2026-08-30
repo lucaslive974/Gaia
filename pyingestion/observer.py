@@ -1,126 +1,56 @@
-import queue
-from abc import ABC, abstractmethod
-from typing import override
+import logging
+from collections import defaultdict
+from typing import Any, Callable
+
+logger = logging.getLogger(__name__)
 
 
-class ExtractionObserver(ABC):
-    is_cancelled: bool = False
-
-    @abstractmethod
-    def on_start(self, total_files: int):
-        """Called when the extraction process starts."""
-
-    @abstractmethod
-    def on_file_start(self, file_index: int, file_path: str, estimated_hours: float):
-        """Called when processing of a specific file starts."""
-
-    @abstractmethod
-    def on_page_start(self, page_index: int, total_pages: int):
-        """Called when a page is about to be processed."""
-
-    @abstractmethod
-    def on_page_processed(
-        self,
-        success: bool,
-        extracted_pages: int,
-        error_pages: int,
-        page_index: int,
-        total_pages: int,
-    ):
-        """Called after a page has been processed."""
-
-    @abstractmethod
-    def on_file_complete(self, file_index: int, progress_percent: float):
-        """Called when a file is fully processed."""
-
-    @abstractmethod
-    def on_complete(self, successful_pages: int, total_pages: int):
-        """Called when the entire queue of files is completed."""
-
-    @abstractmethod
-    def on_error(self, error_message: str):
-        """Called when a critical error occurs."""
-
-
-class QueueObserver(ExtractionObserver):
+class EventBus:
     """
-    Thread-safe observer that puts events into a queue.Queue for UI consumption.
+    A dynamic, string-based Event Bus for the ingestion pipeline.
+    Replaces rigid GoF Observers.
     """
 
-    def __init__(self, event_queue: queue.Queue[tuple[str, object]]):
-        self._queue = event_queue
-        self.is_cancelled: bool = False
+    def __init__(self):
+        # Maps event strings (e.g., 'extraction.started') to a list of callables
+        self._listeners: dict[str, list[Callable[..., Any]]] = defaultdict(list)
 
-    @override
-    def on_start(self, total_files: int):
-        self._queue.put(("START", total_files))
+    def on(self, event_name: str, listener: Callable[..., Any]):
+        """Subscribe a callable to a specific pipeline event."""
+        self._listeners[event_name].append(listener)
+        return self  # Allow chaining
 
-    @override
-    def on_file_start(self, file_index: int, file_path: str, estimated_hours: float):
-        self._queue.put(("FILE_START", (file_index, file_path, estimated_hours)))
+    def off(self, event_name: str, listener: Callable[..., Any]):
+        """Unsubscribe a callable from an event."""
+        if listener in self._listeners[event_name]:
+            self._listeners[event_name].remove(listener)
 
-    @override
-    def on_page_start(self, page_index: int, total_pages: int):
-        self._queue.put(("PAGE_START", (page_index, total_pages)))
-
-    @override
-    def on_page_processed(
-        self,
-        success: bool,
-        extracted_pages: int,
-        error_pages: int,
-        page_index: int,
-        total_pages: int,
-    ):
-        self._queue.put(
-            (
-                "PAGE_PROCESSED",
-                (success, extracted_pages, error_pages, page_index, total_pages),
-            )
-        )
-
-    @override
-    def on_file_complete(self, file_index: int, progress_percent: float):
-        self._queue.put(("FILE_COMPLETE", (file_index, progress_percent)))
-
-    @override
-    def on_complete(self, successful_pages: int, total_pages: int):
-        self._queue.put(("COMPLETE", (successful_pages, total_pages)))
-
-    @override
-    def on_error(self, error_message: str):
-        self._queue.put(("ERROR", error_message))
+    def emit(self, event_name: str, *args: Any, **kwargs: Any):
+        """
+        Publish an event to all subscribed listeners.
+        """
+        for listener in self._listeners[event_name]:
+            try:
+                # Call the listener with the provided context
+                listener(*args, **kwargs)
+            except Exception as e:
+                # ERROR ISOLATION:
+                # If a custom logger/metrics module crashes, the pipeline survives.
+                logger.error(
+                    f"Observer {listener.__name__} failed handling event '{event_name}': {e}",
+                    exc_info=True,
+                )
 
 
-class DefaultExtractionObserver(ExtractionObserver):
-    """
-    Default no-op implementation of ExtractionObserver.
-    """
+class PipelineEvents:
+    EXTRACTION_STARTED = "extraction.started"
+    FILE_STARTED = "file.started"
+    PAGE_STARTED = "page.started"
+    PAGE_PROCESSED = "page.processed"
+    FILE_COMPLETED = "file.completed"
+    EXTRACTION_COMPLETED = "extraction.completed"
+    EXTRACTION_ERROR = "extraction.error"
 
-    def on_start(self, total_files: int):
-        pass
 
-    def on_file_start(self, file_index: int, file_path: str, estimated_hours: float):
-        pass
-
-    def on_page_start(self, page_index: int, total_pages: int):
-        pass
-
-    def on_page_processed(
-        self,
-        success: bool,
-        extracted_pages: int,
-        error_pages: int,
-        page_index: int,
-        total_pages: int,
-    ):
-        pass
-
-    def on_file_complete(self, file_index: int, progress_percent: float):
-        pass
-
-    def on_complete(self, successful_pages: int, total_pages: int):
-        pass
-
-    def on_error(self, error_message: str):
-        pass
+# Legacy compatibility exports if needed, or simply delete them and refactor everywhere.
+# Since we are fully migrating to EventBus, we will drop ExtractionObserver, QueueObserver, DefaultExtractionObserver.

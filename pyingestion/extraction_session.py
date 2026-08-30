@@ -4,7 +4,7 @@ from typing import cast
 
 from pydantic import BaseModel, Field, PrivateAttr, model_validator
 
-from pyingestion.observer import DefaultExtractionObserver, ExtractionObserver
+from pyingestion.observer import EventBus, PipelineEvents
 
 
 class ExtractionSession(BaseModel):
@@ -23,7 +23,7 @@ class ExtractionSession(BaseModel):
     current_file_path: str = ""
 
     # Non-serialized transient private attributes
-    _observer: ExtractionObserver | None = PrivateAttr(default=None)
+    _bus: EventBus = PrivateAttr(default_factory=EventBus)
     _error_handler: Callable[..., object] | None = PrivateAttr(default=None)
     _estimative_acc: float = PrivateAttr(default=1200.0)
     _estimative_cnt: int = PrivateAttr(default=1)
@@ -34,12 +34,13 @@ class ExtractionSession(BaseModel):
 
     def __init__(
         self,
-        observer: ExtractionObserver | None = None,
         error_handler: Callable[..., object] | None = None,
+        bus: EventBus | None = None,
         **data: object,
     ):
         super().__init__(**data)
-        self._observer = observer or DefaultExtractionObserver()
+        if bus is not None:
+            self._bus = bus
         if error_handler is not None:
             self._error_handler = error_handler
 
@@ -54,12 +55,8 @@ class ExtractionSession(BaseModel):
         return data
 
     @property
-    def observer(self) -> ExtractionObserver:
-        return self._observer or DefaultExtractionObserver()
-
-    @observer.setter
-    def observer(self, val: ExtractionObserver):
-        self._observer = val
+    def bus(self) -> EventBus:
+        return self._bus
 
     @property
     def error_handler(self) -> Callable[..., object] | None:
@@ -107,7 +104,9 @@ class ExtractionSession(BaseModel):
 
     def start(self, total_files: int):
         self.total_files = total_files
-        self._observer.on_start(total_files)
+        self.bus.emit(
+            PipelineEvents.EXTRACTION_STARTED, session=self, total_files=total_files
+        )
 
     def start_file(self, file_index: int, file_path: str):
         self.file_index = file_index
@@ -118,10 +117,21 @@ class ExtractionSession(BaseModel):
         remaining_count = self.total_files - self.file_index + 1
         est_hours = round((remaining_count * _estimative) / 3600.0, 2)
 
-        self._observer.on_file_start(file_index, file_path, est_hours)
+        self.bus.emit(
+            PipelineEvents.FILE_STARTED,
+            session=self,
+            file_index=file_index,
+            file_path=file_path,
+            estimated_hours=est_hours,
+        )
 
     def start_page(self, page_index: int, total_pages: int):
-        self._observer.on_page_start(page_index, total_pages)
+        self.bus.emit(
+            PipelineEvents.PAGE_STARTED,
+            session=self,
+            page_index=page_index,
+            total_pages=total_pages,
+        )
 
     def process_page_result(self, success: bool, page_index: int, total_pages: int):
         if success:
@@ -129,12 +139,14 @@ class ExtractionSession(BaseModel):
         else:
             self.failed_pages += 1
 
-        self._observer.on_page_processed(
-            success,
-            self.successful_pages,
-            self.failed_pages,
-            page_index,
-            total_pages,
+        self.bus.emit(
+            PipelineEvents.PAGE_PROCESSED,
+            session=self,
+            success=success,
+            extracted_pages=self.successful_pages,
+            error_pages=self.failed_pages,
+            page_index=page_index,
+            total_pages=total_pages,
         )
 
     def complete_file(self, file_index: int):
@@ -142,18 +154,32 @@ class ExtractionSession(BaseModel):
         self._estimative_acc += elapsed
         self._estimative_cnt += 1
 
-        progress_percent = (file_index / self.total_files) * 100
-        self._observer.on_file_complete(file_index, progress_percent)
+        progress_percent = (
+            (file_index / self.total_files) * 100 if self.total_files > 0 else 100.0
+        )
+        self.bus.emit(
+            PipelineEvents.FILE_COMPLETED,
+            session=self,
+            file_index=file_index,
+            progress_percent=progress_percent,
+        )
 
     def complete(self):
-        self._observer.on_complete(self.successful_pages, self.total_pages)
+        self.bus.emit(
+            PipelineEvents.EXTRACTION_COMPLETED,
+            session=self,
+            successful_pages=self.successful_pages,
+            total_pages=self.total_pages,
+        )
 
     def error(self, error_message: str):
-        self._observer.on_error(error_message)
+        self.bus.emit(
+            PipelineEvents.EXTRACTION_ERROR, session=self, error_message=error_message
+        )
 
     @property
     def is_cancelled(self) -> bool:
-        return self._is_cancelled or getattr(self._observer, "is_cancelled", False)
+        return self._is_cancelled
 
     @is_cancelled.setter
     def is_cancelled(self, value: bool):
@@ -163,11 +189,11 @@ class ExtractionSession(BaseModel):
 class FileExtractionSession(ExtractionSession):
     def __init__(
         self,
-        observer: ExtractionObserver | None = None,
         error_handler: Callable[..., object] | None = None,
+        bus: EventBus | None = None,
         **data: object,
     ):
-        super().__init__(observer=observer, error_handler=error_handler, **data)
+        super().__init__(error_handler=error_handler, bus=bus, **data)
 
     @classmethod
     def _get_paths(cls, source: str) -> list[str]:
@@ -245,11 +271,11 @@ class FileExtractionSession(ExtractionSession):
 class NoOpExtractionSession(ExtractionSession):
     def __init__(
         self,
-        observer: ExtractionObserver | None = None,
         error_handler: Callable[..., object] | None = None,
+        bus: EventBus | None = None,
         **data: object,
     ):
-        super().__init__(observer=observer, error_handler=error_handler, **data)
+        super().__init__(error_handler=error_handler, bus=bus, **data)
 
     def start(self, total_files: int):
         pass

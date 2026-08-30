@@ -1,29 +1,39 @@
-import queue
-
-from pyingestion import QueueObserver
+from pyingestion.observer import EventBus, PipelineEvents
 
 
-def test_queue_observer_puts_events():
-    q = queue.Queue()
-    observer = QueueObserver(q)
+def test_event_bus_pub_sub():
+    bus = EventBus()
 
-    observer.on_start(5)
-    assert q.get() == ("START", 5)
+    events_received = []
 
-    observer.on_file_start(1, "test.pdf", 1.5)
-    assert q.get() == ("FILE_START", (1, "test.pdf", 1.5))
+    def on_extraction_started(session, total_files, **kwargs):
+        events_received.append(("started", total_files))
 
-    observer.on_page_start(3, 10)
-    assert q.get() == ("PAGE_START", (3, 10))
+    bus.on(PipelineEvents.EXTRACTION_STARTED, on_extraction_started)
 
-    observer.on_page_processed(True, 3, 0, 3, 10)
-    assert q.get() == ("PAGE_PROCESSED", (True, 3, 0, 3, 10))
+    # Should be received
+    bus.emit(PipelineEvents.EXTRACTION_STARTED, session=None, total_files=5)
 
-    observer.on_file_complete(1, 100.0)
-    assert q.get() == ("FILE_COMPLETE", (1, 100.0))
+    assert len(events_received) == 1
+    assert events_received[0] == ("started", 5)
 
-    observer.on_complete(3, 10)
-    assert q.get() == ("COMPLETE", (3, 10))
 
-    observer.on_error("Something broke")
-    assert q.get() == ("ERROR", "Something broke")
+def test_event_bus_error_isolation():
+    bus = EventBus()
+
+    def crash_listener(*args, **kwargs):
+        raise ValueError("I crash the pipeline")
+
+    def safe_listener(*args, **kwargs):
+        kwargs["state"]["safe_called"] = True
+
+    bus.on(PipelineEvents.PAGE_PROCESSED, crash_listener)
+    bus.on(PipelineEvents.PAGE_PROCESSED, safe_listener)
+
+    state = {"safe_called": False}
+
+    # The crash_listener will fail, but the emit method should catch it
+    # and continue to call safe_listener without raising the exception.
+    bus.emit(PipelineEvents.PAGE_PROCESSED, state=state)
+
+    assert state["safe_called"] is True

@@ -53,7 +53,10 @@ class TestResumeSession:
         restored_state = FileExtractionSession.load(resume_setup.input_dir)
         assert restored_state is not None
 
-        session = ExtractionSession(mock_observer)
+        session = ExtractionSession()
+        session.bus.on("page.started", mock_observer.on_page_start)
+        if mock_observer.is_cancelled:
+            session.is_cancelled = True
         from typing import cast
 
         session.processed_files = cast(list[str], restored_state["processed_files"])
@@ -114,7 +117,10 @@ class TestResumeSession:
 
         restored_state = FileExtractionSession.load(resume_setup.input_dir)
         assert restored_state is not None
-        session = ExtractionSession(mock_observer)
+        session = ExtractionSession()
+        session.bus.on("page.started", mock_observer.on_page_start)
+        if mock_observer.is_cancelled:
+            session.is_cancelled = True
         from typing import cast
 
         session.processed_files = cast(list[str], restored_state["processed_files"])
@@ -175,9 +181,10 @@ class TestResumeSession:
 
         restored_state = FileExtractionSession.load(resume_setup.input_dir)
         assert restored_state is not None
-        session = FileExtractionSession(
-            mock_observer,
-        )
+        session = FileExtractionSession()
+        session.bus.on("page.started", mock_observer.on_page_start)
+        if mock_observer.is_cancelled:
+            session.is_cancelled = True
         from typing import cast
 
         session.processed_files = cast(list[str], restored_state["processed_files"])
@@ -241,9 +248,10 @@ class TestResumeSession:
 
         restored_state = FileExtractionSession.load(resume_setup.input_dir)
         assert restored_state is not None
-        session = FileExtractionSession(
-            mock_observer,
-        )
+        session = FileExtractionSession()
+        session.bus.on("page.started", mock_observer.on_page_start)
+        if mock_observer.is_cancelled:
+            session.is_cancelled = True
         from typing import cast
 
         session.processed_files = cast(list[str], restored_state["processed_files"])
@@ -297,7 +305,10 @@ class TestResumeSession:
 
         restored_state = FileExtractionSession.load(resume_setup.input_dir)
         assert restored_state is not None
-        session = ExtractionSession(mock_observer)
+        session = ExtractionSession()
+        session.bus.on("page.started", mock_observer.on_page_start)
+        if mock_observer.is_cancelled:
+            session.is_cancelled = True
         from typing import cast
 
         session.processed_files = cast(list[str], restored_state["processed_files"])
@@ -358,7 +369,10 @@ class TestResumeSession:
 
                 mock_observer = MagicMock()
                 mock_observer.is_cancelled = False
-                session = ExtractionSession(mock_observer)
+                session = ExtractionSession()
+                session.bus.on("page.started", mock_observer.on_page_start)
+                if mock_observer.is_cancelled:
+                    session.is_cancelled = True
 
                 controller = PyIngestion()
                 success = controller.process(
@@ -371,7 +385,9 @@ class TestResumeSession:
                 assert success is True
 
                 # The mock_observer should have on_page_start called ONLY for the non-blank page (page 2)
-                mock_observer.on_page_start.assert_called_once_with(2, 2)
+                mock_observer.on_page_start.assert_called_once_with(
+                    session=session, page_index=2, total_pages=2
+                )
                 # Transform should only have been called with the valid page text
                 transform_stream.transform.assert_called_once_with("raw text")
 
