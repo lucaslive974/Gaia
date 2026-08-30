@@ -2,7 +2,9 @@ import json
 import os
 import re
 from abc import ABC, abstractmethod
-from typing import Generic, TypedDict, TypeVar, cast
+from collections.abc import Callable, Mapping
+from enum import Enum
+from typing import Any, Generic, TypedDict, TypeVar, cast
 
 T_in = TypeVar("T_in", contravariant=True)
 T_out = TypeVar("T_out", covariant=True)
@@ -238,11 +240,6 @@ class NativeRegexEngine(RegexEngine):
                 matched_status[key] = False
 
         return results, matched_status
-
-
-from collections.abc import Callable, Mapping
-from enum import Enum
-from typing import Any
 
 
 class TransformStreamType(Enum):

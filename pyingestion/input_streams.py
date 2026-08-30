@@ -1,10 +1,11 @@
 import os
 from collections.abc import Generator
+from enum import Enum
 
 from pypdf import PdfReader
 
 from pyingestion.extraction_session import ExtractionSession
-from pyingestion.input_stream import FileInputStream
+from pyingestion.input_stream import FileInputStream, InputStream
 
 
 class PdfInputStream(FileInputStream):
@@ -412,11 +413,6 @@ class OcrInputStream(FileInputStream):
 
         if session and not session.is_cancelled:
             session.clear(source)
-
-
-from enum import Enum
-
-from pyingestion.input_stream import InputStream
 
 
 class InputStreamType(Enum):
