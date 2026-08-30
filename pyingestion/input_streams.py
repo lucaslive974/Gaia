@@ -1,9 +1,10 @@
 import os
 from collections.abc import Generator
-from pyingestion.extraction_session import ExtractionSession
-from pyingestion.input_stream import FileInputStream
 
 from pypdf import PdfReader
+
+from pyingestion.extraction_session import ExtractionSession
+from pyingestion.input_stream import FileInputStream
 
 
 class PdfInputStream(FileInputStream):
@@ -121,8 +122,8 @@ class DocxInputStream(FileInputStream):
 
     def _parse_pages(self, docx_path: str) -> list[str]:
         import docx
-        from docx.text.paragraph import Paragraph
         from docx.table import Table as DocxTable
+        from docx.text.paragraph import Paragraph
 
         doc = docx.Document(docx_path)
         pages = []
@@ -413,8 +414,10 @@ class OcrInputStream(FileInputStream):
             session.clear(source)
 
 
-from pyingestion.input_stream import InputStream
 from enum import Enum
+
+from pyingestion.input_stream import InputStream
+
 
 class InputStreamType(Enum):
     PDF = "pdf"

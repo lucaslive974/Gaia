@@ -1,6 +1,6 @@
 import queue
-from typing import override
 from abc import ABC, abstractmethod
+from typing import override
 
 
 class ExtractionObserver(ABC):
@@ -9,17 +9,14 @@ class ExtractionObserver(ABC):
     @abstractmethod
     def on_start(self, total_files: int):
         """Called when the extraction process starts."""
-        pass
 
     @abstractmethod
     def on_file_start(self, file_index: int, file_path: str, estimated_hours: float):
         """Called when processing of a specific file starts."""
-        pass
 
     @abstractmethod
     def on_page_start(self, page_index: int, total_pages: int):
         """Called when a page is about to be processed."""
-        pass
 
     @abstractmethod
     def on_page_processed(
@@ -31,22 +28,18 @@ class ExtractionObserver(ABC):
         total_pages: int,
     ):
         """Called after a page has been processed."""
-        pass
 
     @abstractmethod
     def on_file_complete(self, file_index: int, progress_percent: float):
         """Called when a file is fully processed."""
-        pass
 
     @abstractmethod
     def on_complete(self, successful_pages: int, total_pages: int):
         """Called when the entire queue of files is completed."""
-        pass
 
     @abstractmethod
     def on_error(self, error_message: str):
         """Called when a critical error occurs."""
-        pass
 
 
 class QueueObserver(ExtractionObserver):

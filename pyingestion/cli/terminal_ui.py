@@ -1,17 +1,19 @@
 import os
 import sys
-from typing import override, cast
+from typing import cast, override
+
 from rich.console import Console, Group
+from rich.live import Live
+from rich.panel import Panel
 from rich.progress import Progress
 from rich.table import Table
-from rich.panel import Panel
-from rich.live import Live
+
+from pyingestion.i18n import Language, _, get_lang
 from pyingestion.observer import ExtractionObserver
-from pyingestion.i18n import _, get_lang, Language
 
 try:
-    import termios
     import select
+    import termios
 except ImportError:
     termios = None
     select = None
@@ -250,15 +252,17 @@ def cli_error_handler(
 
 
 def run_with_ui(source, input_stream, transform_stream, output_stream, resume=False):
-    from pyingestion import PyIngestion, CsvWriteStream
     import time
+
     from rich.progress import (
-        SpinnerColumn,
-        TextColumn,
         BarColumn,
+        SpinnerColumn,
         TaskProgressColumn,
+        TextColumn,
         TimeRemainingColumn,
     )
+
+    from pyingestion import CsvWriteStream, PyIngestion
 
     console = Console()
     progress = Progress(
@@ -274,76 +278,75 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
 
     start_time = time.perf_counter()
 
-    with TerminalManager():
-        with Live(
-            observer.get_renderable(), console=console, refresh_per_second=10
-        ) as live:
-            observer.set_live(live)
-            try:
-                from pyingestion.extraction_session import FileExtractionSession
+    with TerminalManager(), Live(
+        observer.get_renderable(), console=console, refresh_per_second=10
+    ) as live:
+        observer.set_live(live)
+        try:
+            from pyingestion.extraction_session import FileExtractionSession
 
-                session = None
-                if resume:
-                    state_data = FileExtractionSession.load(source)
-                    if state_data:
-                        session = FileExtractionSession(
-                            observer=observer,
-                            error_handler=cli_error_handler,
-                        )
-                        session.processed_files = cast(
-                            list[str], state_data.get("processed_files", [])
-                        )
-                        session.successful_pages = cast(
-                            int, state_data.get("successful_pages", 0)
-                        )
-                        session.failed_pages = cast(
-                            int, state_data.get("failed_pages", 0)
-                        )
-                        session.total_pages = cast(
-                            int, state_data.get("total_pages", 0)
-                        )
-                        session.config_file = cast(
-                            str | None, state_data.get("config_file")
-                        )
-                        session.output_file = cast(
-                            str | None, state_data.get("output_file")
-                        )
-                        session.input_dir = cast(
-                            str | None, state_data.get("input_dir")
-                        )
-                    else:
-                        raise ValueError(_("err_resume_no_state"))
-
-                if session is None:
-                    # Clear log if not resuming
-                    log_path = os.path.join(os.getcwd(), "gaia_errors.log")
-                    if os.path.exists(log_path):
-                        try:
-                            os.remove(log_path)
-                        except Exception:
-                            pass
-
+            session = None
+            if resume:
+                state_data = FileExtractionSession.load(source)
+                if state_data:
                     session = FileExtractionSession(
-                        observer,
+                        observer=observer,
                         error_handler=cli_error_handler,
                     )
-                    session.config_file = getattr(transform_stream, "config_file", None)
-                    from pyingestion.output_stream import CsvWriteStream
+                    session.processed_files = cast(
+                        list[str], state_data.get("processed_files", [])
+                    )
+                    session.successful_pages = cast(
+                        int, state_data.get("successful_pages", 0)
+                    )
+                    session.failed_pages = cast(
+                        int, state_data.get("failed_pages", 0)
+                    )
+                    session.total_pages = cast(
+                        int, state_data.get("total_pages", 0)
+                    )
+                    session.config_file = cast(
+                        str | None, state_data.get("config_file")
+                    )
+                    session.output_file = cast(
+                        str | None, state_data.get("output_file")
+                    )
+                    session.input_dir = cast(
+                        str | None, state_data.get("input_dir")
+                    )
+                else:
+                    raise ValueError(_("err_resume_no_state"))
 
-                    if isinstance(output_stream, CsvWriteStream):
-                        session.output_file = output_stream.get_path()
-                    session.input_dir = source
+            if session is None:
+                # Clear log if not resuming
+                log_path = os.path.join(os.getcwd(), "gaia_errors.log")
+                if os.path.exists(log_path):
+                    try:
+                        os.remove(log_path)
+                    except Exception:
+                        pass
 
-                success = controller.process(
-                    source=source,
-                    input_stream=input_stream,
-                    transform_stream=transform_stream,
-                    output_stream=output_stream,
-                    session=session,
+                session = FileExtractionSession(
+                    observer,
+                    error_handler=cli_error_handler,
                 )
-            except KeyboardInterrupt:
-                observer.is_cancelled = True
-                success = False
+                session.config_file = getattr(transform_stream, "config_file", None)
+                from pyingestion.output_stream import CsvWriteStream
+
+                if isinstance(output_stream, CsvWriteStream):
+                    session.output_file = output_stream.get_path()
+                session.input_dir = source
+
+            success = controller.process(
+                source=source,
+                input_stream=input_stream,
+                transform_stream=transform_stream,
+                output_stream=output_stream,
+                session=session,
+            )
+        except KeyboardInterrupt:
+            observer.is_cancelled = True
+            success = False
 
     if observer.is_cancelled:
         console.print(f"\n[bold yellow]{_('ui_cancelled_msg')}[/bold yellow]\n")
@@ -377,9 +380,10 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
 
 def run_test_mode(test_file, transform_stream, input_stream):
     import sys
+
     from rich.console import Console
-    from rich.table import Table
     from rich.panel import Panel
+    from rich.table import Table
 
     console = Console()
     console.print(Panel(f"[bold green]{_('test_title')}[/bold green]", expand=False))
@@ -478,6 +482,7 @@ def run_test_mode(test_file, transform_stream, input_stream):
 def run_dump_mode(dump_file, input_stream):
     import os
     import sys
+
     from rich.console import Console
     from rich.panel import Panel
 

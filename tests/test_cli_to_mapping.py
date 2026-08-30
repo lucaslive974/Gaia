@@ -1,5 +1,7 @@
-from click.testing import CliRunner
 from unittest.mock import patch
+
+from click.testing import CliRunner
+
 from pyingestion.cli.main import cli
 from pyingestion.output_stream import CsvWriteStream, SqliteOutputStream
 

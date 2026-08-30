@@ -1,6 +1,8 @@
-import pytest
 import json
-from pyingestion.i18n import set_lang, Language
+
+import pytest
+
+from pyingestion.i18n import Language, set_lang
 
 
 @pytest.fixture(autouse=True)

@@ -1,8 +1,9 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from click.testing import CliRunner
 
-from pyingestion.pyingestion import PyIngestion
 from pyingestion.cli.main import cli
+from pyingestion.pyingestion import PyIngestion
 
 
 def test_main_execution_flow_to_ui(temp_file_factory):

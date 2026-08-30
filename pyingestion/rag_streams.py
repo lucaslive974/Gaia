@@ -2,9 +2,10 @@ import json
 import sqlite3
 from collections.abc import Callable, Mapping
 from typing import Any
-from pyingestion.transform_stream import TransformStream, TransformStreamFactory
-from pyingestion.output_stream import OutputStream
+
 from pyingestion.i18n import _
+from pyingestion.output_stream import OutputStream
+from pyingestion.transform_stream import TransformStream, TransformStreamFactory
 
 
 class ChunkerTransformStream(TransformStream[str, list[dict[str, object]]]):

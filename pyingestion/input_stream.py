@@ -1,9 +1,10 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Generic
 from collections.abc import Generator
+from typing import Generic
+
 from pyingestion.extraction_session import ExtractionSession
-from pyingestion.types import T_source, T_in
+from pyingestion.types import T_in, T_source
 
 
 class InputStream(Generic[T_source, T_in], ABC):
@@ -22,7 +23,6 @@ class InputStream(Generic[T_source, T_in], ABC):
         """
         Reads from the source, updates the session, and yields groups (units) of text.
         """
-        pass
 
 
 class FileInputStream(InputStream[str, str], ABC):
@@ -35,7 +35,6 @@ class FileInputStream(InputStream[str, str], ABC):
         """
         Returns True if the stream supports the file extension, False otherwise.
         """
-        pass
 
     def _find_files(self, source: str) -> list[str]:
         if os.path.isfile(source):

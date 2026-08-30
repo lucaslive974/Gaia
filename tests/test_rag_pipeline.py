@@ -1,19 +1,23 @@
-import os
 import json
+import os
 import sqlite3
 from collections.abc import Callable
+from pathlib import Path
 from typing import cast
 from unittest.mock import patch
-from click.testing import CliRunner
-from pathlib import Path
+
 import pytest
+from click.testing import CliRunner
 
 from pyingestion import PyIngestion
-from pyingestion.rag_streams import ChunkerTransformStream, SqliteVectorOutputStream
-from pyingestion.cli.builder import build_transform_stream_from_config, build_output_stream_from_config
-from pyingestion.config_models import PipelineConfig
+from pyingestion.cli.builder import (
+    build_output_stream_from_config,
+    build_transform_stream_from_config,
+)
 from pyingestion.cli.cli_helper import cli
+from pyingestion.config_models import PipelineConfig
 from pyingestion.input_stream import InputStream
+from pyingestion.rag_streams import ChunkerTransformStream, SqliteVectorOutputStream
 
 
 @pytest.fixture(autouse=True)
@@ -217,6 +221,7 @@ def test_full_rag_pipeline_execution(tmp_path: Path) -> None:
     db_path = os.path.join(tmp_path, "pipeline_execution.db")
     
     from collections.abc import Generator
+
     from pyingestion.extraction_session import ExtractionSession
 
     # Mocking input stream that yields paragraphs

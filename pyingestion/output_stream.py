@@ -1,8 +1,9 @@
 import csv
-from os import path
-from enum import Enum
 from collections.abc import Mapping
-from typing import Generic, cast 
+from enum import Enum
+from os import path
+from typing import Generic, cast
+
 from pyingestion.types import T_out
 
 
@@ -74,7 +75,7 @@ class SqliteOutputStream(OutputStream[dict[str, str]]):
                 c for c in self.table_name if c.isalnum() or c == "_"
             )
             columns = []
-            for key in sample_dict.keys():
+            for key in sample_dict:
                 sanitized_col = "".join(c for c in key if c.isalnum() or c == "_")
                 columns.append(f"{sanitized_col} TEXT")
 
@@ -175,7 +176,7 @@ class MysqlOutputStream(OutputStream[dict[str, str]]):
                     c for c in self.table_name if c.isalnum() or c == "_"
                 )
                 columns = []
-                for key in sample_dict.keys():
+                for key in sample_dict:
                     sanitized_col = "".join(c for c in key if c.isalnum() or c == "_")
                     columns.append(f"{sanitized_col} TEXT")
 
@@ -239,10 +240,11 @@ class OutputStreamFactory:
         config: Mapping[str, object] | None = None,
     ) -> OutputStream[dict[str, str]]:
         import os
+
         from pyingestion.output_stream import (
             CsvWriteStream,
-            SqliteOutputStream,
             MysqlOutputStream,
+            SqliteOutputStream,
         )
 
         pt = (

@@ -1,7 +1,8 @@
 import os
 import sqlite3
 from unittest.mock import MagicMock, patch
-from pyingestion import PyIngestion, NativeRegexEngine, SqliteOutputStream
+
+from pyingestion import NativeRegexEngine, PyIngestion, SqliteOutputStream
 
 
 @patch("pyingestion.input_stream.os.path.exists")

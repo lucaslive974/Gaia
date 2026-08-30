@@ -1,13 +1,15 @@
 import os
-import pytest
 from unittest.mock import patch
+
+import pytest
+
 from pyingestion.i18n import (
-    _,
-    set_lang,
-    get_lang,
-    parse_lang_from_argv,
     Language,
+    _,
+    get_lang,
     get_system_lang,
+    parse_lang_from_argv,
+    set_lang,
 )
 
 
@@ -86,8 +88,7 @@ class TestI18nAutoDetection:
         ],
     )
     def test_get_system_lang_from_env_fallback(self, env_dict, expected):
-        with patch("locale.getlocale", return_value=(None, None)):
-            with patch.dict(
-                os.environ, env_dict, clear=True if not env_dict else False
-            ):
-                assert get_system_lang() == expected
+        with patch("locale.getlocale", return_value=(None, None)), patch.dict(
+            os.environ, env_dict, clear=True if not env_dict else False
+        ):
+            assert get_system_lang() == expected

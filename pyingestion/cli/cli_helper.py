@@ -1,14 +1,15 @@
-import click
 import os
 from typing import cast
-from pyingestion.i18n import set_lang
+
+import click
 
 from pyingestion.cli.builder import (
-    load_config_file,
     build_input_stream_from_config,
-    build_transform_stream_from_config,
     build_output_stream_from_config,
+    build_transform_stream_from_config,
+    load_config_file,
 )
+from pyingestion.i18n import set_lang
 
 
 @click.group(chain=True, invoke_without_command=True)

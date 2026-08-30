@@ -1,15 +1,17 @@
 import os
-import click
 from typing import Any, cast
 
+import click
+
+from pyingestion.config_models import OutputConfig, PipelineConfig, TransformConfig
 from pyingestion.input_stream import InputStream
-from pyingestion.transform_stream import TransformStream
 from pyingestion.output_stream import OutputStream
-from pyingestion.config_models import PipelineConfig, TransformConfig, OutputConfig
+from pyingestion.transform_stream import TransformStream
 
 
 def load_config_file(file_path: str) -> dict[str, object]:
     import json
+
     import tomllib
 
     ext = os.path.splitext(file_path)[1].lower()
@@ -46,7 +48,10 @@ def build_input_stream_from_config(
 def build_transform_stream_from_config(
     config_data: object,
 ) -> TransformStream[Any, Any]:  # pyright: ignore[reportExplicitAny]
-    from pyingestion.transform_stream import TransformStreamFactory, ChainedTransformStream
+    from pyingestion.transform_stream import (
+        ChainedTransformStream,
+        TransformStreamFactory,
+    )
 
     if not isinstance(config_data, PipelineConfig):
         try:
@@ -88,7 +93,7 @@ def build_transform_stream_from_config(
 def build_output_stream_from_config(
     config_data: object,
 ) -> OutputStream[Any]:  # pyright: ignore[reportExplicitAny]
-    from pyingestion.output_stream import OutputStreamFactory, MultiOutputStream
+    from pyingestion.output_stream import MultiOutputStream, OutputStreamFactory
 
     if not isinstance(config_data, PipelineConfig):
         try:

@@ -2,47 +2,46 @@
 PyIngestion (Codename: Gaia)
 """
 
-from pyingestion.transform_stream import (
-    TransformStream,
-    ParallelTransformStream,
-    ChainedTransformStream,
-    RegexEngine,
-    NativeRegexEngine,
-    TransformStreamType,
-    TransformStreamFactory,
-)
-from pyingestion.input_stream import (
-    InputStream,
-    FileInputStream,
-)
-from pyingestion.input_streams import (
-    InputStreamFactory,
-    PdfInputStream,
-    DocxInputStream,
-    OcrInputStream,
-)
 from pyingestion.extraction_session import (
     ExtractionSession,
-    NoOpExtractionSession,
     FileExtractionSession,
+    NoOpExtractionSession,
 )
-from pyingestion.output_stream import (
-    OutputStream,
-    MultiOutputStream,
-    CsvWriteStream,
-    DefaultOutputStream,
-    SqliteOutputStream,
-    MysqlOutputStream,
+from pyingestion.input_stream import (
+    FileInputStream,
+    InputStream,
+)
+from pyingestion.input_streams import (
+    DocxInputStream,
+    InputStreamFactory,
+    OcrInputStream,
+    PdfInputStream,
 )
 from pyingestion.observer import (
+    DefaultExtractionObserver,
     ExtractionObserver,
     QueueObserver,
-    DefaultExtractionObserver,
+)
+from pyingestion.output_stream import (
+    CsvWriteStream,
+    DefaultOutputStream,
+    MultiOutputStream,
+    MysqlOutputStream,
+    OutputStream,
+    SqliteOutputStream,
 )
 from pyingestion.pyingestion import PyIngestion
 from pyingestion.rag_streams import ChunkerTransformStream, SqliteVectorOutputStream
-
-from pyingestion.types import T_source, T_in, T_out
+from pyingestion.transform_stream import (
+    ChainedTransformStream,
+    NativeRegexEngine,
+    ParallelTransformStream,
+    RegexEngine,
+    TransformStream,
+    TransformStreamFactory,
+    TransformStreamType,
+)
+from pyingestion.types import T_in, T_out, T_source
 
 # Codename for reference
 Gaia = PyIngestion

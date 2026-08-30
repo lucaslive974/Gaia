@@ -1,10 +1,11 @@
 import os
-from pyingestion.input_stream import InputStream
-from pyingestion.transform_stream import TransformStream
-from pyingestion.output_stream import OutputStream
-from pyingestion.extraction_session import ExtractionSession
 
-from pyingestion.types import T_source, T_in, T_out
+from pyingestion.extraction_session import ExtractionSession
+from pyingestion.input_stream import InputStream
+from pyingestion.output_stream import OutputStream
+from pyingestion.transform_stream import TransformStream
+from pyingestion.types import T_in, T_out, T_source
+
 
 class PyIngestion:
     """
