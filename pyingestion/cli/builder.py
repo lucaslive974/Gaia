@@ -109,6 +109,7 @@ def build_output_stream_from_config(
             out_path = "records.db"
         elif to_dest == "sqlite-vector":
             from pyingestion.rag_streams import SqliteVectorOutputStream
+
             return SqliteVectorOutputStream(db_path="vector_store.db")
         try:
             return OutputStreamFactory.create(to_dest, {"path": out_path})
@@ -122,6 +123,7 @@ def build_output_stream_from_config(
             out_path = out_path[:-4] + ".db"
         if to_dest == "sqlite-vector":
             from pyingestion.rag_streams import SqliteVectorOutputStream
+
             return SqliteVectorOutputStream(db_path=out_path)
         try:
             return OutputStreamFactory.create(to_dest, {"path": out_path})
@@ -135,6 +137,7 @@ def build_output_stream_from_config(
         cfg = item.model_dump(exclude_none=True)
         if out_type == "sqlite-vector":
             from pyingestion.rag_streams import SqliteVectorOutputStream
+
             db_path = str(cfg.get("db_path") or cfg.get("path") or "vector_store.db")
             table_name = str(cfg.get("table_name") or cfg.get("table") or "embeddings")
             return SqliteVectorOutputStream(db_path=db_path, table_name=table_name)

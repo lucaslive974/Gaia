@@ -485,6 +485,7 @@ class InputStreamFactory:
         Detects the correct InputStream parser based on the file extension.
         """
         import os
+
         ext = os.path.splitext(file_path)[1].lower()
         if ext == ".docx":
             return InputStreamFactory.create("docx", pages_per_unit, recursive)

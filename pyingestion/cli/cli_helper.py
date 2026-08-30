@@ -115,7 +115,12 @@ def regex_transform(ctx, regex):
 @cli.command("embed-transform")
 @click.option("--chunk-size", default=500, type=int, help="Size of each text chunk.")
 @click.option("--chunk-overlap", default=100, type=int, help="Overlap between chunks.")
-@click.option("--device", default=None, type=str, help="Device to run embedding model on (e.g., cpu, cuda).")
+@click.option(
+    "--device",
+    default=None,
+    type=str,
+    help="Device to run embedding model on (e.g., cpu, cuda).",
+)
 @click.pass_context
 def embed_transform(ctx, chunk_size, chunk_overlap, device):
     from pyingestion.rag_streams import ChunkerTransformStream
@@ -152,7 +157,11 @@ def sqlite_output(ctx, db, table):
 
 @cli.command("sqlite-vector-output")
 @click.option(
-    "--db", "--db-path", "--path", default="vector_store.db", help="Path to SQLite database file."
+    "--db",
+    "--db-path",
+    "--path",
+    default="vector_store.db",
+    help="Path to SQLite database file.",
 )
 @click.option(
     "--table", "--table-name", default="embeddings", help="Table name in database."

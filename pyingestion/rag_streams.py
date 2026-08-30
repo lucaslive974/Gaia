@@ -119,7 +119,7 @@ class SqliteVectorOutputStream(OutputStream[list[dict[str, object]]]):
             conn.close()
 
 
-def _create_chunker(cfg: Mapping[str, object]) -> TransformStream[Any, Any]: #pyright: ignore[reportExplicitAny]
+def _create_chunker(cfg: Mapping[str, object]) -> TransformStream[Any, Any]:  # pyright: ignore[reportExplicitAny]
     val_size = cfg.get("chunk_size")
     chunk_size = int(val_size) if isinstance(val_size, (int, str)) else 500
     val_overlap = cfg.get("chunk_overlap")

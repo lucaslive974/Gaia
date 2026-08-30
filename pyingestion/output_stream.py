@@ -260,7 +260,9 @@ class OutputStreamFactory:
             return CsvWriteStream(out_path)
         elif pt == "sqlite":
             db_path = str(cfg.get("db_path") or cfg.get("path") or "records.db")
-            table_name = str(cfg.get("table_name") or cfg.get("table") or "extracted_data")
+            table_name = str(
+                cfg.get("table_name") or cfg.get("table") or "extracted_data"
+            )
             return SqliteOutputStream(db_path, table_name)
         elif pt == "mysql":
             conn_uri = str(
@@ -273,7 +275,9 @@ class OutputStreamFactory:
                 raise ValueError(
                     "MySQL output requires 'connection_uri' or env var 'DATABASE_URL'."
                 )
-            table_name = str(cfg.get("table_name") or cfg.get("table") or "extracted_data")
+            table_name = str(
+                cfg.get("table_name") or cfg.get("table") or "extracted_data"
+            )
             return MysqlOutputStream(connection_uri=conn_uri, table_name=table_name)
         else:
             raise ValueError(f"Unknown output type: {pt}")
