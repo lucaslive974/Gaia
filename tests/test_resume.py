@@ -55,6 +55,7 @@ class TestResumeSession:
 
         session = ExtractionSession(mock_observer)
         from typing import cast
+
         session.processed_files = cast(list[str], restored_state["processed_files"])
         session.successful_pages = cast(int, restored_state["successful_pages"])
         session.failed_pages = cast(int, restored_state["failed_pages"])
@@ -115,6 +116,7 @@ class TestResumeSession:
         assert restored_state is not None
         session = ExtractionSession(mock_observer)
         from typing import cast
+
         session.processed_files = cast(list[str], restored_state["processed_files"])
         session.successful_pages = cast(int, restored_state["successful_pages"])
         session.failed_pages = cast(int, restored_state["failed_pages"])
@@ -124,9 +126,12 @@ class TestResumeSession:
 
         input_stream = PdfInputStream(pages_per_unit=1)
 
-        with patch.object(
-            PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]
-        ), patch("pyingestion.input_streams.PdfReader") as mock_pdf_reader:
+        with (
+            patch.object(
+                PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]
+            ),
+            patch("pyingestion.input_streams.PdfReader") as mock_pdf_reader,
+        ):
             mock_reader_instance = MagicMock()
             page = MagicMock()
             page.extract_text.return_value = "raw text"
@@ -174,6 +179,7 @@ class TestResumeSession:
             mock_observer,
         )
         from typing import cast
+
         session.processed_files = cast(list[str], restored_state["processed_files"])
         session.successful_pages = cast(int, restored_state["successful_pages"])
         session.failed_pages = cast(int, restored_state["failed_pages"])
@@ -183,9 +189,12 @@ class TestResumeSession:
 
         input_stream = PdfInputStream(pages_per_unit=1)
 
-        with patch.object(
-            PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]
-        ), patch("pyingestion.input_streams.PdfReader") as mock_pdf_reader:
+        with (
+            patch.object(
+                PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]
+            ),
+            patch("pyingestion.input_streams.PdfReader") as mock_pdf_reader,
+        ):
             mock_reader_instance = MagicMock()
             page = MagicMock()
             page.extract_text.return_value = "raw text"
@@ -236,6 +245,7 @@ class TestResumeSession:
             mock_observer,
         )
         from typing import cast
+
         session.processed_files = cast(list[str], restored_state["processed_files"])
         session.successful_pages = cast(int, restored_state["successful_pages"])
         session.failed_pages = cast(int, restored_state["failed_pages"])
@@ -289,6 +299,7 @@ class TestResumeSession:
         assert restored_state is not None
         session = ExtractionSession(mock_observer)
         from typing import cast
+
         session.processed_files = cast(list[str], restored_state["processed_files"])
         session.successful_pages = cast(int, restored_state["successful_pages"])
         session.failed_pages = cast(int, restored_state["failed_pages"])
@@ -298,9 +309,12 @@ class TestResumeSession:
 
         input_stream = PdfInputStream(pages_per_unit=1)
 
-        with patch.object(
-            PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]
-        ), patch("pyingestion.input_streams.PdfReader") as mock_pdf_reader:
+        with (
+            patch.object(
+                PdfInputStream, "_find_files", return_value=["file1.pdf", "file2.pdf"]
+            ),
+            patch("pyingestion.input_streams.PdfReader") as mock_pdf_reader,
+        ):
             mock_reader_instance = MagicMock()
             page = MagicMock()
             page.extract_text.return_value = "raw text"

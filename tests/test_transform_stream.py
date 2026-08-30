@@ -140,7 +140,9 @@ class TestRegexEngineParsing:
         assert results["second"] == "banana"
 
     def test_parse_missing_required_raises_value_error(self):
-        config: dict[str, object] = {"key1": {"regex": r"key1:\s*(\w+)", "required": True}}
+        config: dict[str, object] = {
+            "key1": {"regex": r"key1:\s*(\w+)", "required": True}
+        }
         engine = NativeRegexEngine(config)
 
         text = "key2: value2"

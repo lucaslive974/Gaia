@@ -34,7 +34,7 @@ class PyIngestion:
                 if session and session.is_cancelled:
                     break
 
-                if(isinstance(unit_text, str)):
+                if isinstance(unit_text, str):
                     if not unit_text.strip():
                         continue
 
@@ -59,7 +59,10 @@ class PyIngestion:
                     if parse_test_fn:
                         try:
                             from typing import cast
-                            res = cast(tuple[dict[str, str], object], parse_test_fn(unit_text))
+
+                            res = cast(
+                                tuple[dict[str, str], object], parse_test_fn(unit_text)
+                            )
                             partial_results = res[0]
                         except Exception:
                             pass

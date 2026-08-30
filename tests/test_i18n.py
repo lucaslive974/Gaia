@@ -88,7 +88,8 @@ class TestI18nAutoDetection:
         ],
     )
     def test_get_system_lang_from_env_fallback(self, env_dict, expected):
-        with patch("locale.getlocale", return_value=(None, None)), patch.dict(
-            os.environ, env_dict, clear=True if not env_dict else False
+        with (
+            patch("locale.getlocale", return_value=(None, None)),
+            patch.dict(os.environ, env_dict, clear=True if not env_dict else False),
         ):
             assert get_system_lang() == expected

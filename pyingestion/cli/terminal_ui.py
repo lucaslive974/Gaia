@@ -278,9 +278,10 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
 
     start_time = time.perf_counter()
 
-    with TerminalManager(), Live(
-        observer.get_renderable(), console=console, refresh_per_second=10
-    ) as live:
+    with (
+        TerminalManager(),
+        Live(observer.get_renderable(), console=console, refresh_per_second=10) as live,
+    ):
         observer.set_live(live)
         try:
             from pyingestion.extraction_session import FileExtractionSession
@@ -299,21 +300,15 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
                     session.successful_pages = cast(
                         int, state_data.get("successful_pages", 0)
                     )
-                    session.failed_pages = cast(
-                        int, state_data.get("failed_pages", 0)
-                    )
-                    session.total_pages = cast(
-                        int, state_data.get("total_pages", 0)
-                    )
+                    session.failed_pages = cast(int, state_data.get("failed_pages", 0))
+                    session.total_pages = cast(int, state_data.get("total_pages", 0))
                     session.config_file = cast(
                         str | None, state_data.get("config_file")
                     )
                     session.output_file = cast(
                         str | None, state_data.get("output_file")
                     )
-                    session.input_dir = cast(
-                        str | None, state_data.get("input_dir")
-                    )
+                    session.input_dir = cast(str | None, state_data.get("input_dir"))
                 else:
                     raise ValueError(_("err_resume_no_state"))
 

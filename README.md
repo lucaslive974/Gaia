@@ -130,7 +130,12 @@ success = runner.process(
 To perform chunking, vector embedding generation, and SQLite database persistence (RAG flow):
 
 ```python
-from pyingestion import PyIngestion, PdfInputStream, ChunkerTransformStream, SqliteVectorOutputStream
+from pyingestion import (
+    PyIngestion,
+    PdfInputStream,
+    ChunkerTransformStream,
+    SqliteVectorOutputStream,
+)
 
 # 1. Load components
 input_stream = PdfInputStream(pages_per_unit=1)
@@ -140,7 +145,9 @@ input_stream = PdfInputStream(pages_per_unit=1)
 transform = ChunkerTransformStream(chunk_size=300, chunk_overlap=50, device="cpu")
 
 # SqliteVectorOutputStream serializes and stores the text chunks, metadata, and embedding vectors in a SQLite DB
-output = SqliteVectorOutputStream(db_path="rag_vector_store.db", table_name="embeddings")
+output = SqliteVectorOutputStream(
+    db_path="rag_vector_store.db", table_name="embeddings"
+)
 
 # 2. Run the pipeline
 runner = PyIngestion()
@@ -158,7 +165,14 @@ You can supply your own extraction parser format by subclassing the abstract bas
 
 ```python
 from collections.abc import Generator
-from pyingestion import PyIngestion, InputStream, ExtractionSession, NativeRegexEngine, CsvWriteStream
+from pyingestion import (
+    PyIngestion,
+    InputStream,
+    ExtractionSession,
+    NativeRegexEngine,
+    CsvWriteStream,
+)
+
 
 class CustomTxtInputStream(InputStream[str, str]):
     def read(
@@ -196,6 +210,7 @@ class CustomTxtInputStream(InputStream[str, str]):
         if session:
             session.complete()
 
+
 # Inject it into PyIngestion orchestrator
 input_stream = CustomTxtInputStream()
 transform = NativeRegexEngine.from_file("rules.json")
@@ -221,12 +236,9 @@ from pyingestion import PdfInputStream, NativeRegexEngine
 regex_rules = {
     "infraction_id": {
         "regex": r"Código da Infração:\s*([A-Za-z0-9-]+)",
-        "required": True
+        "required": True,
     },
-    "plate": {
-        "regex": r"Placa:\s*([A-Z]{3}-?\d[A-Z0-9]\d{2})",
-        "required": True
-    }
+    "plate": {"regex": r"Placa:\s*([A-Z]{3}-?\d[A-Z0-9]\d{2})", "required": True},
 }
 engine = NativeRegexEngine(regex_rules)
 
