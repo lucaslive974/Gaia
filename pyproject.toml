@@ -64,22 +64,6 @@ select = ["E", "F", "I"]
 
 # Disable rules to match your basedpyright configuration:
 ignore = [
-    # Matches 'reportUnusedImport = "none"'
-    "F401", 
-    
-    # Matches 'reportUnusedParameter = "none"'
-    "ARG",  
-    
-    # Matches 'reportMissingTypeArgument', 'reportMissingParameterType' 
-    # (Disables strict type annotation enforcement if you were to enable the ANN rule group)
-    "ANN",  
-    
-    # Matches 'reportConstantRedefinition = "none"'
-    "F811", 
-    
-    # Ignored to match Pyright's relaxed approach to unused locals in your config
-    "F841", 
-    
     "E501"
 ]
 
