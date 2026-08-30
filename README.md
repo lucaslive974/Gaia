@@ -388,6 +388,25 @@ type = "csv"
 path = "backup.csv"
 ```
 
+##### 4. Regex Extraction Rules (`rules.toml`)
+Extraction rules can be defined using TOML (or JSON) format. Each section defines a field to extract, its regular expression pattern (optionally using a named capture group matching the section name), and whether the field is required for a successful extraction.
+
+Here are two examples translated from `poc/rules.toml`:
+
+**Example 1: Required date field**
+```toml
+[issue_date]
+regex = 'Issue Date:\s*(?P<issue_date>\d{2}/\d{2}/\d{4})'
+required = true
+```
+
+**Example 2: Optional text field**
+```toml
+[vehicle]
+regex = 'Vehicle:\s*(?P<vehicle>.*?)\s{2,}Plate'
+required = false
+```
+
 ---
 
 ## 🧪 Testing and Tools
