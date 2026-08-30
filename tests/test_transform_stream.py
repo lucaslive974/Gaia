@@ -1,4 +1,5 @@
 import pytest
+
 from pyingestion import NativeRegexEngine
 
 

@@ -1,6 +1,8 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from pyingestion import PdfInputStream, ExtractionSession
+
+import pytest
+
+from pyingestion import ExtractionSession, PdfInputStream
 
 
 @patch("pyingestion.input_streams.PdfReader")

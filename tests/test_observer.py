@@ -1,4 +1,5 @@
 import queue
+
 from pyingestion import QueueObserver
 
 

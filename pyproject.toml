@@ -36,6 +36,7 @@ include = ["pyingestion*"]
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
+    "ruff"
 ]
 rag = [
     "sentence-transformers>=3.0.0",
@@ -47,3 +48,40 @@ pyingestion = ["locale/**/*.po", "locale/**/*.mo"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+
+[tool.ruff]
+# Standardize line length to match modern Python practices (default is 88)
+line-length = 88
+# Set the target version to match your pyproject.toml requires-python
+target-version = "py310" 
+
+[tool.ruff.lint]
+# Enable standard linting rules:
+# E: pycodestyle errors
+# F: Pyflakes (logical errors like unused variables)
+# I: isort (import sorting)
+select = ["E", "F", "I"]
+
+# Disable rules to match your basedpyright configuration:
+ignore = [
+    # Matches 'reportUnusedImport = "none"'
+    "F401", 
+    
+    # Matches 'reportUnusedParameter = "none"'
+    "ARG",  
+    
+    # Matches 'reportMissingTypeArgument', 'reportMissingParameterType' 
+    # (Disables strict type annotation enforcement if you were to enable the ANN rule group)
+    "ANN",  
+    
+    # Matches 'reportConstantRedefinition = "none"'
+    "F811", 
+    
+    # Ignored to match Pyright's relaxed approach to unused locals in your config
+    "F841", 
+]
+
+[tool.ruff.format]
+# Keep formatting consistent
+quote-style = "double"
+indent-style = "space"

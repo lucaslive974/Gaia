@@ -1,8 +1,8 @@
-import re
-import os
 import json
+import os
+import re
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, cast, TypedDict
+from typing import Generic, TypedDict, TypeVar, cast
 
 T_in = TypeVar("T_in", contravariant=True)
 T_out = TypeVar("T_out", covariant=True)
@@ -64,7 +64,6 @@ class RegexEngine(TransformStream[str, dict[str, str]], ABC):
         Parses text sequentially using compiled patterns.
         Raises ValueError if a required pattern is not matched.
         """
-        pass
 
     @abstractmethod
     def parse_test(self, text: str) -> tuple[dict[str, str], dict[str, bool]]:
@@ -72,7 +71,6 @@ class RegexEngine(TransformStream[str, dict[str, str]], ABC):
         Parses text sequentially using compiled patterns for testing/debugging.
         Does not raise ValueError, returns parsed fields and matched status.
         """
-        pass
 
 
 class NativeRegexEngine(RegexEngine):
@@ -242,8 +240,8 @@ class NativeRegexEngine(RegexEngine):
         return results, matched_status
 
 
+from collections.abc import Callable, Mapping
 from enum import Enum
-from collections.abc import Mapping, Callable
 from typing import Any
 
 

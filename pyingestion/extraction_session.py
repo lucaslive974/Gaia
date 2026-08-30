@@ -1,7 +1,10 @@
 import time
-from typing import cast, Callable
+from collections.abc import Callable
+from typing import cast
+
 from pydantic import BaseModel, Field, PrivateAttr, model_validator
-from pyingestion.observer import ExtractionObserver, DefaultExtractionObserver
+
+from pyingestion.observer import DefaultExtractionObserver, ExtractionObserver
 
 
 class ExtractionSession(BaseModel):
@@ -185,8 +188,8 @@ class FileExtractionSession(ExtractionSession):
 
     @classmethod
     def load(cls, source: str) -> dict[str, object] | None:
-        import os
         import json
+        import os
 
         paths = cls._get_paths(source)
         for p in paths:
