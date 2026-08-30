@@ -79,6 +79,8 @@ ignore = [
     
     # Ignored to match Pyright's relaxed approach to unused locals in your config
     "F841", 
+    
+    "E501"
 ]
 
 [tool.ruff.format]

@@ -2,7 +2,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pyingestion import ExtractionSession, PdfInputStream
+from pyingestion import (
+    DocxInputStream,
+    ExtractionSession,
+    OcrInputStream,
+    PdfInputStream,
+)
 
 
 @patch("pyingestion.input_streams.PdfReader")
@@ -132,9 +137,6 @@ def test_native_parser_accepts():
     assert parser.accepts("test.pdf.docx") is False
 
 
-from pyingestion import DocxInputStream
-
-
 @patch("docx.Document")
 def test_docx_parser_page_count(mock_docx_document):
     mock_doc_instance = MagicMock()
@@ -196,9 +198,6 @@ def test_docx_parser_accepts():
     assert parser.accepts("test.DOCX") is True
     assert parser.accepts("test.pdf") is False
     assert parser.accepts("test.txt") is False
-
-
-from pyingestion import OcrInputStream
 
 
 def test_ocr_parser_accepts():
