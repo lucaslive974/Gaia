@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import cast, override
+from typing import cast
 
 from rich.console import Console, Group
 from rich.live import Live
@@ -9,7 +9,6 @@ from rich.progress import Progress
 from rich.table import Table
 
 from pyingestion.i18n import Language, _, get_lang
-from pyingestion.observer import ExtractionObserver
 
 try:
     import select
@@ -57,7 +56,7 @@ class TerminalManager:
             pass
 
 
-class ConsoleObserver(ExtractionObserver):
+class ConsoleObserver:
     """
     TUI Observer that updates rich.progress and rich.live in real-time,
     handling terminal display rendering and ESC key cancellation.
@@ -107,16 +106,17 @@ class ConsoleObserver(ExtractionObserver):
             pass
         return False
 
-    @override
-    def on_start(self, total_files: int):
+    def on_start(self, session, total_files: int, **kwargs):
         self.total_files = total_files
         self.progress.update(self.total_files_task, total=total_files, completed=0)
         self._update_live()
 
-    @override
-    def on_file_start(self, file_index: int, file_path: str, estimated_hours: float):
+    def on_file_start(
+        self, session, file_index: int, file_path: str, estimated_hours: float, **kwargs
+    ):
         if not self.is_cancelled and self._check_cancel_keys():
             self.is_cancelled = True
+            session.is_cancelled = True
         self.file_index = file_index
         self.current_file_name = os.path.basename(file_path)
         self.estimated_hours = estimated_hours
@@ -128,23 +128,24 @@ class ConsoleObserver(ExtractionObserver):
         )
         self._update_live()
 
-    @override
-    def on_page_start(self, page_index: int, total_pages: int):
+    def on_page_start(self, session, page_index: int, total_pages: int, **kwargs):
         if not self.is_cancelled and self._check_cancel_keys():
             self.is_cancelled = True
+            session.is_cancelled = True
         self.current_page = page_index
         self.total_current_pages = total_pages
         self.progress.update(self.current_file_task, total=total_pages)
         self._update_live()
 
-    @override
     def on_page_processed(
         self,
+        session,
         success: bool,
         extracted_pages: int,
         error_pages: int,
         page_index: int,
         total_pages: int,
+        **kwargs,
     ):
         self.successful_pages = extracted_pages
         self.error_pages = error_pages
@@ -152,18 +153,17 @@ class ConsoleObserver(ExtractionObserver):
         self.progress.update(self.current_file_task, completed=page_index)
         self._update_live()
 
-    @override
-    def on_file_complete(self, file_index: int, progress_percent: float):
+    def on_file_complete(
+        self, session, file_index: int, progress_percent: float, **kwargs
+    ):
         self.progress.update(self.total_files_task, completed=file_index)
         self._update_live()
 
-    @override
-    def on_complete(self, successful_pages: int, total_pages: int):
+    def on_complete(self, session, successful_pages: int, total_pages: int, **kwargs):
         self.progress.remove_task(self.current_file_task)
         self._update_live()
 
-    @override
-    def on_error(self, error_message: str):
+    def on_error(self, session, error_message: str, **kwargs):
         err_lbl = _("ui_error")
         if err_lbl == "ui_error":
             err_lbl = "🚨 ERROR"
@@ -291,7 +291,6 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
                 state_data = FileExtractionSession.load(source)
                 if state_data:
                     session = FileExtractionSession(
-                        observer=observer,
                         error_handler=cli_error_handler,
                     )
                     session.processed_files = cast(
@@ -322,7 +321,6 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
                         pass
 
                 session = FileExtractionSession(
-                    observer,
                     error_handler=cli_error_handler,
                 )
                 session.config_file = getattr(transform_stream, "config_file", None)
@@ -331,6 +329,16 @@ def run_with_ui(source, input_stream, transform_stream, output_stream, resume=Fa
                 if isinstance(output_stream, CsvWriteStream):
                     session.output_file = output_stream.get_path()
                 session.input_dir = source
+
+            from pyingestion.observer import PipelineEvents
+
+            session.bus.on(PipelineEvents.EXTRACTION_STARTED, observer.on_start)
+            session.bus.on(PipelineEvents.FILE_STARTED, observer.on_file_start)
+            session.bus.on(PipelineEvents.PAGE_STARTED, observer.on_page_start)
+            session.bus.on(PipelineEvents.PAGE_PROCESSED, observer.on_page_processed)
+            session.bus.on(PipelineEvents.FILE_COMPLETED, observer.on_file_complete)
+            session.bus.on(PipelineEvents.EXTRACTION_COMPLETED, observer.on_complete)
+            session.bus.on(PipelineEvents.EXTRACTION_ERROR, observer.on_error)
 
             success = controller.process(
                 source=source,
